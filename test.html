@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>회원가입 / 로그인 테스트</title>
+</head>
+
+<body>
+
+  <h1>회원가입 / 로그인 테스트</h1>
+
+  <div>
+    <input type="text" id="username" placeholder="아이디 입력">
+  </div>
+
+  <div>
+    <input type="password" id="password" placeholder="비밀번호 입력">
+  </div>
+
+  <div style="margin-top: 10px;">
+    <button onclick="register()">회원가입</button>
+    <button onclick="login()">로그인</button>
+    <button onclick="checkMe()">내 로그인 상태 확인</button>
+    <button onclick="logout()">로그아웃</button>
+    <button onclick="loadProducts()">상품 목록 보기</button>
+    <button onclick="purchaseProduct(5)">상품 1 구매</button>
+    <button onclick="purchaseProduct(6)">상품 2 구매</button>
+    <button onclick="downloadProduct(5)">상품 1 다운로드</button>
+    <button onclick="downloadProduct(6)">상품 2 다운로드</button>
+    <button onclick="loadMyProducts()">내 구매 상품 보기</button>
+  </div>
+  <pre id="result" style="margin-top:20px; padding:10px; border:1px solid #ccc; white-space:pre-wrap;"></pre>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:3000';
+
+    function getInputValues() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      return { username, password };
+    }
+
+    function register() {
+      const { username, password } = getInputValues();
+
+      fetch(`${API_BASE}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('회원가입 응답:', data);
+          alert(data.message);
+        })
+        .catch(err => {
+          console.error('회원가입 에러:', err);
+          alert('회원가입 요청 실패');
+        });
+    }
+
+    function login() {
+      const { username, password } = getInputValues();
+
+      fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('로그인 응답:', data);
+          alert(data.message);
+        })
+        .catch(err => {
+          console.error('로그인 에러:', err);
+          alert('로그인 요청 실패');
+        });
+    }
+
+    function checkMe() {
+      fetch(`${API_BASE}/me`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('로그인 상태 응답:', data);
+          alert(JSON.stringify(data, null, 2));
+        })
+        .catch(err => {
+          console.error('로그인 상태 확인 에러:', err);
+          alert('로그인 상태 확인 실패');
+        });
+    }
+
+    function logout() {
+      fetch(`${API_BASE}/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('로그아웃 응답:', data);
+          alert(data.message);
+        })
+        .catch(err => {
+          console.error('로그아웃 에러:', err);
+          alert('로그아웃 실패');
+        });
+    }
+
+    function loadProducts() {
+      fetch(`${API_BASE}/products`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('상품 목록 응답:', data);
+          document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          console.error('상품 목록 에러:', err);
+          document.getElementById('result').textContent = '상품 목록 불러오기 실패';
+        });
+    }
+
+    function purchaseProduct(productId) {
+      fetch(`${API_BASE}/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ productId })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('구매 응답:', data);
+          alert(data.message);
+        })
+        .catch(err => {
+          console.error('구매 에러:', err);
+          alert('구매 요청 실패');
+        });
+    }
+
+    function downloadProduct(productId) {
+      fetch(`${API_BASE}/download/${productId}`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(async res => {
+          const contentType = res.headers.get('content-type') || '';
+
+          // 서버가 JSON 메시지를 보낸 경우
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            alert(data.message);
+            return;
+          }
+
+          // 파일이면 blob으로 받기
+          const blob = await res.blob();
+
+          // 파일명 추출
+          let filename = `download-${productId}`;
+          const disposition = res.headers.get('content-disposition');
+
+          if (disposition && disposition.includes('filename=')) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match && match[1]) {
+              filename = match[1];
+            }
+          }
+
+          // 페이지 이동 없이 다운로드 실행
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+          console.error('다운로드 에러:', err);
+          alert('다운로드 요청 실패');
+        });
+    }
+
+    function loadMyProducts() {
+      fetch(`${API_BASE}/my-products`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('내 구매 상품 응답:', data);
+
+          if (!data.products || data.products.length === 0) {
+            document.getElementById('result').textContent = '구매한 상품이 없습니다.';
+            return;
+          }
+
+          let text = '';
+
+          data.products.forEach(product => {
+            text += `구매기록번호: ${product.purchase_id}\n`;
+            text += `구매일: ${product.purchased_at}\n`;
+            text += `상품번호: ${product.product_id}\n`;
+            text += `상품명: ${product.title}\n`;
+            text += `가격: ${product.price}\n`;
+            text += `설명: ${product.description}\n`;
+            text += `파일명: ${product.file_name}\n`;
+            text += '-------------------------\n';
+          });
+
+          document.getElementById('result').textContent = text;
+        })
+        .catch(err => {
+          console.error('내 구매 상품 에러:', err);
+          document.getElementById('result').textContent = '내 구매 상품 불러오기 실패';
+        });
+    }
+  </script>
+
+</body>
+
+</html>
