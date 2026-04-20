@@ -29,6 +29,7 @@ app.use(session({
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
@@ -380,7 +381,7 @@ app.get('/my-products', (req, res) => {
       purchases.purchased_at,
       products.id AS product_id,
       products.title,
-      products.price,aa
+      products.price,
       products.description,
       products.file_name,
       products.file_path
