@@ -407,6 +407,44 @@ app.get('/my-products', (req, res) => {
   });
 });
 
+app.get('/my-download-logs', (req, res) => {
+  if (!req.session.userId) {
+    return res.json({
+      success: false,
+      message: '로그인이 필요합니다.'
+    });
+  }
+
+  const sql = `
+    SELECT
+      download_logs.id AS log_id,
+      download_logs.downloaded_at,
+      products.id AS product_id,
+      products.title,
+      products.price,
+      products.file_name
+    FROM download_logs
+    JOIN products ON download_logs.product_id = products.id
+    WHERE download_logs.user_id = ?
+    ORDER BY download_logs.downloaded_at DESC
+  `;
+
+  db.query(sql, [req.session.userId], (err, results) => {
+    if (err) {
+      console.error('내 다운로드 기록 조회 오류:', err);
+      return res.json({
+        success: false,
+        message: '다운로드 기록 불러오기 실패'
+      });
+    }
+
+    return res.json({
+      success: true,
+      logs: results
+    });
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

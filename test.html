@@ -3,37 +3,89 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>회원가입 / 로그인 테스트</title>
+  <title>회원 / 상품 / 구매 / 다운로드 테스트</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+    }
+
+    .auth-box,
+    .action-box,
+    .result-box {
+      margin-bottom: 24px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .auth-box input {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    .action-box button {
+      margin: 4px 6px 4px 0;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    #result {
+      white-space: pre-wrap;
+      background: #fafafa;
+      min-height: 120px;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+  </style>
 </head>
 
 <body>
 
-  <h1>회원가입 / 로그인 테스트</h1>
+  <h1>회원 / 상품 / 구매 / 다운로드 테스트</h1>
 
-  <div>
+  <div class="auth-box">
     <input type="text" id="username" placeholder="아이디 입력">
-  </div>
-
-  <div>
     <input type="password" id="password" placeholder="비밀번호 입력">
   </div>
 
-  <div style="margin-top: 10px;">
+  <div class="action-box">
     <button onclick="register()">회원가입</button>
     <button onclick="login()">로그인</button>
     <button onclick="checkMe()">내 로그인 상태 확인</button>
     <button onclick="logout()">로그아웃</button>
     <button onclick="loadProducts()">상품 목록 보기</button>
-    <button onclick="purchaseProduct(5)">상품 1 구매</button>
-    <button onclick="purchaseProduct(6)">상품 2 구매</button>
-    <button onclick="downloadProduct(5)">상품 1 다운로드</button>
-    <button onclick="downloadProduct(6)">상품 2 다운로드</button>
+    <button onclick="purchaseProduct(1)">상품 1 구매</button>
+    <button onclick="purchaseProduct(2)">상품 2 구매</button>
+    <button onclick="downloadProduct(1)">상품 1 다운로드</button>
+    <button onclick="downloadProduct(2)">상품 2 다운로드</button>
     <button onclick="loadMyProducts()">내 구매 상품 보기</button>
+    <button onclick="loadMyDownloadLogs()">내 다운로드 기록 보기</button>
   </div>
-  <pre id="result" style="margin-top:20px; padding:10px; border:1px solid #ccc; white-space:pre-wrap;"></pre>
+
+  <div class="result-box">
+    <h3>결과</h3>
+    <pre id="result"></pre>
+  </div>
 
   <script>
     const API_BASE = 'http://127.0.0.1:3000';
+
+    function setResult(text) {
+      document.getElementById('result').textContent = text;
+    }
 
     function getInputValues() {
       const username = document.getElementById('username').value.trim();
@@ -55,10 +107,12 @@
         .then(res => res.json())
         .then(data => {
           console.log('회원가입 응답:', data);
+          setResult(JSON.stringify(data, null, 2));
           alert(data.message);
         })
         .catch(err => {
           console.error('회원가입 에러:', err);
+          setResult('회원가입 요청 실패');
           alert('회원가입 요청 실패');
         });
     }
@@ -77,10 +131,12 @@
         .then(res => res.json())
         .then(data => {
           console.log('로그인 응답:', data);
+          setResult(JSON.stringify(data, null, 2));
           alert(data.message);
         })
         .catch(err => {
           console.error('로그인 에러:', err);
+          setResult('로그인 요청 실패');
           alert('로그인 요청 실패');
         });
     }
@@ -93,11 +149,11 @@
         .then(res => res.json())
         .then(data => {
           console.log('로그인 상태 응답:', data);
-          alert(JSON.stringify(data, null, 2));
+          setResult(JSON.stringify(data, null, 2));
         })
         .catch(err => {
           console.error('로그인 상태 확인 에러:', err);
-          alert('로그인 상태 확인 실패');
+          setResult('로그인 상태 확인 실패');
         });
     }
 
@@ -109,10 +165,12 @@
         .then(res => res.json())
         .then(data => {
           console.log('로그아웃 응답:', data);
+          setResult(JSON.stringify(data, null, 2));
           alert(data.message);
         })
         .catch(err => {
           console.error('로그아웃 에러:', err);
+          setResult('로그아웃 실패');
           alert('로그아웃 실패');
         });
     }
@@ -125,11 +183,11 @@
         .then(res => res.json())
         .then(data => {
           console.log('상품 목록 응답:', data);
-          document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+          setResult(JSON.stringify(data, null, 2));
         })
         .catch(err => {
           console.error('상품 목록 에러:', err);
-          document.getElementById('result').textContent = '상품 목록 불러오기 실패';
+          setResult('상품 목록 불러오기 실패');
         });
     }
 
@@ -145,10 +203,12 @@
         .then(res => res.json())
         .then(data => {
           console.log('구매 응답:', data);
+          setResult(JSON.stringify(data, null, 2));
           alert(data.message);
         })
         .catch(err => {
           console.error('구매 에러:', err);
+          setResult('구매 요청 실패');
           alert('구매 요청 실패');
         });
     }
@@ -161,17 +221,15 @@
         .then(async res => {
           const contentType = res.headers.get('content-type') || '';
 
-          // 서버가 JSON 메시지를 보낸 경우
           if (contentType.includes('application/json')) {
             const data = await res.json();
+            setResult(JSON.stringify(data, null, 2));
             alert(data.message);
             return;
           }
 
-          // 파일이면 blob으로 받기
           const blob = await res.blob();
 
-          // 파일명 추출
           let filename = `download-${productId}`;
           const disposition = res.headers.get('content-disposition');
 
@@ -182,7 +240,6 @@
             }
           }
 
-          // 페이지 이동 없이 다운로드 실행
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -191,9 +248,12 @@
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
+
+          setResult(`다운로드 완료: ${filename}`);
         })
         .catch(err => {
           console.error('다운로드 에러:', err);
+          setResult('다운로드 요청 실패');
           alert('다운로드 요청 실패');
         });
     }
@@ -208,7 +268,7 @@
           console.log('내 구매 상품 응답:', data);
 
           if (!data.products || data.products.length === 0) {
-            document.getElementById('result').textContent = '구매한 상품이 없습니다.';
+            setResult('구매한 상품이 없습니다.');
             return;
           }
 
@@ -225,11 +285,45 @@
             text += '-------------------------\n';
           });
 
-          document.getElementById('result').textContent = text;
+          setResult(text);
         })
         .catch(err => {
           console.error('내 구매 상품 에러:', err);
-          document.getElementById('result').textContent = '내 구매 상품 불러오기 실패';
+          setResult('내 구매 상품 불러오기 실패');
+        });
+    }
+
+    function loadMyDownloadLogs() {
+      fetch(`${API_BASE}/my-download-logs`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('내 다운로드 기록 응답:', data);
+
+          if (!data.logs || data.logs.length === 0) {
+            setResult('다운로드 기록이 없습니다.');
+            return;
+          }
+
+          let text = '';
+
+          data.logs.forEach(log => {
+            text += `기록번호: ${log.log_id}\n`;
+            text += `다운로드일: ${log.downloaded_at}\n`;
+            text += `상품번호: ${log.product_id}\n`;
+            text += `상품명: ${log.title}\n`;
+            text += `가격: ${log.price}\n`;
+            text += `파일명: ${log.file_name}\n`;
+            text += '-------------------------\n';
+          });
+
+          setResult(text);
+        })
+        .catch(err => {
+          console.error('내 다운로드 기록 에러:', err);
+          setResult('내 다운로드 기록 불러오기 실패');
         });
     }
   </script>
