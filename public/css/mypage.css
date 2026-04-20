@@ -1,0 +1,226 @@
+.mypage-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.mypage-sidebar {
+    display: grid;
+    gap: 18px;
+    position: sticky;
+    top: 24px;
+}
+
+.profile-card,
+.mypage-box,
+.mypage-menu {
+    background: #fff;
+    border: 1px solid #e9e9e9;
+    border-radius: 18px;
+}
+
+.profile-card {
+    padding: 24px;
+}
+
+.profile-label {
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: #888;
+}
+
+.profile-name {
+    margin: 0 0 8px;
+    font-size: 28px;
+}
+
+.profile-email {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.mypage-menu {
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.mypage-menu-item {
+    display: block;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    color: #444;
+}
+
+.mypage-menu-item.active,
+.mypage-menu-item:hover {
+    background: #f4f4f4;
+    color: #111;
+}
+
+.mypage-content {
+    display: grid;
+    gap: 20px;
+}
+
+.mypage-box {
+    padding: 28px;
+}
+
+.box-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.box-title {
+    margin: 0;
+    font-size: 24px;
+}
+
+.box-count {
+    font-size: 14px;
+    color: #777;
+}
+
+.purchase-list {
+    display: grid;
+    gap: 18px;
+}
+
+.purchase-item {
+    display: grid;
+    grid-template-columns: 220px 1fr 160px;
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+    border: 1px solid #eee;
+    border-radius: 16px;
+}
+
+.purchase-thumb {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f1f1f1;
+}
+
+.purchase-thumb img {
+    height: 100%;
+    object-fit: cover;
+}
+
+.purchase-category {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #888;
+}
+
+.purchase-title {
+    margin: 0 0 10px;
+    font-size: 22px;
+    line-height: 1.4;
+}
+
+.purchase-date {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.purchase-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.purchase-price {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.history-table {
+    border-top: 1px solid #eee;
+}
+
+.history-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.3fr 1fr;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+.history-head {
+    font-weight: 700;
+}
+
+.account-info-list {
+    border-top: 1px solid #eee;
+}
+
+.account-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+@media (max-width: 1024px) {
+    .mypage-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .mypage-sidebar {
+        position: static;
+    }
+
+    .purchase-item {
+        grid-template-columns: 180px 1fr;
+    }
+
+    .purchase-side {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .mypage-box {
+        padding: 22px 18px;
+    }
+
+    .purchase-item {
+        grid-template-columns: 1fr;
+    }
+
+    .purchase-title {
+        font-size: 20px;
+    }
+
+    .history-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .history-head {
+        display: none;
+    }
+
+    .account-info-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+}

@@ -1,0 +1,167 @@
+.board-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.board-search {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 520px;
+}
+
+.board-search input {
+    flex: 1;
+    height: 48px;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 15px;
+    background: #fff;
+    outline: none;
+}
+
+.board-search input:focus {
+    border-color: #222;
+}
+
+.write-btn {
+    flex-shrink: 0;
+}
+
+.board-table {
+    border-top: 2px solid #d8d8d8;
+    border-bottom: 1px solid #e9e9e9;
+    background: #fff;
+}
+
+.board-head,
+.board-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 150px 90px;
+    gap: 16px;
+    align-items: center;
+    min-height: 68px;
+    padding: 0 20px;
+}
+
+.board-head {
+    border-bottom: 1px solid #e9e9e9;
+    background: #fafafa;
+    font-size: 15px;
+    font-weight: 700;
+    color: #666;
+}
+
+.board-row {
+    border-bottom: 1px solid #e9e9e9;
+    color: #222;
+    font-size: 16px;
+    transition: background 0.2s ease;
+}
+
+.board-row:last-child {
+    border-bottom: 0;
+}
+
+.board-row:hover {
+    background: #fcfcfc;
+}
+
+.notice-row {
+    background: #fbfbfb;
+}
+
+.notice-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid #39b56a;
+    color: #39b56a;
+    background: #fff;
+    font-style: normal;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.col-number,
+.col-date,
+.col-view {
+    text-align: center;
+    color: #666;
+}
+
+.col-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #222;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 26px;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 42px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.page-btn.active {
+    background: #222;
+    border-color: #222;
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .board-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .board-search {
+        max-width: none;
+    }
+
+    .write-btn {
+        width: 100%;
+    }
+
+    .board-head {
+        display: none;
+    }
+
+    .board-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-items: start;
+        padding: 16px 18px;
+        min-height: auto;
+    }
+
+    .col-number,
+    .col-date,
+    .col-view {
+        text-align: left;
+    }
+
+    .col-title {
+        white-space: normal;
+    }
+}

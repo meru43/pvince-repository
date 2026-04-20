@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>주문하기</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/order.css" />
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <h1 class="logo">
+                <a href="/">SJ SHOP</a>
+            </h1>
+
+            <nav class="nav">
+                <a href="/">메인</a>
+                <a href="/products-page">상품리스트</a>
+                <a href="/qna-page">Q&A</a>
+                <a href="/cart-page">장바구니</a>
+                <a href="/mypage-page">마이페이지</a>
+                <a href="/login-page">로그인</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container page">
+        <section class="page-title-wrap">
+            <h2 class="page-title">주문하기</h2>
+            <p class="page-desc">주문 정보를 확인하고 결제를 진행하세요.</p>
+        </section>
+
+        <section class="order-layout">
+            <div class="order-main">
+                <section class="order-box">
+                    <h3 class="order-box-title">주문 상품</h3>
+
+                    <article class="order-product">
+                        <div class="order-product-thumb">
+                            <img src="https://via.placeholder.com/280x190?text=Template+01" alt="템플릿 01" />
+                        </div>
+
+                        <div class="order-product-info">
+                            <p class="order-product-category">비즈니스</p>
+                            <h4 class="order-product-title">미스터 피피티 템플릿 01</h4>
+                            <p class="order-product-price">19,900원</p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="order-box">
+                    <h3 class="order-box-title">주문자 정보</h3>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="order-name">이름</label>
+                            <input type="text" id="order-name" placeholder="이름을 입력하세요" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="order-email">이메일</label>
+                            <input type="email" id="order-email" placeholder="이메일을 입력하세요" />
+                        </div>
+
+                        <div class="form-group full">
+                            <label for="order-phone">연락처</label>
+                            <input type="text" id="order-phone" placeholder="연락처를 입력하세요" />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="order-box">
+                    <h3 class="order-box-title">결제 수단</h3>
+
+                    <div class="payment-options">
+                        <label class="payment-option">
+                            <input type="radio" name="payment" checked />
+                            <span>신용카드</span>
+                        </label>
+
+                        <label class="payment-option">
+                            <input type="radio" name="payment" />
+                            <span>계좌이체</span>
+                        </label>
+
+                        <label class="payment-option">
+                            <input type="radio" name="payment" />
+                            <span>간편결제</span>
+                        </label>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="order-summary">
+                <h3 class="summary-title">결제 정보</h3>
+
+                <ul class="summary-list">
+                    <li>
+                        <span>상품 금액</span>
+                        <strong>19,900원</strong>
+                    </li>
+                    <li>
+                        <span>할인 금액</span>
+                        <strong>0원</strong>
+                    </li>
+                    <li class="summary-total">
+                        <span>총 결제 금액</span>
+                        <strong>19,900원</strong>
+                    </li>
+                </ul>
+
+                <a href="/order-complete-page" class="btn btn-primary summary-btn">결제 완료하기</a>
+                <a href="/cart-page" class="btn btn-outline summary-btn">장바구니로 돌아가기</a>
+            </aside>
+        </section>
+    </main>
+</body>
+
+</html>

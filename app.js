@@ -9,15 +9,23 @@ const path = require('path');
 
 const app = express();
 
+/* =========================
+   기본 설정
+========================= */
+
+// public 폴더 안의 css, js, images를 브라우저에서 접근 가능하게 함
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(cors({
   origin: 'http://127.0.0.1:5500',
   credentials: true
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -26,6 +34,10 @@ app.use(session({
     sameSite: 'lax'
   }
 }));
+
+/* =========================
+   DB 연결
+========================= */
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -43,9 +55,71 @@ db.connect((err) => {
   }
 });
 
+/* =========================
+   페이지 라우트
+========================= */
+
+// 메인 페이지
 app.get('/', (req, res) => {
-  res.send('서버 켜짐!');
+  res.sendFile(path.join(__dirname, 'views', 'main.html'));
 });
+
+// 상품 리스트 페이지
+app.get('/products-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'product-list.html'));
+});
+
+// 상품 상세 페이지
+app.get('/products-page/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'product-detail.html'));
+});
+
+// 로그인 페이지
+app.get('/login-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
+
+// 장바구니 페이지
+app.get('/cart-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'cart.html'));
+});
+
+// 주문 페이지
+app.get('/order-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'order.html'));
+});
+
+// 주문 완료 페이지
+app.get('/order-complete-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'order-complete.html'));
+});
+
+// 주문 조회 페이지
+app.get('/order-check-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'order-check.html'));
+});
+
+// 마이페이지
+app.get('/mypage-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'mypage.html'));
+});
+
+// Q&A 페이지
+app.get('/qna-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'qna.html'));
+});
+
+app.get('/qna-detail-page/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'qna-detail.html'));
+});
+
+app.get('/qna-write-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'qna-write.html'));
+});
+
+/* =========================
+   회원가입 / 로그인 API
+========================= */
 
 // 회원가입
 app.post('/register', (req, res) => {
@@ -134,8 +208,6 @@ app.post('/login', (req, res) => {
       });
     }
 
-    console.log('로그인 조회 결과 개수:', results.length);
-
     if (results.length === 0) {
       return res.json({
         success: false,
@@ -147,14 +219,10 @@ app.post('/login', (req, res) => {
 
     try {
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log('비밀번호 일치 여부:', isMatch);
 
       if (isMatch) {
         req.session.userId = user.id;
         req.session.username = user.username;
-
-        console.log('로그인 성공:', username);
-        console.log('세션 저장 직후:', req.session);
 
         return res.json({
           success: true,
@@ -179,8 +247,6 @@ app.post('/login', (req, res) => {
 
 // 로그인 상태 확인
 app.get('/me', (req, res) => {
-  console.log('/me 세션 확인:', req.session);
-
   if (req.session.userId) {
     return res.json({
       loggedIn: true,
@@ -213,7 +279,12 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/products', (req, res) => {
+/* =========================
+   상품 API
+========================= */
+
+// 상품 목록 API
+app.get('/api/products', (req, res) => {
   const sql = 'SELECT * FROM products ORDER BY id DESC';
 
   db.query(sql, (err, results) => {
@@ -231,6 +302,38 @@ app.get('/products', (req, res) => {
     });
   });
 });
+
+// 상품 상세 API
+app.get('/api/products/:id', (req, res) => {
+  const productId = req.params.id;
+  const sql = 'SELECT * FROM products WHERE id = ?';
+
+  db.query(sql, [productId], (err, results) => {
+    if (err) {
+      console.error('상품 상세 조회 오류:', err);
+      return res.json({
+        success: false,
+        message: '상품 상세 불러오기 실패'
+      });
+    }
+
+    if (results.length === 0) {
+      return res.json({
+        success: false,
+        message: '상품을 찾을 수 없습니다.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      product: results[0]
+    });
+  });
+});
+
+/* =========================
+   구매 / 다운로드 API
+========================= */
 
 app.post('/purchase', (req, res) => {
   const { productId } = req.body;
@@ -277,11 +380,6 @@ app.post('/purchase', (req, res) => {
           message: '구매 실패'
         });
       }
-
-      console.log('구매 완료:', {
-        userId: req.session.userId,
-        productId
-      });
 
       return res.json({
         success: true,
@@ -367,6 +465,10 @@ app.get('/download/:productId', (req, res) => {
   });
 });
 
+/* =========================
+   내 구매 / 다운로드 기록 API
+========================= */
+
 app.get('/my-products', (req, res) => {
   if (!req.session.userId) {
     return res.json({
@@ -444,6 +546,10 @@ app.get('/my-download-logs', (req, res) => {
     });
   });
 });
+
+/* =========================
+   서버 실행
+========================= */
 
 const PORT = process.env.PORT || 3000;
 
