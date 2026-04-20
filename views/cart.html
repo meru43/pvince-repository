@@ -19,9 +19,7 @@
             <nav class="nav">
                 <a href="/">메인</a>
                 <a href="/products-page">상품리스트</a>
-                <a href="/qna-page">Q&A</a>
                 <a href="/cart-page">장바구니</a>
-                <a href="/mypage-page">마이페이지</a>
                 <a href="/login-page">로그인</a>
             </nav>
         </div>
@@ -34,40 +32,8 @@
         </section>
 
         <section class="cart-layout">
-            <div class="cart-list">
-                <article class="cart-item">
-                    <div class="cart-thumb">
-                        <img src="https://via.placeholder.com/320x220?text=Template+01" alt="템플릿 01" />
-                    </div>
-
-                    <div class="cart-info">
-                        <p class="cart-category">비즈니스</p>
-                        <h3 class="cart-title">미스터 피피티 템플릿 01</h3>
-                        <p class="cart-desc">회사소개서, 제안서, 보고서에 활용하기 좋은 템플릿입니다.</p>
-                    </div>
-
-                    <div class="cart-side">
-                        <p class="cart-price">19,900원</p>
-                        <button type="button" class="btn btn-outline">삭제</button>
-                    </div>
-                </article>
-
-                <article class="cart-item">
-                    <div class="cart-thumb">
-                        <img src="https://via.placeholder.com/320x220?text=Template+02" alt="템플릿 02" />
-                    </div>
-
-                    <div class="cart-info">
-                        <p class="cart-category">포트폴리오</p>
-                        <h3 class="cart-title">미스터 피피티 템플릿 02</h3>
-                        <p class="cart-desc">포트폴리오와 소개 페이지에 어울리는 구성입니다.</p>
-                    </div>
-
-                    <div class="cart-side">
-                        <p class="cart-price">24,900원</p>
-                        <button type="button" class="btn btn-outline">삭제</button>
-                    </div>
-                </article>
+            <div class="cart-list" id="cart-list-box">
+                <p class="empty-message">장바구니를 불러오는 중입니다.</p>
             </div>
 
             <aside class="cart-summary">
@@ -76,7 +42,7 @@
                 <ul class="summary-list">
                     <li>
                         <span>상품 금액</span>
-                        <strong>44,800원</strong>
+                        <strong id="summary-product-price">0원</strong>
                     </li>
                     <li>
                         <span>할인 금액</span>
@@ -84,15 +50,17 @@
                     </li>
                     <li class="summary-total">
                         <span>총 결제 금액</span>
-                        <strong>44,800원</strong>
+                        <strong id="summary-total-price">0원</strong>
                     </li>
                 </ul>
 
-                <a href="/order-page" class="btn btn-primary summary-btn">주문하기</a>
+                <a href="/order-page" class="btn btn-primary summary-btn" id="order-btn">주문하기</a>
                 <a href="/products-page" class="btn btn-outline summary-btn">계속 쇼핑하기</a>
             </aside>
         </section>
     </main>
+
+    <script src="/js/cart.js"></script>
 </body>
 
 </html>

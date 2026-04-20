@@ -19,10 +19,8 @@
             <nav class="nav">
                 <a href="/">메인</a>
                 <a href="/products-page">상품리스트</a>
-                <a href="/qna-page">Q&A</a>
                 <a href="/cart-page">장바구니</a>
                 <a href="/mypage-page">마이페이지</a>
-                <a href="/login-page">로그인</a>
             </nav>
         </div>
     </header>
@@ -37,8 +35,8 @@
             <aside class="mypage-sidebar">
                 <div class="profile-card">
                     <p class="profile-label">ACCOUNT</p>
-                    <h3 class="profile-name">홍길동 님</h3>
-                    <p class="profile-email">hong@example.com</p>
+                    <h3 class="profile-name" id="profile-name">로딩 중...</h3>
+                    <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
                 </div>
 
                 <nav class="mypage-menu">
@@ -46,82 +44,30 @@
                     <a href="#download-list" class="mypage-menu-item">다운로드 내역</a>
                     <a href="#account-info" class="mypage-menu-item">내 정보</a>
                 </nav>
+
+                <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
             </aside>
 
             <div class="mypage-content">
                 <section class="mypage-box" id="purchase-list">
                     <div class="box-head">
                         <h3 class="box-title">구매한 상품</h3>
-                        <span class="box-count">총 2건</span>
+                        <span class="box-count" id="purchase-count">총 0건</span>
                     </div>
 
-                    <div class="purchase-list">
-                        <article class="purchase-item">
-                            <div class="purchase-thumb">
-                                <img src="https://via.placeholder.com/320x220?text=Template+01" alt="템플릿 01" />
-                            </div>
-
-                            <div class="purchase-info">
-                                <p class="purchase-category">비즈니스</p>
-                                <h4 class="purchase-title">미스터 피피티 템플릿 01</h4>
-                                <p class="purchase-date">구매일: 2026.04.20</p>
-                            </div>
-
-                            <div class="purchase-side">
-                                <p class="purchase-price">19,900원</p>
-                                <a href="/download/1" class="btn btn-primary">다운로드</a>
-                            </div>
-                        </article>
-
-                        <article class="purchase-item">
-                            <div class="purchase-thumb">
-                                <img src="https://via.placeholder.com/320x220?text=Template+02" alt="템플릿 02" />
-                            </div>
-
-                            <div class="purchase-info">
-                                <p class="purchase-category">포트폴리오</p>
-                                <h4 class="purchase-title">미스터 피피티 템플릿 02</h4>
-                                <p class="purchase-date">구매일: 2026.04.18</p>
-                            </div>
-
-                            <div class="purchase-side">
-                                <p class="purchase-price">24,900원</p>
-                                <a href="/download/2" class="btn btn-primary">다운로드</a>
-                            </div>
-                        </article>
+                    <div class="purchase-list" id="purchase-list-box">
+                        <p class="empty-message">구매한 상품이 없습니다.</p>
                     </div>
                 </section>
 
                 <section class="mypage-box" id="download-list">
                     <div class="box-head">
                         <h3 class="box-title">다운로드 내역</h3>
-                        <span class="box-count">총 3건</span>
+                        <span class="box-count" id="download-count">총 0건</span>
                     </div>
 
-                    <div class="history-table">
-                        <div class="history-row history-head">
-                            <span>다운로드일</span>
-                            <span>상품명</span>
-                            <span>파일명</span>
-                        </div>
-
-                        <div class="history-row">
-                            <span>2026.04.20 14:32</span>
-                            <span>미스터 피피티 템플릿 01</span>
-                            <span>template01.zip</span>
-                        </div>
-
-                        <div class="history-row">
-                            <span>2026.04.20 14:28</span>
-                            <span>미스터 피피티 템플릿 01</span>
-                            <span>template01.zip</span>
-                        </div>
-
-                        <div class="history-row">
-                            <span>2026.04.18 10:05</span>
-                            <span>미스터 피피티 템플릿 02</span>
-                            <span>template02.zip</span>
-                        </div>
+                    <div class="history-table" id="download-history-box">
+                        <p class="empty-message">다운로드 내역이 없습니다.</p>
                     </div>
                 </section>
 
@@ -132,22 +78,20 @@
 
                     <div class="account-info-list">
                         <div class="account-info-row">
-                            <span>이름</span>
-                            <strong>홍길동</strong>
-                        </div>
-                        <div class="account-info-row">
                             <span>아이디</span>
-                            <strong>hong123</strong>
+                            <strong id="account-username">-</strong>
                         </div>
                         <div class="account-info-row">
-                            <span>이메일</span>
-                            <strong>hong@example.com</strong>
+                            <span>로그인 상태</span>
+                            <strong id="account-status">확인 중</strong>
                         </div>
                     </div>
                 </section>
             </div>
         </section>
     </main>
+
+    <script src="/js/mypage.js"></script>
 </body>
 
 </html>

@@ -176,6 +176,17 @@
     font-size: 15px;
 }
 
+.logout-btn {
+    width: 100%;
+}
+
+.empty-message {
+    margin: 0;
+    color: #777;
+    font-size: 15px;
+    padding: 12px 0;
+}
+
 @media (max-width: 1024px) {
     .mypage-layout {
         grid-template-columns: 1fr;

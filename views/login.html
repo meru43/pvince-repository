@@ -19,9 +19,7 @@
             <nav class="nav">
                 <a href="/">메인</a>
                 <a href="/products-page">상품리스트</a>
-                <a href="/qna-page">Q&A</a>
                 <a href="/cart-page">장바구니</a>
-                <a href="/mypage-page">마이페이지</a>
                 <a href="/login-page">로그인</a>
             </nav>
         </div>
@@ -36,7 +34,7 @@
                     아이디와 비밀번호를 입력해 로그인하세요.
                 </p>
 
-                <form class="login-form">
+                <form class="login-form" id="login-form">
                     <div class="form-group">
                         <label for="login-id">아이디</label>
                         <input type="text" id="login-id" placeholder="아이디를 입력하세요" />
@@ -47,11 +45,13 @@
                         <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" />
                     </div>
 
+                    <p class="login-error" id="login-error"></p>
+
                     <button type="submit" class="btn btn-primary login-submit">로그인</button>
                 </form>
 
                 <div class="login-links">
-                    <a href="#">회원가입</a>
+                    <a href="/register-page">회원가입</a>
                     <a href="#">비밀번호 찾기</a>
                 </div>
             </div>
@@ -69,6 +69,8 @@
             </div>
         </section>
     </main>
+
+    <script src="/js/login.js"></script>
 </body>
 
 </html>

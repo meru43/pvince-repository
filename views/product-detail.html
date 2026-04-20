@@ -28,50 +28,17 @@
     </header>
 
     <main class="container page">
-        <section class="product-detail">
-            <div class="detail-image">
-                <img src="https://via.placeholder.com/800x520?text=Template+Detail" alt="상품 상세 이미지">
-            </div>
-
-            <div class="detail-content">
-                <p class="detail-category">비즈니스 템플릿</p>
-                <h2 class="detail-title">미스터 피피티 템플릿 01</h2>
-                <p class="detail-price">19,900원</p>
-
-                <div class="detail-summary">
-                    <p>깔끔한 비즈니스 발표에 어울리는 PPT 템플릿입니다.</p>
-                    <p>회사소개서, 제안서, 보고서 등에 활용하기 좋습니다.</p>
-                </div>
-
-                <ul class="detail-meta">
-                    <li><strong>슬라이드 수</strong> <span>45장</span></li>
-                    <li><strong>비율</strong> <span>16:9</span></li>
-                    <li><strong>색상</strong> <span>3가지</span></li>
-                    <li><strong>파일 형식</strong> <span>PPTX</span></li>
-                </ul>
-
-                <div class="detail-actions">
-                    <a href="/cart-page" class="btn btn-outline">장바구니 담기</a>
-                    <a href="/order-page" class="btn btn-primary">바로 구매</a>
-                </div>
-            </div>
+        <section class="product-detail" id="product-detail-box">
+            <p class="empty-message">상품 정보를 불러오는 중입니다.</p>
         </section>
 
-        <section class="detail-description-box">
+        <section class="detail-description-box" id="product-description-box" style="display: none;">
             <h3 class="section-title">상품 설명</h3>
-            <div class="description-content">
-                <p>
-                    이 템플릿은 비즈니스/제안서/보고서 작업에 적합한 구조로 구성되어 있습니다.
-                    표지, 목차, 핵심 메시지, 차트, 프로세스, 팀 소개, 마무리 페이지 등
-                    실무에서 자주 쓰는 슬라이드를 포함하고 있습니다.
-                </p>
-                <p>
-                    처음에는 이 영역에 간단한 텍스트만 넣고,
-                    나중에 상세 이미지나 추가 설명을 더 붙이면 됩니다.
-                </p>
-            </div>
+            <div class="description-content" id="product-description"></div>
         </section>
     </main>
+
+    <script src="/js/product-detail.js"></script>
 </body>
 
 </html>

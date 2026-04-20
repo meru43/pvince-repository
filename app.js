@@ -117,6 +117,11 @@ app.get('/qna-write-page', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'qna-write.html'));
 });
 
+// 회원가입 페이지
+app.get('/register-page', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'register.html'));
+});
+
 /* =========================
    회원가입 / 로그인 API
 ========================= */

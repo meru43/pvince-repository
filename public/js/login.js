@@ -1,0 +1,62 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    const form = document.getElementById('login-form');
+    const usernameInput = document.getElementById('login-id');
+    const passwordInput = document.getElementById('login-password');
+    const errorText = document.getElementById('login-error');
+
+    // 이미 로그인 상태면 마이페이지로 이동
+    try {
+        const meResponse = await fetch('/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        const meData = await meResponse.json();
+
+        if (meData.loggedIn) {
+            window.location.href = '/mypage-page';
+            return;
+        }
+    } catch (error) {
+        console.error('로그인 상태 확인 실패:', error);
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        errorText.textContent = '';
+
+        if (!username || !password) {
+            errorText.textContent = '아이디와 비밀번호를 입력해주세요.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = '/mypage-page';
+            } else {
+                errorText.textContent = data.message || '로그인에 실패했습니다.';
+            }
+        } catch (error) {
+            console.error('로그인 요청 실패:', error);
+            errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        }
+    });
+});

@@ -1,0 +1,124 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    const detailBox = document.getElementById('product-detail-box');
+    const descriptionBox = document.getElementById('product-description-box');
+    const descriptionContent = document.getElementById('product-description');
+
+    const pathParts = window.location.pathname.split('/');
+    const productId = pathParts[pathParts.length - 1];
+
+    function getCartItems() {
+        const stored = localStorage.getItem('cartItems');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    function saveCartItems(items) {
+        localStorage.setItem('cartItems', JSON.stringify(items));
+    }
+
+    function addToCart(product) {
+        const cartItems = getCartItems();
+        const exists = cartItems.some(item => Number(item.id) === Number(product.id));
+
+        if (exists) {
+            alert('이미 장바구니에 담긴 상품입니다.');
+            return;
+        }
+
+        cartItems.push({
+            id: product.id,
+            title: product.title,
+            price: product.price,
+            description: product.description,
+            file_name: product.file_name
+        });
+
+        saveCartItems(cartItems);
+        alert('장바구니에 담았습니다.');
+    }
+
+    function renderProduct(product) {
+        detailBox.innerHTML = `
+            <div class="detail-image">
+                <img src="https://via.placeholder.com/800x520?text=Product+${product.id}" alt="${product.title}">
+            </div>
+
+            <div class="detail-content">
+                <p class="detail-category">상품 상세</p>
+                <h2 class="detail-title">${product.title}</h2>
+                <p class="detail-price">${Number(product.price).toLocaleString()}원</p>
+
+                <div class="detail-summary">
+                    <p>${product.description || '상품 설명이 없습니다.'}</p>
+                </div>
+
+                <ul class="detail-meta">
+                    <li><strong>상품 번호</strong> <span>${product.id}</span></li>
+                    <li><strong>파일명</strong> <span>${product.file_name || '-'}</span></li>
+                    <li><strong>가격</strong> <span>${Number(product.price).toLocaleString()}원</span></li>
+                </ul>
+
+                <div class="detail-actions">
+                    <button type="button" class="btn btn-outline" id="add-cart-btn">장바구니 담기</button>
+                    <button type="button" class="btn btn-primary" id="purchase-btn">바로 구매</button>
+                </div>
+            </div>
+        `;
+
+        descriptionContent.innerHTML = `
+            <p>${product.description || '상품 설명이 없습니다.'}</p>
+        `;
+
+        descriptionBox.style.display = 'block';
+
+        const addCartBtn = document.getElementById('add-cart-btn');
+        addCartBtn.addEventListener('click', () => {
+            addToCart(product);
+        });
+
+        const purchaseBtn = document.getElementById('purchase-btn');
+        purchaseBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        productId: product.id
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('구매가 완료되었습니다.');
+                    window.location.href = '/order-complete-page';
+                } else {
+                    alert(data.message || '구매에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('구매 요청 실패:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+            }
+        });
+    }
+
+    try {
+        const response = await fetch(`/api/products/${productId}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            renderProduct(data.product);
+        } else {
+            detailBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
+        }
+    } catch (error) {
+        console.error('상품 상세 불러오기 실패:', error);
+        detailBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+    }
+});
