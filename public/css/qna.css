@@ -41,7 +41,7 @@
 .board-head,
 .board-row {
     display: grid;
-    grid-template-columns: 100px 1fr 150px 90px;
+    grid-template-columns: 90px 1fr 120px 120px 140px 80px;
     gap: 16px;
     align-items: center;
     min-height: 68px;
@@ -91,6 +91,8 @@
 }
 
 .col-number,
+.col-writer,
+.col-status,
 .col-date,
 .col-view {
     text-align: center;
@@ -104,29 +106,75 @@
     color: #222;
 }
 
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    height: 34px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.status-badge.waiting {
+    background: #f3f3f3;
+    color: #555;
+}
+
+.status-badge.done {
+    background: #222;
+    color: #fff;
+}
+
+.empty-message {
+    margin: 0;
+    color: #777;
+    font-size: 15px;
+    padding: 18px 20px;
+}
+
 .pagination {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 10px;
     margin-top: 26px;
+    flex-wrap: wrap;
 }
 
-.page-btn {
+.page-number-group {
+    display: flex;
+    gap: 10px;
+}
+
+.page-btn,
+.page-nav-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 42px;
     height: 42px;
+    padding: 0 14px;
     border: 1px solid #ddd;
     border-radius: 10px;
     background: #fff;
     font-size: 14px;
+    color: #222;
 }
 
 .page-btn.active {
     background: #222;
     border-color: #222;
     color: #fff;
+}
+
+@media (max-width: 1024px) {
+
+    .board-head,
+    .board-row {
+        grid-template-columns: 70px 1fr 100px 100px 120px 70px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -156,6 +204,8 @@
     }
 
     .col-number,
+    .col-writer,
+    .col-status,
     .col-date,
     .col-view {
         text-align: left;

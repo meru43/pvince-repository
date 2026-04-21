@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Q&A 상세보기</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/qna-detail.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="detail-head" id="qna-detail-head">
+                <p class="empty-message">게시글을 불러오는 중입니다.</p>
+            </section>
+
+            <section class="detail-content-box">
+                <div class="detail-content" id="qna-detail-content"></div>
+            </section>
+
+            <section id="qna-answer-box-wrap"></section>
+
+            <section class="admin-answer-form-box" id="admin-answer-form-box" style="display: none;">
+                <div class="answer-form-head">
+                    <h3 class="answer-form-title">관리자 답변 작성</h3>
+                </div>
+
+                <form id="admin-answer-form" class="admin-answer-form">
+                    <textarea id="admin-answer-content" placeholder="답변 내용을 입력하세요"></textarea>
+                    <div class="admin-answer-actions">
+                        <button type="submit" class="btn btn-primary">답변 등록</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="detail-actions">
+                <a href="/qna-page" class="btn btn-outline">목록으로</a>
+                <a href="/qna-write-page" class="btn btn-primary">글쓰기</a>
+            </section>
+        </main>
+        <%- include('partials/footer') %>
+            <script src="/js/common.js"></script>
+            <script src="/js/qna-detail.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>주문조회</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/order-check.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="order-check-wrap">
+                <div class="order-check-box">
+                    <p class="order-check-label">ORDER CHECK</p>
+                    <h2 class="order-check-title">비회원 주문조회</h2>
+                    <p class="order-check-desc">
+                        주문번호와 이메일을 입력하면 주문 내역을 확인할 수 있습니다.
+                    </p>
+
+                    <form class="order-check-form" id="order-check-form">
+                        <div class="form-group">
+                            <label for="order-number">주문번호</label>
+                            <input type="text" id="order-number" placeholder="주문번호를 입력하세요" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="order-email">이메일</label>
+                            <input type="email" id="order-email" placeholder="이메일을 입력하세요" />
+                        </div>
+
+                        <p class="order-check-error" id="order-check-error"></p>
+
+                        <button type="submit" class="btn btn-primary order-check-submit">주문조회하기</button>
+                    </form>
+                </div>
+
+                <div class="order-result-box" id="order-result-box" style="display: none;">
+                    <div class="result-head">
+                        <h3 class="result-title">주문 조회 결과</h3>
+                        <span class="result-status">결제 완료</span>
+                    </div>
+
+                    <div class="result-info" id="result-info-box"></div>
+
+                    <div class="result-products" id="result-products-box"></div>
+                </div>
+            </section>
+        </main>
+        <%- include('partials/footer') %>
+            <script src="/js/order-check.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>

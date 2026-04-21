@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>장바구니</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/cart.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="page-title-wrap">
+                <h2 class="page-title">장바구니</h2>
+                <p class="page-desc">선택한 상품을 확인하고 주문으로 이동하세요.</p>
+            </section>
+
+            <section class="cart-layout">
+                <div class="cart-list" id="cart-list-box">
+                    <p class="empty-message">장바구니를 불러오는 중입니다.</p>
+                </div>
+
+                <aside class="cart-summary">
+                    <h3 class="summary-title">주문 요약</h3>
+
+                    <ul class="summary-list">
+                        <li>
+                            <span>상품 금액</span>
+                            <strong id="summary-product-price">0원</strong>
+                        </li>
+                        <li>
+                            <span>할인 금액</span>
+                            <strong>0원</strong>
+                        </li>
+                        <li class="summary-total">
+                            <span>총 결제 금액</span>
+                            <strong id="summary-total-price">0원</strong>
+                        </li>
+                    </ul>
+
+                    <a href="/order-page" class="btn btn-primary summary-btn" id="order-btn">주문하기</a>
+                    <a href="/products-page" class="btn btn-outline summary-btn">계속 쇼핑하기</a>
+                </aside>
+            </section>
+        </main>
+        <%- include('partials/footer') %>
+            <script src="/js/cart.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>

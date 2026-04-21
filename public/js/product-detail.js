@@ -6,34 +6,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
 
-    function getCartItems() {
-        const stored = localStorage.getItem('cartItems');
-        return stored ? JSON.parse(stored) : [];
-    }
+    async function addToCart(product) {
+        try {
+            const response = await fetch('/api/cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    productId: product.id
+                })
+            });
 
-    function saveCartItems(items) {
-        localStorage.setItem('cartItems', JSON.stringify(items));
-    }
+            const data = await response.json();
 
-    function addToCart(product) {
-        const cartItems = getCartItems();
-        const exists = cartItems.some(item => Number(item.id) === Number(product.id));
-
-        if (exists) {
-            alert('이미 장바구니에 담긴 상품입니다.');
-            return;
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert(data.message || '장바구니 담기에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('장바구니 담기 실패:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
         }
-
-        cartItems.push({
-            id: product.id,
-            title: product.title,
-            price: product.price,
-            description: product.description,
-            file_name: product.file_name
-        });
-
-        saveCartItems(cartItems);
-        alert('장바구니에 담았습니다.');
     }
 
     function renderProduct(product) {

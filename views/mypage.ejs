@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>마이페이지</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/mypage.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="page-title-wrap">
+                <h2 class="page-title">마이페이지</h2>
+                <p class="page-desc">내 정보와 구매한 상품, 다운로드 내역을 확인할 수 있습니다.</p>
+            </section>
+
+            <section class="mypage-layout">
+                <aside class="mypage-sidebar">
+                    <div class="profile-card">
+                        <p class="profile-label">ACCOUNT</p>
+                        <h3 class="profile-name" id="profile-name">로딩 중...</h3>
+                        <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
+                    </div>
+
+                    <nav class="mypage-menu">
+                        <a href="#purchase-list" class="mypage-menu-item active">구매한 상품</a>
+                        <a href="#download-list" class="mypage-menu-item">다운로드 내역</a>
+                        <a href="#account-info" class="mypage-menu-item">내 정보</a>
+                    </nav>
+
+                    <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
+                </aside>
+
+                <div class="mypage-content">
+                    <section class="mypage-box" id="purchase-list">
+                        <div class="box-head">
+                            <h3 class="box-title">구매한 상품</h3>
+                            <span class="box-count" id="purchase-count">총 0건</span>
+                        </div>
+
+                        <div class="purchase-list" id="purchase-list-box">
+                            <p class="empty-message">구매한 상품이 없습니다.</p>
+                        </div>
+                    </section>
+
+                    <section class="mypage-box" id="download-list">
+                        <div class="box-head">
+                            <h3 class="box-title">다운로드 내역</h3>
+                            <span class="box-count" id="download-count">총 0건</span>
+                        </div>
+
+                        <div class="history-table" id="download-history-box">
+                            <p class="empty-message">다운로드 내역이 없습니다.</p>
+                        </div>
+                    </section>
+
+                    <section class="mypage-box" id="account-info">
+                        <div class="box-head">
+                            <h3 class="box-title">내 정보</h3>
+                        </div>
+
+                        <div class="account-info-list">
+                            <div class="account-info-row">
+                                <span>아이디</span>
+                                <strong id="account-username">-</strong>
+                            </div>
+                            <div class="account-info-row">
+                                <span>로그인 상태</span>
+                                <strong id="account-status">확인 중</strong>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
+        <%- include('partials/footer') %>
+            <script src="/js/mypage.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>
