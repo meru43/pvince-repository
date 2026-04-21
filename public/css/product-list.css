@@ -61,3 +61,19 @@
     font-size: 15px;
     padding: 12px 0;
 }
+
+.product-uploader {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #666;
+}
+
+.detail-meta li span {
+    color: #444;
+}
+
+.product-uploader {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #666;
+}

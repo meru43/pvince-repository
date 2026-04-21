@@ -1,0 +1,86 @@
+.admin-users-box {
+    background: #fff;
+    border: 1px solid #e9e9e9;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.admin-users-head,
+.admin-user-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 180px 220px;
+    gap: 16px;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-users-head {
+    background: #fafafa;
+    font-weight: 700;
+    color: #666;
+}
+
+.admin-user-row:last-child {
+    border-bottom: 0;
+}
+
+.col-id,
+.col-role,
+.col-action {
+    text-align: center;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    height: 34px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    background: #f3f3f3;
+    color: #555;
+}
+
+.role-badge.admin {
+    background: #222;
+    color: #fff;
+}
+
+.role-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.empty-message {
+    margin: 0;
+    padding: 18px 20px;
+    color: #777;
+    font-size: 15px;
+}
+
+@media (max-width: 768px) {
+    .admin-users-head {
+        display: none;
+    }
+
+    .admin-user-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-items: start;
+    }
+
+    .col-id,
+    .col-role,
+    .col-action {
+        text-align: left;
+    }
+
+    .role-actions {
+        justify-content: flex-start;
+    }
+}

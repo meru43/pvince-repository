@@ -187,6 +187,33 @@
     padding: 12px 0;
 }
 
+.nickname-edit-box {
+    margin-top: 20px;
+}
+
+.nickname-edit-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.nickname-edit-row input {
+    flex: 1;
+    min-width: 220px;
+    height: 48px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 15px;
+}
+
+.nickname-message {
+    min-height: 20px;
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: #666;
+}
+
 @media (max-width: 1024px) {
     .mypage-layout {
         grid-template-columns: 1fr;

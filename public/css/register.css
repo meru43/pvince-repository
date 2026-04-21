@@ -100,6 +100,22 @@
     line-height: 1.8;
 }
 
+.nickname-check-row {
+    display: flex;
+    gap: 10px;
+}
+
+.nickname-check-row input {
+    flex: 1;
+}
+
+.register-check-message {
+    min-height: 20px;
+    margin: -8px 0 0;
+    font-size: 14px;
+    color: #666;
+}
+
 @media (max-width: 1024px) {
     .register-wrap {
         grid-template-columns: 1fr;

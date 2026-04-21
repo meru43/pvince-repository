@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const authLink = document.getElementById('auth-link');
     const orderCheckLink = document.getElementById('order-check-link');
+    const adminLink = document.getElementById('admin-link');
+    const sellerUploadLink = document.getElementById('seller-upload-link');
 
     try {
         const response = await fetch('/me', {
@@ -42,6 +44,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (orderCheckLink) {
                 orderCheckLink.href = '/mypage-page#purchase-list';
             }
+
+            if (data.role === 'admin') {
+                if (adminLink) adminLink.style.display = 'inline-flex';
+                if (sellerUploadLink) sellerUploadLink.style.display = 'inline-flex';
+            }
+
+            if (data.role === 'seller') {
+                if (sellerUploadLink) sellerUploadLink.style.display = 'inline-flex';
+            }
         } else {
             if (authLink) {
                 authLink.textContent = '로그인';
@@ -54,14 +65,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('공통 상태 확인 실패:', error);
-
-        if (authLink) {
-            authLink.textContent = '로그인';
-            authLink.href = '/login-page';
-        }
-
-        if (orderCheckLink) {
-            orderCheckLink.href = '/order-check-page';
-        }
     }
 });

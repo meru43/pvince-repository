@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const data = await response.json();
+        console.log('Q&A 목록 응답:', data);
 
         if (data.success) {
             renderPosts(data.posts);

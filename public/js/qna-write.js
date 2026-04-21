@@ -1,17 +1,38 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const form = document.querySelector('.write-form');
     const titleInput = document.getElementById('write-title');
     const writerInput = document.getElementById('write-name');
     const contentInput = document.getElementById('write-content');
+    const writerGroup = document.getElementById('writer-group');
+
+    let currentUser = null;
+
+    try {
+        const meResponse = await fetch('/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        const meData = await meResponse.json();
+
+        if (meData.loggedIn) {
+            currentUser = meData;
+            if (writerGroup) writerGroup.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('로그인 상태 확인 실패:', error);
+    }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const title = titleInput.value.trim();
-        const writer = writerInput.value.trim();
         const content = contentInput.value.trim();
+        const writer = currentUser
+            ? (currentUser.nickname || currentUser.username)
+            : writerInput.value.trim();
 
-        if (!title || !writer || !content) {
+        if (!title || !content || !writer) {
             alert('제목, 작성자, 내용을 모두 입력해주세요.');
             return;
         }

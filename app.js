@@ -67,6 +67,8 @@ const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const qnaRoutes = require('./routes/qnaRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
 
 app.use(mainRoutes);
 app.use(authRoutes(db, bcrypt));
@@ -74,6 +76,8 @@ app.use(productRoutes(db));
 app.use(cartRoutes(db));
 app.use(orderRoutes(db, path));
 app.use(qnaRoutes(db));
+app.use(adminRoutes(db));
+app.use(sellerRoutes(db));
 
 /* =========================
    서버 실행

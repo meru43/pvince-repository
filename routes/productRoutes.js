@@ -5,7 +5,14 @@ module.exports = (db) => {
 
     // 상품 목록 API
     router.get('/api/products', (req, res) => {
-        const sql = 'SELECT * FROM products ORDER BY id DESC';
+        const sql = `
+      SELECT
+        products.*,
+        COALESCE(users.nickname, users.username) AS uploader_name
+      FROM products
+      LEFT JOIN users ON products.created_by = users.id
+      ORDER BY products.id DESC
+    `;
 
         db.query(sql, (err, results) => {
             if (err) {
@@ -26,7 +33,16 @@ module.exports = (db) => {
     // 상품 상세 API
     router.get('/api/products/:id', (req, res) => {
         const productId = req.params.id;
-        const sql = 'SELECT * FROM products WHERE id = ?';
+
+        const sql = `
+      SELECT
+        products.*,
+        COALESCE(users.nickname, users.username) AS uploader_name
+      FROM products
+      LEFT JOIN users ON products.created_by = users.id
+      WHERE products.id = ?
+      LIMIT 1
+    `;
 
         db.query(sql, [productId], (err, results) => {
             if (err) {
