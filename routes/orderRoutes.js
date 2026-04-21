@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 
 module.exports = (db, path) => {
     const router = express.Router();
@@ -115,6 +116,223 @@ module.exports = (db, path) => {
                     });
                 });
             });
+        });
+    });
+
+    // 비회원 주문 생성 API
+    router.post('/api/guest-orders', async (req, res) => {
+        const {
+            productId,
+            guestName,
+            guestEmail,
+            guestPhone,
+            guestOrderPassword
+        } = req.body;
+
+        if (!productId) {
+            return res.json({
+                success: false,
+                message: '상품 번호가 없습니다.'
+            });
+        }
+
+        if (!guestName || !guestEmail || !guestPhone || !guestOrderPassword) {
+            return res.json({
+                success: false,
+                message: '이름, 이메일, 연락처, 주문조회 비밀번호를 모두 입력해주세요.'
+            });
+        }
+
+        const orderNumber = `GUEST-${Date.now()}`;
+
+        const productSql = `
+      SELECT id, title, price, description, file_name
+      FROM products
+      WHERE id = ?
+    `;
+
+        db.query(productSql, [productId], async (productErr, productResults) => {
+            if (productErr) {
+                console.error('비회원 주문용 상품 조회 오류:', productErr);
+                return res.json({
+                    success: false,
+                    message: '상품 정보를 불러오지 못했습니다.'
+                });
+            }
+
+            if (productResults.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '상품을 찾을 수 없습니다.'
+                });
+            }
+
+            const product = productResults[0];
+            const totalPrice = Number(product.price);
+
+            try {
+                const hashedGuestPassword = await bcrypt.hash(guestOrderPassword, 10);
+
+                const orderSql = `
+          INSERT INTO orders (
+            user_id,
+            order_number,
+            total_price,
+            status,
+            guest_name,
+            guest_email,
+            guest_phone,
+            guest_order_password
+          )
+          VALUES (?, ?, ?, 'paid', ?, ?, ?, ?)
+        `;
+
+                db.query(
+                    orderSql,
+                    [
+                        null,
+                        orderNumber,
+                        totalPrice,
+                        guestName,
+                        guestEmail,
+                        guestPhone,
+                        hashedGuestPassword
+                    ],
+                    (orderErr, orderResult) => {
+                        if (orderErr) {
+                            console.error('비회원 주문 생성 오류:', orderErr);
+                            return res.json({
+                                success: false,
+                                message: '비회원 주문 생성에 실패했습니다.'
+                            });
+                        }
+
+                        const orderId = orderResult.insertId;
+
+                        const orderItemSql = `
+              INSERT INTO order_items (order_id, product_id, price)
+              VALUES (?, ?, ?)
+            `;
+
+                        db.query(orderItemSql, [orderId, product.id, product.price], (itemErr) => {
+                            if (itemErr) {
+                                console.error('비회원 주문 상품 저장 오류:', itemErr);
+                                return res.json({
+                                    success: false,
+                                    message: '비회원 주문 상품 저장에 실패했습니다.'
+                                });
+                            }
+
+                            return res.json({
+                                success: true,
+                                message: '비회원 주문이 완료되었습니다.',
+                                orderNumber,
+                                totalPrice
+                            });
+                        });
+                    }
+                );
+            } catch (hashErr) {
+                console.error('비회원 주문 비밀번호 암호화 오류:', hashErr);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 처리에 실패했습니다.'
+                });
+            }
+        });
+    });
+
+    // 비회원 주문조회 API
+    router.post('/api/guest-orders/check', (req, res) => {
+        const { orderNumber, guestOrderPassword } = req.body;
+
+        if (!orderNumber || !guestOrderPassword) {
+            return res.json({
+                success: false,
+                message: '주문번호와 비밀번호를 모두 입력해주세요.'
+            });
+        }
+
+        const sql = `
+        SELECT *
+        FROM orders
+        WHERE order_number = ?
+        LIMIT 1
+    `;
+
+        db.query(sql, [orderNumber], async (err, results) => {
+            if (err) {
+                console.error('비회원 주문조회 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '주문 정보를 조회하지 못했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '일치하는 주문이 없습니다.'
+                });
+            }
+
+            const order = results[0];
+
+            try {
+                const isMatch = await bcrypt.compare(
+                    guestOrderPassword,
+                    order.guest_order_password
+                );
+
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '주문조회 비밀번호가 일치하지 않습니다.'
+                    });
+                }
+
+                const itemSql = `
+                SELECT
+                    order_items.product_id,
+                    order_items.price,
+                    products.title,
+                    products.description,
+                    products.file_name
+                FROM order_items
+                JOIN products ON order_items.product_id = products.id
+                WHERE order_items.order_id = ?
+            `;
+
+                db.query(itemSql, [order.id], (itemErr, itemResults) => {
+                    if (itemErr) {
+                        console.error('비회원 주문 상품 조회 오류:', itemErr);
+                        return res.json({
+                            success: false,
+                            message: '주문 상품 정보를 불러오지 못했습니다.'
+                        });
+                    }
+
+                    return res.json({
+                        success: true,
+                        order: {
+                            orderNumber: order.order_number,
+                            guestName: order.guest_name,
+                            guestEmail: order.guest_email,
+                            guestPhone: order.guest_phone,
+                            totalPrice: order.total_price,
+                            status: order.status,
+                            createdAt: order.created_at
+                        },
+                        items: itemResults
+                    });
+                });
+            } catch (compareErr) {
+                console.error('비회원 주문 비밀번호 비교 오류:', compareErr);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 확인에 실패했습니다.'
+                });
+            }
         });
     });
 

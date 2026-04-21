@@ -31,6 +31,10 @@ router.get('/order-page', (req, res) => {
     res.render('order');
 });
 
+router.get('/order-page/:id', (req, res) => {
+    res.render('order');
+});
+
 // 주문 완료 페이지
 router.get('/order-complete-page', (req, res) => {
     res.render('order-complete');

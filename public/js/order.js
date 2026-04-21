@@ -1,48 +1,38 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const completeOrderBtn = document.getElementById('complete-order-btn');
     const orderProductsBox = document.getElementById('order-products-box');
     const orderProductPrice = document.getElementById('order-product-price');
     const orderTotalPrice = document.getElementById('order-total-price');
-    const completeOrderBtn = document.getElementById('complete-order-btn');
 
-    function getCartItems() {
-        const stored = localStorage.getItem('cartItems');
-        return stored ? JSON.parse(stored) : [];
-    }
+    const orderNameInput = document.getElementById('order-name');
+    const orderEmailInput = document.getElementById('order-email');
+    const orderPhoneInput = document.getElementById('order-phone');
+    const orderPasswordInput = document.getElementById('order-password');
 
-    function saveLastOrder(orderData) {
-        localStorage.setItem('lastOrder', JSON.stringify(orderData));
-    }
+    const pathParts = window.location.pathname.split('/');
+    const maybeProductId = pathParts[pathParts.length - 1];
 
-    function clearCartItems() {
-        localStorage.removeItem('cartItems');
-    }
+    let loggedIn = false;
+    let orderItems = [];
+    let guestProductId = null;
 
-    function createOrderNumber() {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const random = Math.floor(1000 + Math.random() * 9000);
-        return `${yyyy}${mm}${dd}-${random}`;
-    }
-
-    function renderOrderItems(cartItems) {
-        if (!cartItems || cartItems.length === 0) {
+    function renderOrderItems(items) {
+        if (!items || items.length === 0) {
             orderProductsBox.innerHTML = `<p class="empty-message">주문할 상품이 없습니다.</p>`;
             orderProductPrice.textContent = '0원';
             orderTotalPrice.textContent = '0원';
             return;
         }
 
-        const totalPrice = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
+        const totalPrice = items.reduce((sum, item) => sum + Number(item.price), 0);
 
         orderProductPrice.textContent = `${totalPrice.toLocaleString()}원`;
         orderTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
 
-        orderProductsBox.innerHTML = cartItems.map(item => `
+        orderProductsBox.innerHTML = items.map(item => `
             <article class="order-product">
                 <div class="order-product-thumb">
-                    <img src="https://via.placeholder.com/280x190?text=Product+${item.id}" alt="${item.title}" />
+                    <img src="https://via.placeholder.com/280x190?text=Product+${item.product_id || item.id}" alt="${item.title}" />
                 </div>
 
                 <div class="order-product-info">
@@ -54,29 +44,108 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    const cartItems = getCartItems();
-    renderOrderItems(cartItems);
+    try {
+        const meResponse = await fetch('/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
 
-    completeOrderBtn.addEventListener('click', () => {
-        const currentCartItems = getCartItems();
+        const meData = await meResponse.json();
+        loggedIn = !!meData.loggedIn;
+    } catch (error) {
+        console.error('로그인 상태 확인 실패:', error);
+    }
 
-        if (!currentCartItems || currentCartItems.length === 0) {
-            alert('주문할 상품이 없습니다.');
-            return;
+    if (loggedIn && maybeProductId === 'order-page') {
+        try {
+            const cartResponse = await fetch('/api/cart', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            const cartData = await cartResponse.json();
+
+            if (cartData.success) {
+                orderItems = cartData.items;
+                renderOrderItems(orderItems);
+            } else {
+                orderProductsBox.innerHTML = `<p class="empty-message">${cartData.message || '주문 상품을 불러오지 못했습니다.'}</p>`;
+            }
+        } catch (error) {
+            console.error('회원 주문용 장바구니 조회 실패:', error);
+            orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
         }
+    } else {
+        guestProductId = maybeProductId;
 
-        const totalPrice = currentCartItems.reduce((sum, item) => sum + Number(item.price), 0);
+        try {
+            const response = await fetch(`/api/products/${guestProductId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
 
-        const lastOrder = {
-            orderNumber: createOrderNumber(),
-            items: currentCartItems,
-            totalPrice: totalPrice,
-            orderedAt: new Date().toISOString()
-        };
+            const data = await response.json();
 
-        saveLastOrder(lastOrder);
-        clearCartItems();
+            if (data.success) {
+                orderItems = [data.product];
+                renderOrderItems(orderItems);
+            } else {
+                orderProductsBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
+            }
+        } catch (error) {
+            console.error('비회원 주문용 상품 조회 실패:', error);
+            orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+        }
+    }
 
-        window.location.href = '/order-complete-page';
+    completeOrderBtn.addEventListener('click', async () => {
+        try {
+            let response;
+
+            if (loggedIn && !guestProductId) {
+                response = await fetch('/api/orders', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } else {
+                const guestName = orderNameInput.value.trim();
+                const guestEmail = orderEmailInput.value.trim();
+                const guestPhone = orderPhoneInput.value.trim();
+                const guestOrderPassword = orderPasswordInput.value.trim();
+
+                if (!guestName || !guestEmail || !guestPhone || !guestOrderPassword) {
+                    alert('비회원 주문 시 이름, 이메일, 연락처, 주문조회 비밀번호를 모두 입력해주세요.');
+                    return;
+                }
+
+                response = await fetch('/api/guest-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        productId: guestProductId,
+                        guestName,
+                        guestEmail,
+                        guestPhone,
+                        guestOrderPassword
+                    })
+                });
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                sessionStorage.setItem('lastOrderNumber', data.orderNumber);
+                sessionStorage.setItem('lastOrderTotalPrice', data.totalPrice);
+                window.location.href = '/order-complete-page';
+            } else {
+                alert(data.message || '주문에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('주문 요청 실패:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
+        }
     });
 });

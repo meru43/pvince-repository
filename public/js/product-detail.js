@@ -72,31 +72,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const purchaseBtn = document.getElementById('purchase-btn');
-        purchaseBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/purchase', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        productId: product.id
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('구매가 완료되었습니다.');
-                    window.location.href = '/order-complete-page';
-                } else {
-                    alert(data.message || '구매에 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('구매 요청 실패:', error);
-                alert('서버와 통신 중 오류가 발생했습니다.');
-            }
+        purchaseBtn.addEventListener('click', () => {
+            window.location.href = `/order-page/${product.id}`;
         });
     }
 

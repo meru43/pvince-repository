@@ -1,17 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('order-check-form');
     const orderNumberInput = document.getElementById('order-number');
-    const orderEmailInput = document.getElementById('order-email');
+    const orderPasswordInput = document.getElementById('order-password');
     const errorText = document.getElementById('order-check-error');
 
     const resultBox = document.getElementById('order-result-box');
     const resultInfoBox = document.getElementById('result-info-box');
     const resultProductsBox = document.getElementById('result-products-box');
-
-    function getLastOrder() {
-        const stored = localStorage.getItem('lastOrder');
-        return stored ? JSON.parse(stored) : null;
-    }
 
     function formatDate(dateString) {
         if (!dateString) return '-';
@@ -28,26 +23,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
     }
 
-    function renderResult(orderData) {
+    function renderResult(order, items) {
         resultInfoBox.innerHTML = `
             <div class="result-info-row">
                 <span>주문번호</span>
-                <strong>${orderData.orderNumber}</strong>
+                <strong>${order.orderNumber}</strong>
             </div>
             <div class="result-info-row">
-                <span>주문일시</span>
-                <strong>${formatDate(orderData.orderedAt)}</strong>
+                <span>주문자</span>
+                <strong>${order.guestName || '-'}</strong>
             </div>
             <div class="result-info-row">
                 <span>결제금액</span>
-                <strong>${Number(orderData.totalPrice).toLocaleString()}원</strong>
+                <strong>${Number(order.totalPrice).toLocaleString()}원</strong>
+            </div>
+            <div class="result-info-row">
+                <span>주문일시</span>
+                <strong>${formatDate(order.createdAt)}</strong>
             </div>
         `;
 
-        resultProductsBox.innerHTML = orderData.items.map(item => `
+        resultProductsBox.innerHTML = items.map(item => `
             <div class="result-product">
                 <div class="result-product-thumb">
-                    <img src="https://via.placeholder.com/280x190?text=Product+${item.id}" alt="${item.title}" />
+                    <img src="https://via.placeholder.com/280x190?text=Product+${item.product_id}" alt="${item.title}" />
                 </div>
 
                 <div class="result-product-info">
@@ -65,32 +64,43 @@ document.addEventListener('DOMContentLoaded', () => {
         resultBox.style.display = 'block';
     }
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const inputOrderNumber = orderNumberInput.value.trim();
-        const inputEmail = orderEmailInput.value.trim();
+        const orderNumber = orderNumberInput.value.trim();
+        const guestOrderPassword = orderPasswordInput.value.trim();
 
         errorText.textContent = '';
         resultBox.style.display = 'none';
 
-        if (!inputOrderNumber || !inputEmail) {
-            errorText.textContent = '주문번호와 이메일을 모두 입력해주세요.';
+        if (!orderNumber || !guestOrderPassword) {
+            errorText.textContent = '주문번호와 비밀번호를 모두 입력해주세요.';
             return;
         }
 
-        const lastOrder = getLastOrder();
+        try {
+            const response = await fetch('/api/guest-orders/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    orderNumber,
+                    guestOrderPassword
+                })
+            });
 
-        if (!lastOrder) {
-            errorText.textContent = '조회 가능한 주문 정보가 없습니다.';
-            return;
+            const data = await response.json();
+
+            if (data.success) {
+                renderResult(data.order, data.items);
+            } else {
+                errorText.textContent = data.message || '주문 정보를 조회하지 못했습니다.';
+            }
+        } catch (error) {
+            console.error('비회원 주문조회 실패:', error);
+            errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
         }
-
-        if (inputOrderNumber !== lastOrder.orderNumber) {
-            errorText.textContent = '주문번호가 일치하지 않습니다.';
-            return;
-        }
-
-        renderResult(lastOrder);
     });
 });
