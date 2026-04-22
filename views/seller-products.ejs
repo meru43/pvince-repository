@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>내 상품 관리</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/seller-products.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="page-title-wrap">
+                <h2 class="page-title">내 상품 관리</h2>
+                <p class="page-desc">업로드한 상품을 확인하고 관리할 수 있습니다.</p>
+            </section>
+
+            <section class="seller-products-box">
+                <div class="seller-products-top">
+                    <div class="seller-products-filters">
+                        <input type="text" id="seller-product-search" placeholder="상품명, 키워드, 설명 검색" />
+
+                        <select id="seller-product-status">
+                            <option value="">전체 상태</option>
+                            <option value="active">판매중</option>
+                            <option value="inactive">판매중지</option>
+                        </select>
+
+                        <select id="seller-product-price-type">
+                            <option value="">전체 유형</option>
+                            <option value="paid">유료</option>
+                            <option value="free">무료</option>
+                        </select>
+
+                        <button type="button" class="btn btn-outline" id="seller-product-search-btn">검색</button>
+                    </div>
+
+                    <a href="/seller-upload-page" class="btn btn-primary">새 상품 등록</a>
+                </div>
+
+                <div id="seller-products-grid" class="seller-products-grid">
+                    <p class="empty-message">상품 목록을 불러오는 중입니다.</p>
+                </div>
+        </main>
+
+        <%- include('partials/footer') %>
+            <script src="/js/seller-products.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>

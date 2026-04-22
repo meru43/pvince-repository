@@ -176,6 +176,18 @@
     font-size: 15px;
 }
 
+.mypage-seller-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 18px;
+    text-decoration: none;
+}
+
+.logout-btn {
+    margin-top: 12px;
+}
+
 .logout-btn {
     width: 100%;
 }

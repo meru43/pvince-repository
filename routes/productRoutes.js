@@ -6,13 +6,14 @@ module.exports = (db) => {
     // 상품 목록 API
     router.get('/api/products', (req, res) => {
         const sql = `
-            SELECT
-                products.*,
-                COALESCE(users.nickname, users.username) AS uploader_name
-            FROM products
-            LEFT JOIN users ON products.created_by = users.id
-            ORDER BY products.id DESC
-        `;
+        SELECT
+            products.*,
+            COALESCE(users.nickname, users.username) AS uploader_name
+        FROM products
+        LEFT JOIN users ON products.created_by = users.id
+        WHERE products.is_active = 1
+        ORDER BY products.id DESC
+    `;
 
         db.query(sql, (err, results) => {
             if (err) {
@@ -48,6 +49,7 @@ module.exports = (db) => {
             FROM products
             LEFT JOIN users ON products.created_by = users.id
             WHERE products.id = ?
+            AND products.is_active = 1
             LIMIT 1
         `;
 
@@ -63,7 +65,7 @@ module.exports = (db) => {
             if (results.length === 0) {
                 return res.json({
                     success: false,
-                    message: '상품을 찾을 수 없습니다.'
+                    message: '현재 판매중지된 상품입니다. 상세보기가 제한됩니다.'
                 });
             }
 
