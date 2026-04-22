@@ -19,30 +19,49 @@
             </section>
 
             <section class="seller-upload-box">
-                <form id="seller-upload-form" class="seller-upload-form">
+                <form id="seller-upload-form" class="seller-upload-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="product-title">상품명</label>
-                        <input type="text" id="product-title" placeholder="상품명을 입력하세요" />
+                        <input type="text" id="product-title" name="title" placeholder="상품명을 입력하세요" />
                     </div>
 
                     <div class="form-group">
-                        <label for="product-price">가격</label>
-                        <input type="number" id="product-price" placeholder="가격을 입력하세요" />
+                        <label for="product-thumbnail">상품 썸네일</label>
+                        <input type="file" id="product-thumbnail" name="thumbnail" accept="image/*" />
                     </div>
 
                     <div class="form-group">
-                        <label for="product-file-name">파일명</label>
-                        <input type="text" id="product-file-name" placeholder="예: template01.zip" />
+                        <label for="product-price">판매가</label>
+                        <input type="number" id="product-price" name="price" placeholder="판매가를 입력하세요" min="0" />
                     </div>
 
                     <div class="form-group">
-                        <label for="product-file-path">파일 경로</label>
-                        <input type="text" id="product-file-path" placeholder="예: downloads/template01.zip" />
+                        <label for="product-sale-price">할인가</label>
+                        <input type="number" id="product-sale-price" name="salePrice" placeholder="할인가를 입력하세요"
+                            min="0" />
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label for="product-is-free">
+                            <input type="checkbox" id="product-is-free" name="isFree" />
+                            무료 상품
+                        </label>
                     </div>
 
                     <div class="form-group">
                         <label for="product-description">설명</label>
-                        <textarea id="product-description" placeholder="상품 설명을 입력하세요"></textarea>
+                        <textarea id="product-description" name="description" placeholder="상품 설명을 입력하세요"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-keywords">키워드</label>
+                        <input type="text" id="product-keywords" name="keywords" placeholder="예: 비즈니스, 포트폴리오, 템플릿" />
+                        <small>쉼표(,)로 구분해서 입력해 주세요.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-file">판매상품 파일</label>
+                        <input type="file" id="product-file" name="productFile" />
                     </div>
 
                     <p class="seller-upload-error" id="seller-upload-error"></p>

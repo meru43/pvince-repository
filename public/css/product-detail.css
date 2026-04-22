@@ -38,6 +38,13 @@
     font-weight: 700;
 }
 
+.detail-original-price {
+    margin: 0 0 6px;
+    color: #999;
+    text-decoration: line-through;
+    font-size: 14px;
+}
+
 .detail-summary {
     margin-bottom: 24px;
     color: #555;
@@ -82,4 +89,20 @@
 .description-content p {
     margin: 0 0 14px;
     color: #555;
+}
+
+.product-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.product-keywords .keyword-tag {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #222;
+    font-size: 13px;
 }

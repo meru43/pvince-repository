@@ -3,10 +3,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const errorText = document.getElementById('seller-upload-error');
 
     const titleInput = document.getElementById('product-title');
+    const thumbnailInput = document.getElementById('product-thumbnail');
     const priceInput = document.getElementById('product-price');
-    const fileNameInput = document.getElementById('product-file-name');
-    const filePathInput = document.getElementById('product-file-path');
+    const salePriceInput = document.getElementById('product-sale-price');
+    const isFreeInput = document.getElementById('product-is-free');
     const descriptionInput = document.getElementById('product-description');
+    const keywordsInput = document.getElementById('product-keywords');
+    const productFileInput = document.getElementById('product-file');
+
+    function togglePriceInputs() {
+        const isFree = isFreeInput.checked;
+
+        if (isFree) {
+            priceInput.value = '0';
+            salePriceInput.value = '0';
+            priceInput.disabled = true;
+            salePriceInput.disabled = true;
+        } else {
+            priceInput.disabled = false;
+            salePriceInput.disabled = false;
+        }
+    }
+
+    isFreeInput.addEventListener('change', togglePriceInputs);
+    togglePriceInputs();
 
     try {
         const meResponse = await fetch('/me', {
@@ -30,34 +50,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         errorText.textContent = '';
 
         const title = titleInput.value.trim();
         const price = priceInput.value.trim();
-        const fileName = fileNameInput.value.trim();
-        const filePath = filePathInput.value.trim();
+        const salePrice = salePriceInput.value.trim();
+        const isFree = isFreeInput.checked;
         const description = descriptionInput.value.trim();
+        const keywords = keywordsInput.value.trim();
+        const thumbnailFile = thumbnailInput.files[0];
+        const productFile = productFileInput.files[0];
 
-        if (!title || !price || !fileName || !filePath || !description) {
-            errorText.textContent = '모든 항목을 입력해주세요.';
+        if (!title) {
+            errorText.textContent = '상품명을 입력해주세요.';
             return;
         }
+
+        if (!isFree && !price) {
+            errorText.textContent = '판매가를 입력해주세요.';
+            return;
+        }
+
+        if (!description) {
+            errorText.textContent = '상품 설명을 입력해주세요.';
+            return;
+        }
+
+        if (!thumbnailFile) {
+            errorText.textContent = '상품 썸네일을 업로드해주세요.';
+            return;
+        }
+
+        if (!productFile) {
+            errorText.textContent = '판매상품 파일을 업로드해주세요.';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('price', isFree ? '0' : price);
+        formData.append('salePrice', isFree ? '0' : salePrice);
+        formData.append('isFree', isFree ? '1' : '0');
+        formData.append('description', description);
+        formData.append('keywords', keywords);
+        formData.append('thumbnail', thumbnailFile);
+        formData.append('productFile', productFile);
 
         try {
             const response = await fetch('/api/seller/products', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 credentials: 'include',
-                body: JSON.stringify({
-                    title,
-                    price,
-                    fileName,
-                    filePath,
-                    description
-                })
+                body: formData
             });
 
             const data = await response.json();

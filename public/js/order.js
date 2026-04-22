@@ -9,12 +9,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     const orderPhoneInput = document.getElementById('order-phone');
     const orderPasswordInput = document.getElementById('order-password');
 
+    const guestOrderForm = document.getElementById('guest-order-form');
+    const memberOrderNotice = document.getElementById('member-order-notice');
+
     const pathParts = window.location.pathname.split('/');
     const maybeProductId = pathParts[pathParts.length - 1];
 
     let loggedIn = false;
     let orderItems = [];
-    let guestProductId = null;
+    let directProductId = null;
+
+    function getDisplayPrice(item) {
+        if (Number(item.is_free) === 1) return 0;
+        if (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== '') {
+            return Number(item.sale_price);
+        }
+        return Number(item.price || 0);
+    }
+
+    function formatDisplayPrice(item) {
+        if (Number(item.is_free) === 1) return '무료';
+        return `${getDisplayPrice(item).toLocaleString()}원`;
+    }
+
+    function getThumbSrc(item) {
+        if (item.thumbnail_path && String(item.thumbnail_path).trim() !== '') {
+            return item.thumbnail_path;
+        }
+        return `https://via.placeholder.com/280x190?text=Product+${item.product_id || item.id}`;
+    }
 
     function renderOrderItems(items) {
         if (!items || items.length === 0) {
@@ -24,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const totalPrice = items.reduce((sum, item) => sum + Number(item.price), 0);
+        const totalPrice = items.reduce((sum, item) => sum + getDisplayPrice(item), 0);
 
         orderProductPrice.textContent = `${totalPrice.toLocaleString()}원`;
         orderTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
@@ -32,16 +55,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         orderProductsBox.innerHTML = items.map(item => `
             <article class="order-product">
                 <div class="order-product-thumb">
-                    <img src="https://via.placeholder.com/280x190?text=Product+${item.product_id || item.id}" alt="${item.title}" />
+                    <img src="${getThumbSrc(item)}" alt="${item.title}" />
                 </div>
 
                 <div class="order-product-info">
                     <p class="order-product-category">상품</p>
                     <h4 class="order-product-title">${item.title}</h4>
-                    <p class="order-product-price">${Number(item.price).toLocaleString()}원</p>
+                    <p class="order-product-price">${formatDisplayPrice(item)}</p>
                 </div>
             </article>
         `).join('');
+    }
+
+    function toggleOrdererForm() {
+        if (!guestOrderForm || !memberOrderNotice) return;
+
+        if (loggedIn) {
+            guestOrderForm.hidden = true;
+            guestOrderForm.style.display = 'none';
+
+            memberOrderNotice.hidden = false;
+            memberOrderNotice.style.display = 'block';
+        } else {
+            guestOrderForm.hidden = false;
+            guestOrderForm.style.display = 'grid';
+
+            memberOrderNotice.hidden = true;
+            memberOrderNotice.style.display = 'none';
+        }
     }
 
     try {
@@ -56,6 +97,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('로그인 상태 확인 실패:', error);
     }
 
+    // 로그인 여부만으로 폼 표시 제어
+    toggleOrdererForm();
+
+    // /order-page -> 회원 장바구니 주문 페이지
     if (loggedIn && maybeProductId === 'order-page') {
         try {
             const cartResponse = await fetch('/api/cart', {
@@ -76,10 +121,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
         }
     } else {
-        guestProductId = maybeProductId;
+        // 단건 주문 페이지
+        directProductId = maybeProductId;
 
         try {
-            const response = await fetch(`/api/products/${guestProductId}`, {
+            const response = await fetch(`/api/products/${directProductId}`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -93,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 orderProductsBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
             }
         } catch (error) {
-            console.error('비회원 주문용 상품 조회 실패:', error);
+            console.error('단건 주문용 상품 조회 실패:', error);
             orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
         }
     }
@@ -102,12 +148,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let response;
 
-            if (loggedIn && !guestProductId) {
+            // 회원 장바구니 주문
+            if (loggedIn && maybeProductId === 'order-page') {
                 response = await fetch('/api/orders', {
                     method: 'POST',
                     credentials: 'include'
                 });
-            } else {
+            }
+            // 회원 단건 바로구매
+            else if (loggedIn && directProductId) {
+                response = await fetch('/api/orders/direct', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        productId: directProductId
+                    })
+                });
+            }
+            // 비회원 단건 주문
+            else {
                 const guestName = orderNameInput.value.trim();
                 const guestEmail = orderEmailInput.value.trim();
                 const guestPhone = orderPhoneInput.value.trim();
@@ -125,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     credentials: 'include',
                     body: JSON.stringify({
-                        productId: guestProductId,
+                        productId: directProductId,
                         guestName,
                         guestEmail,
                         guestPhone,

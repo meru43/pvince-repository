@@ -57,6 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="result-product-side">
                     <span class="btn btn-outline">${Number(item.price).toLocaleString()}원</span>
+                    <a
+                        href="/products-page/${item.product_id}"
+                        class="btn btn-outline"
+                    >
+                        상세페이지
+                    </a>
+                    <button
+                        type="button"
+                        class="btn btn-primary guest-download-btn"
+                        data-product-id="${item.product_id}"
+                    >
+                        다운로드
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -101,6 +114,72 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('비회원 주문조회 실패:', error);
             errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        }
+    });
+
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.guest-download-btn');
+        if (!btn) return;
+
+        const productId = btn.dataset.productId;
+        const orderNumber = document.getElementById('order-number').value.trim();
+        const guestOrderPassword = document.getElementById('order-password').value.trim();
+
+        if (!orderNumber || !guestOrderPassword || !productId) {
+            alert('주문번호와 비밀번호를 다시 확인해주세요.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/guest-orders/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orderNumber,
+                    guestOrderPassword,
+                    productId
+                })
+            });
+
+            if (!response.ok) {
+                let message = '파일 다운로드에 실패했습니다.';
+
+                try {
+                    const errorData = await response.json();
+                    message = errorData.message || message;
+                } catch (_) { }
+
+                alert(message);
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const disposition = response.headers.get('Content-Disposition') || '';
+            let fileName = 'downloaded-file';
+
+            const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+            const normalMatch = disposition.match(/filename="?([^"]+)"?/i);
+
+            if (utf8Match && utf8Match[1]) {
+                fileName = decodeURIComponent(utf8Match[1]);
+            } else if (normalMatch && normalMatch[1]) {
+                fileName = normalMatch[1];
+            }
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('비회원 다운로드 요청 실패:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
         }
     });
 });

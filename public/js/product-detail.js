@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const detailBox = document.getElementById('product-detail-box');
     const descriptionBox = document.getElementById('product-description-box');
     const descriptionContent = document.getElementById('product-description');
+    const keywordsBox = document.getElementById('product-keywords');
 
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
@@ -33,15 +34,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderProduct(product) {
+        const keywordHtml = (product.keywordList || [])
+            .map(keyword => `<span class="keyword-tag">${keyword}</span>`)
+            .join('');
+
+        const displayPrice = product.is_free
+            ? '무료'
+            : product.sale_price
+                ? `${Number(product.sale_price).toLocaleString()}원`
+                : `${Number(product.price).toLocaleString()}원`;
+
+        const originalPriceHtml = (!product.is_free && product.sale_price && Number(product.price) > Number(product.sale_price))
+            ? `<p class="detail-original-price">${Number(product.price).toLocaleString()}원</p>`
+            : '';
+
+        const thumbnailSrc = product.thumbnail_path
+            ? product.thumbnail_path
+            : `https://via.placeholder.com/800x520?text=Product+${product.id}`;
+
         detailBox.innerHTML = `
             <div class="detail-image">
-                <img src="https://via.placeholder.com/800x520?text=Product+${product.id}" alt="${product.title}">
+                <img src="${thumbnailSrc}" alt="${product.title}">
             </div>
 
             <div class="detail-content">
                 <p class="detail-category">상품 상세</p>
                 <h2 class="detail-title">${product.title}</h2>
-                <p class="detail-price">${Number(product.price).toLocaleString()}원</p>
+                ${originalPriceHtml}
+                <p class="detail-price">${displayPrice}</p>
 
                 <div class="detail-summary">
                     <p>${product.description || '상품 설명이 없습니다.'}</p>
@@ -51,8 +71,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <li><strong>상품 번호</strong> <span>${product.id}</span></li>
                     <li><strong>업로더</strong> <span>${product.uploader_name || '미지정'}</span></li>
                     <li><strong>파일명</strong> <span>${product.file_name || '-'}</span></li>
-                    <li><strong>가격</strong> <span>${Number(product.price).toLocaleString()}원</span></li>
+                    <li><strong>가격</strong> <span>${displayPrice}</span></li>
                 </ul>
+
 
                 <div class="detail-actions">
                     <button type="button" class="btn btn-outline" id="add-cart-btn">장바구니 담기</button>
@@ -65,17 +86,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p>${product.description || '상품 설명이 없습니다.'}</p>
         `;
 
+        if (keywordsBox) {
+            keywordsBox.innerHTML = keywordHtml;
+        }
+
         descriptionBox.style.display = 'block';
 
         const addCartBtn = document.getElementById('add-cart-btn');
-        addCartBtn.addEventListener('click', () => {
-            addToCart(product);
-        });
+        if (addCartBtn) {
+            addCartBtn.addEventListener('click', () => {
+                addToCart(product);
+            });
+        }
 
         const purchaseBtn = document.getElementById('purchase-btn');
-        purchaseBtn.addEventListener('click', () => {
-            window.location.href = `/order-page/${product.id}`;
-        });
+        if (purchaseBtn) {
+            purchaseBtn.addEventListener('click', () => {
+                window.location.href = `/order-page/${product.id}`;
+            });
+        }
     }
 
     try {

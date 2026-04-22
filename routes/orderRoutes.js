@@ -4,7 +4,19 @@ const bcrypt = require('bcryptjs');
 module.exports = (db, path) => {
     const router = express.Router();
 
-    // 주문 생성 API
+    function getOrderPrice(product) {
+        if (Number(product.is_free) === 1) {
+            return 0;
+        }
+
+        if (product.sale_price !== null && product.sale_price !== undefined) {
+            return Number(product.sale_price);
+        }
+
+        return Number(product.price || 0);
+    }
+
+    // 회원 장바구니 주문 생성 API
     router.post('/api/orders', (req, res) => {
         if (!req.session.userId) {
             return res.json({
@@ -15,17 +27,17 @@ module.exports = (db, path) => {
 
         const userId = req.session.userId;
         const orderNumber = `ORD-${Date.now()}`;
-        console.log('주문 생성 세션 확인:', req.session);
-        console.log('주문 생성 userId:', userId);
 
         const cartSql = `
-      SELECT
-        cart_items.product_id,
-        products.price
-      FROM cart_items
-      JOIN products ON cart_items.product_id = products.id
-      WHERE cart_items.user_id = ?
-    `;
+            SELECT
+                cart_items.product_id,
+                products.price,
+                products.sale_price,
+                products.is_free
+            FROM cart_items
+            JOIN products ON cart_items.product_id = products.id
+            WHERE cart_items.user_id = ?
+        `;
 
         db.query(cartSql, [userId], (cartErr, cartItems) => {
             if (cartErr) {
@@ -43,12 +55,12 @@ module.exports = (db, path) => {
                 });
             }
 
-            const totalPrice = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
+            const totalPrice = cartItems.reduce((sum, item) => sum + getOrderPrice(item), 0);
 
             const orderSql = `
-        INSERT INTO orders (user_id, order_number, total_price, status)
-        VALUES (?, ?, ?, 'paid')
-      `;
+                INSERT INTO orders (user_id, order_number, total_price, status)
+                VALUES (?, ?, ?, 'paid')
+            `;
 
             db.query(orderSql, [userId, orderNumber, totalPrice], (orderErr, orderResult) => {
                 if (orderErr) {
@@ -60,12 +72,16 @@ module.exports = (db, path) => {
                 }
 
                 const orderId = orderResult.insertId;
-                const orderItemsValues = cartItems.map(item => [orderId, item.product_id, item.price]);
+                const orderItemsValues = cartItems.map(item => [
+                    orderId,
+                    item.product_id,
+                    getOrderPrice(item)
+                ]);
 
                 const orderItemsSql = `
-          INSERT INTO order_items (order_id, product_id, price)
-          VALUES ?
-        `;
+                    INSERT INTO order_items (order_id, product_id, price)
+                    VALUES ?
+                `;
 
                 db.query(orderItemsSql, [orderItemsValues], (itemsErr) => {
                     if (itemsErr) {
@@ -79,9 +95,9 @@ module.exports = (db, path) => {
                     const purchaseValues = cartItems.map(item => [userId, item.product_id]);
 
                     const purchaseSql = `
-            INSERT IGNORE INTO purchases (user_id, product_id)
-            VALUES ?
-          `;
+                        INSERT IGNORE INTO purchases (user_id, product_id)
+                        VALUES ?
+                    `;
 
                     db.query(purchaseSql, [purchaseValues], (purchaseErr) => {
                         if (purchaseErr) {
@@ -93,9 +109,9 @@ module.exports = (db, path) => {
                         }
 
                         const clearCartSql = `
-              DELETE FROM cart_items
-              WHERE user_id = ?
-            `;
+                            DELETE FROM cart_items
+                            WHERE user_id = ?
+                        `;
 
                         db.query(clearCartSql, [userId], (clearErr) => {
                             if (clearErr) {
@@ -112,6 +128,114 @@ module.exports = (db, path) => {
                                 orderNumber,
                                 totalPrice
                             });
+                        });
+                    });
+                });
+            });
+        });
+    });
+
+    // 회원 단일상품 바로구매 API
+    router.post('/api/orders/direct', (req, res) => {
+        if (!req.session.userId) {
+            return res.json({
+                success: false,
+                message: '로그인이 필요합니다.'
+            });
+        }
+
+        const userId = req.session.userId;
+        const { productId } = req.body;
+
+        if (!productId) {
+            return res.json({
+                success: false,
+                message: '상품 번호가 없습니다.'
+            });
+        }
+
+        const orderNumber = `ORD-${Date.now()}`;
+
+        const productSql = `
+            SELECT
+                id,
+                title,
+                price,
+                sale_price,
+                is_free
+            FROM products
+            WHERE id = ?
+            LIMIT 1
+        `;
+
+        db.query(productSql, [productId], (productErr, productResults) => {
+            if (productErr) {
+                console.error('회원 단일상품 조회 오류:', productErr);
+                return res.json({
+                    success: false,
+                    message: '상품 정보를 불러오지 못했습니다.'
+                });
+            }
+
+            if (productResults.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '상품을 찾을 수 없습니다.'
+                });
+            }
+
+            const product = productResults[0];
+            const totalPrice = getOrderPrice(product);
+
+            const orderSql = `
+                INSERT INTO orders (user_id, order_number, total_price, status)
+                VALUES (?, ?, ?, 'paid')
+            `;
+
+            db.query(orderSql, [userId, orderNumber, totalPrice], (orderErr, orderResult) => {
+                if (orderErr) {
+                    console.error('회원 단일상품 주문 생성 오류:', orderErr);
+                    return res.json({
+                        success: false,
+                        message: '주문 생성에 실패했습니다.'
+                    });
+                }
+
+                const orderId = orderResult.insertId;
+
+                const orderItemSql = `
+                    INSERT INTO order_items (order_id, product_id, price)
+                    VALUES (?, ?, ?)
+                `;
+
+                db.query(orderItemSql, [orderId, product.id, totalPrice], (itemErr) => {
+                    if (itemErr) {
+                        console.error('회원 단일상품 주문 상품 저장 오류:', itemErr);
+                        return res.json({
+                            success: false,
+                            message: '주문 상품 저장에 실패했습니다.'
+                        });
+                    }
+
+                    const purchaseSql = `
+                        INSERT IGNORE INTO purchases (user_id, product_id)
+                        VALUES (?, ?)
+                    `;
+
+                    db.query(purchaseSql, [userId, product.id], (purchaseErr) => {
+                        if (purchaseErr) {
+                            console.error('회원 단일상품 구매 내역 저장 오류:', purchaseErr);
+                            return res.json({
+                                success: false,
+                                message: '구매 내역 저장에 실패했습니다.'
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            message: '주문이 완료되었습니다.',
+                            orderNumber,
+                            totalPrice
                         });
                     });
                 });
@@ -146,10 +270,10 @@ module.exports = (db, path) => {
         const orderNumber = `GUEST-${Date.now()}`;
 
         const productSql = `
-      SELECT id, title, price, description, file_name
-      FROM products
-      WHERE id = ?
-    `;
+            SELECT id, title, price, sale_price, is_free, description, file_name
+            FROM products
+            WHERE id = ?
+        `;
 
         db.query(productSql, [productId], async (productErr, productResults) => {
             if (productErr) {
@@ -168,24 +292,24 @@ module.exports = (db, path) => {
             }
 
             const product = productResults[0];
-            const totalPrice = Number(product.price);
+            const totalPrice = getOrderPrice(product);
 
             try {
                 const hashedGuestPassword = await bcrypt.hash(guestOrderPassword, 10);
 
                 const orderSql = `
-          INSERT INTO orders (
-            user_id,
-            order_number,
-            total_price,
-            status,
-            guest_name,
-            guest_email,
-            guest_phone,
-            guest_order_password
-          )
-          VALUES (?, ?, ?, 'paid', ?, ?, ?, ?)
-        `;
+                    INSERT INTO orders (
+                        user_id,
+                        order_number,
+                        total_price,
+                        status,
+                        guest_name,
+                        guest_email,
+                        guest_phone,
+                        guest_order_password
+                    )
+                    VALUES (?, ?, ?, 'paid', ?, ?, ?, ?)
+                `;
 
                 db.query(
                     orderSql,
@@ -210,11 +334,11 @@ module.exports = (db, path) => {
                         const orderId = orderResult.insertId;
 
                         const orderItemSql = `
-              INSERT INTO order_items (order_id, product_id, price)
-              VALUES (?, ?, ?)
-            `;
+                            INSERT INTO order_items (order_id, product_id, price)
+                            VALUES (?, ?, ?)
+                        `;
 
-                        db.query(orderItemSql, [orderId, product.id, product.price], (itemErr) => {
+                        db.query(orderItemSql, [orderId, product.id, totalPrice], (itemErr) => {
                             if (itemErr) {
                                 console.error('비회원 주문 상품 저장 오류:', itemErr);
                                 return res.json({
@@ -254,11 +378,11 @@ module.exports = (db, path) => {
         }
 
         const sql = `
-        SELECT *
-        FROM orders
-        WHERE order_number = ?
-        LIMIT 1
-    `;
+            SELECT *
+            FROM orders
+            WHERE order_number = ?
+            LIMIT 1
+        `;
 
         db.query(sql, [orderNumber], async (err, results) => {
             if (err) {
@@ -292,16 +416,16 @@ module.exports = (db, path) => {
                 }
 
                 const itemSql = `
-                SELECT
-                    order_items.product_id,
-                    order_items.price,
-                    products.title,
-                    products.description,
-                    products.file_name
-                FROM order_items
-                JOIN products ON order_items.product_id = products.id
-                WHERE order_items.order_id = ?
-            `;
+                    SELECT
+                        order_items.product_id,
+                        order_items.price,
+                        products.title,
+                        products.description,
+                        products.file_name
+                    FROM order_items
+                    JOIN products ON order_items.product_id = products.id
+                    WHERE order_items.order_id = ?
+                `;
 
                 db.query(itemSql, [order.id], (itemErr, itemResults) => {
                     if (itemErr) {
@@ -328,6 +452,106 @@ module.exports = (db, path) => {
                 });
             } catch (compareErr) {
                 console.error('비회원 주문 비밀번호 비교 오류:', compareErr);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 확인에 실패했습니다.'
+                });
+            }
+        });
+    });
+
+    // 비회원 다운로드 API
+    router.post('/api/guest-orders/download', async (req, res) => {
+        const { orderNumber, guestOrderPassword, productId } = req.body;
+
+        if (!orderNumber || !guestOrderPassword || !productId) {
+            return res.json({
+                success: false,
+                message: '주문번호, 비밀번호, 상품번호가 필요합니다.'
+            });
+        }
+
+        const orderSql = `
+        SELECT *
+        FROM orders
+        WHERE order_number = ?
+        LIMIT 1
+    `;
+
+        db.query(orderSql, [orderNumber], async (orderErr, orderResults) => {
+            if (orderErr) {
+                console.error('비회원 다운로드용 주문 조회 오류:', orderErr);
+                return res.json({
+                    success: false,
+                    message: '주문 정보를 조회하지 못했습니다.'
+                });
+            }
+
+            if (orderResults.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '일치하는 주문이 없습니다.'
+                });
+            }
+
+            const order = orderResults[0];
+
+            try {
+                const isMatch = await bcrypt.compare(
+                    guestOrderPassword,
+                    order.guest_order_password
+                );
+
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '주문조회 비밀번호가 일치하지 않습니다.'
+                    });
+                }
+
+                const itemSql = `
+                SELECT products.*
+                FROM order_items
+                JOIN products ON order_items.product_id = products.id
+                WHERE order_items.order_id = ? AND order_items.product_id = ?
+                LIMIT 1
+            `;
+
+                db.query(itemSql, [order.id, productId], (itemErr, itemResults) => {
+                    if (itemErr) {
+                        console.error('비회원 다운로드용 상품 조회 오류:', itemErr);
+                        return res.json({
+                            success: false,
+                            message: '주문 상품 정보를 불러오지 못했습니다.'
+                        });
+                    }
+
+                    if (itemResults.length === 0) {
+                        return res.json({
+                            success: false,
+                            message: '해당 주문에 포함된 상품이 아닙니다.'
+                        });
+                    }
+
+                    const product = itemResults[0];
+                    const safeRelativePath = String(product.file_path || '').replace(/^\/+/, '');
+                    const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
+
+                    return res.download(filePath, product.file_name, (downloadErr) => {
+                        if (downloadErr) {
+                            console.error('비회원 파일 다운로드 오류:', downloadErr);
+
+                            if (!res.headersSent) {
+                                return res.status(500).json({
+                                    success: false,
+                                    message: '파일 다운로드 실패'
+                                });
+                            }
+                        }
+                    });
+                });
+            } catch (compareErr) {
+                console.error('비회원 다운로드 비밀번호 비교 오류:', compareErr);
                 return res.json({
                     success: false,
                     message: '비밀번호 확인에 실패했습니다.'
@@ -402,9 +626,9 @@ module.exports = (db, path) => {
         }
 
         const purchaseSql = `
-      SELECT * FROM purchases
-      WHERE user_id = ? AND product_id = ?
-    `;
+            SELECT * FROM purchases
+            WHERE user_id = ? AND product_id = ?
+        `;
 
         db.query(purchaseSql, [req.session.userId, productId], (err, purchaseResults) => {
             if (err) {
@@ -441,7 +665,8 @@ module.exports = (db, path) => {
                 }
 
                 const product = productResults[0];
-                const filePath = path.join(__dirname, '..', product.file_path);
+                const safeRelativePath = String(product.file_path || '').replace(/^\/+/, '');
+                const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
 
                 const logSql = 'INSERT INTO download_logs (user_id, product_id) VALUES (?, ?)';
 
@@ -450,9 +675,9 @@ module.exports = (db, path) => {
                         console.error('다운로드 로그 저장 오류:', logErr);
                     }
 
-                    return res.download(filePath, product.file_name, (err) => {
-                        if (err) {
-                            console.error('파일 다운로드 오류:', err);
+                    return res.download(filePath, product.file_name, (downloadErr) => {
+                        if (downloadErr) {
+                            console.error('파일 다운로드 오류:', downloadErr);
 
                             if (!res.headersSent) {
                                 return res.status(500).json({
@@ -477,20 +702,23 @@ module.exports = (db, path) => {
         }
 
         const sql = `
-      SELECT
-        purchases.id AS purchase_id,
-        purchases.purchased_at,
-        products.id AS product_id,
-        products.title,
-        products.price,
-        products.description,
-        products.file_name,
-        products.file_path
-      FROM purchases
-      JOIN products ON purchases.product_id = products.id
-      WHERE purchases.user_id = ?
-      ORDER BY purchases.purchased_at DESC
-    `;
+            SELECT
+                purchases.id AS purchase_id,
+                purchases.purchased_at,
+                products.id AS product_id,
+                products.title,
+                products.price,
+                products.sale_price,
+                products.is_free,
+                products.description,
+                products.file_name,
+                products.file_path,
+                products.thumbnail_path
+            FROM purchases
+            JOIN products ON purchases.product_id = products.id
+            WHERE purchases.user_id = ?
+            ORDER BY purchases.purchased_at DESC
+        `;
 
         db.query(sql, [req.session.userId], (err, results) => {
             if (err) {
@@ -517,18 +745,20 @@ module.exports = (db, path) => {
         }
 
         const sql = `
-      SELECT
-        download_logs.id AS log_id,
-        download_logs.downloaded_at,
-        products.id AS product_id,
-        products.title,
-        products.price,
-        products.file_name
-      FROM download_logs
-      JOIN products ON download_logs.product_id = products.id
-      WHERE download_logs.user_id = ?
-      ORDER BY download_logs.downloaded_at DESC
-    `;
+            SELECT
+                download_logs.id AS log_id,
+                download_logs.downloaded_at,
+                products.id AS product_id,
+                products.title,
+                products.price,
+                products.sale_price,
+                products.is_free,
+                products.file_name
+            FROM download_logs
+            JOIN products ON download_logs.product_id = products.id
+            WHERE download_logs.user_id = ?
+            ORDER BY download_logs.downloaded_at DESC
+        `;
 
         db.query(sql, [req.session.userId], (err, results) => {
             if (err) {

@@ -6,13 +6,13 @@ module.exports = (db) => {
     // 상품 목록 API
     router.get('/api/products', (req, res) => {
         const sql = `
-      SELECT
-        products.*,
-        COALESCE(users.nickname, users.username) AS uploader_name
-      FROM products
-      LEFT JOIN users ON products.created_by = users.id
-      ORDER BY products.id DESC
-    `;
+            SELECT
+                products.*,
+                COALESCE(users.nickname, users.username) AS uploader_name
+            FROM products
+            LEFT JOIN users ON products.created_by = users.id
+            ORDER BY products.id DESC
+        `;
 
         db.query(sql, (err, results) => {
             if (err) {
@@ -23,9 +23,16 @@ module.exports = (db) => {
                 });
             }
 
+            const products = results.map(product => ({
+                ...product,
+                keywordList: product.keywords
+                    ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
+                    : []
+            }));
+
             return res.json({
                 success: true,
-                products: results
+                products
             });
         });
     });
@@ -35,14 +42,14 @@ module.exports = (db) => {
         const productId = req.params.id;
 
         const sql = `
-      SELECT
-        products.*,
-        COALESCE(users.nickname, users.username) AS uploader_name
-      FROM products
-      LEFT JOIN users ON products.created_by = users.id
-      WHERE products.id = ?
-      LIMIT 1
-    `;
+            SELECT
+                products.*,
+                COALESCE(users.nickname, users.username) AS uploader_name
+            FROM products
+            LEFT JOIN users ON products.created_by = users.id
+            WHERE products.id = ?
+            LIMIT 1
+        `;
 
         db.query(sql, [productId], (err, results) => {
             if (err) {
@@ -60,9 +67,63 @@ module.exports = (db) => {
                 });
             }
 
+            const product = results[0];
+
+            product.keywordList = product.keywords
+                ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
+                : [];
+
             return res.json({
                 success: true,
-                product: results[0]
+                product
+            });
+        });
+    });
+
+    // 상품 검색 API
+    router.get('/api/search/products', (req, res) => {
+        const q = req.query.q?.trim();
+
+        if (!q) {
+            return res.json({
+                success: true,
+                products: []
+            });
+        }
+
+        const likeValue = `%${q}%`;
+
+        const sql = `
+            SELECT
+                products.*,
+                COALESCE(users.nickname, users.username) AS uploader_name
+            FROM products
+            LEFT JOIN users ON products.created_by = users.id
+            WHERE products.title LIKE ?
+               OR products.description LIKE ?
+               OR products.keywords LIKE ?
+            ORDER BY products.id DESC
+        `;
+
+        db.query(sql, [likeValue, likeValue, likeValue], (err, results) => {
+            if (err) {
+                console.error('상품 검색 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '상품 검색 실패'
+                });
+            }
+
+            const products = results.map(product => ({
+                ...product,
+                keywordList: product.keywords
+                    ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
+                    : []
+            }));
+
+            return res.json({
+                success: true,
+                products
             });
         });
     });

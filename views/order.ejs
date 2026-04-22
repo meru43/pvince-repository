@@ -30,7 +30,11 @@
                     <section class="order-box">
                         <h3 class="order-box-title">주문자 정보</h3>
 
-                        <div class="form-grid">
+                        <div class="member-order-notice" id="member-order-notice" hidden>
+                            로그인 회원 주문입니다. 회원 계정 기준으로 주문이 진행됩니다.
+                        </div>
+
+                        <div class="form-grid" id="guest-order-form">
                             <div class="form-group">
                                 <label for="order-name">이름</label>
                                 <input type="text" id="order-name" placeholder="이름을 입력하세요" />
