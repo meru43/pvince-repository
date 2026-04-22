@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <h3 class="product-name">
                             <a href="/products-page/${product.id}">${product.title}</a>
                         </h3>
-                        <p class="product-uploader">업로더: ${product.uploader_name || '미지정'}</p>
+                        ${product.uploader_name ? `<p class="product-uploader">${product.uploader_name}</p>` : ''}
                         <p class="product-price">${displayPrice}</p>
                         <a href="/products-page/${product.id}" class="btn btn-outline">상세보기</a>
                     </div>

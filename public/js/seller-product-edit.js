@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const productActiveStatus = document.getElementById('product-active-status');
     const productStopMemo = document.getElementById('product-stop-memo');
+    const productStopMemoGroup = document.getElementById('product-stop-memo-group');
 
     function togglePriceInputs() {
         const isFree = isFreeInput.checked;
@@ -54,10 +55,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             productActiveStatus.textContent = Number(product.is_active) === 1 ? '판매중' : '판매중지';
         }
 
-        if (productStopMemo) {
-            productStopMemo.textContent = product.stop_memo && String(product.stop_memo).trim() !== ''
-                ? product.stop_memo
-                : '등록된 메모가 없습니다.';
+        if (productStopMemoGroup && productStopMemo) {
+            if (Number(product.is_active) === 0) {
+                productStopMemoGroup.style.display = 'block';
+                productStopMemo.textContent = product.stop_memo && String(product.stop_memo).trim() !== ''
+                    ? product.stop_memo
+                    : '등록된 메모가 없습니다.';
+            } else {
+                productStopMemoGroup.style.display = 'none';
+            }
         }
 
         titleInput.value = product.title || '';
