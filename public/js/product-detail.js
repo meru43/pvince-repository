@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <ul class="detail-meta">
                     <li><strong>상품 번호</strong> <span>${product.id}</span></li>
                     <li><strong>업로더</strong> <span>${product.uploader_name || '미지정'}</span></li>
-                    <li><strong>파일명</strong> <span>${product.file_name || '-'}</span></li>
                     <li><strong>가격</strong> <span>${displayPrice}</span></li>
                 </ul>
 
