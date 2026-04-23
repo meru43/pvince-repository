@@ -421,7 +421,8 @@ module.exports = (db, path) => {
                         order_items.price,
                         products.title,
                         products.description,
-                        products.file_name
+                        products.file_name,
+                        products.thumbnail_path
                     FROM order_items
                     JOIN products ON order_items.product_id = products.id
                     WHERE order_items.order_id = ?

@@ -36,13 +36,41 @@ module.exports = (db) => {
 
     // 회원 목록 조회 API
     router.get('/api/admin/users', requireAdmin, (req, res) => {
-        const sql = `
-            SELECT id, username, role
-            FROM users
-            ORDER BY id DESC
-        `;
+        const q = (req.query.q || '').trim();
 
-        db.query(sql, (err, results) => {
+        let sql = `
+        SELECT
+            id,
+            username,
+            nickname,
+            email,
+            name,
+            phone,
+            role,
+            profile_image
+        FROM users
+        WHERE 1 = 1
+    `;
+
+        const params = [];
+
+        if (q) {
+            sql += `
+            AND (
+                username LIKE ?
+                OR nickname LIKE ?
+                OR email LIKE ?
+                OR name LIKE ?
+                OR phone LIKE ?
+            )
+        `;
+            const likeValue = `%${q}%`;
+            params.push(likeValue, likeValue, likeValue, likeValue, likeValue);
+        }
+
+        sql += ` ORDER BY id DESC`;
+
+        db.query(sql, params, (err, results) => {
             if (err) {
                 console.error('회원 목록 조회 오류:', err);
                 return res.json({

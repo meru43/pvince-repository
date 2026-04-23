@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'GET',
                 credentials: 'include'
             });
+
             const data = await response.json();
             currentUserRole = data.role || '';
         } catch (error) {
@@ -42,6 +43,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function getStatusText(product) {
         return Number(product.is_active) === 1 ? '판매중' : '판매중지';
+    }
+
+    function getFeaturedText(product) {
+        return Number(product.is_featured) === 1 ? '추천 상품' : '';
     }
 
     function renderAdminStatusControl(product) {
@@ -101,6 +106,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
+    function renderFeaturedControl(product) {
+        if (currentUserRole !== 'admin') return '';
+
+        return `
+            <button
+                type="button"
+                class="btn btn-outline seller-featured-btn"
+                data-product-id="${product.id}"
+                data-next-featured="${Number(product.is_featured) === 1 ? 0 : 1}"
+            >
+                ${Number(product.is_featured) === 1 ? '추천 해제' : '추천으로 설정'}
+            </button>
+        `;
+    }
+
+    function renderDetailButton(product) {
+        if (Number(product.is_active) === 1) {
+            return `<a href="/products-page/${product.id}" class="btn btn-outline">상세보기</a>`;
+        }
+
+        return `
+            <button
+                type="button"
+                class="btn btn-outline stopped-detail-btn"
+                data-message="현재 판매중지 상태인 상품입니다. 상세보기는 제한됩니다."
+            >
+                상세보기
+            </button>
+        `;
+    }
+
     function renderProducts(products) {
         if (!products || products.length === 0) {
             grid.innerHTML = `<p class="empty-message">등록한 상품이 없습니다.</p>`;
@@ -119,18 +155,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p class="seller-product-price">${getDisplayPrice(product)}</p>
                     <p class="seller-product-date">등록일: ${new Date(product.created_at).toLocaleDateString()}</p>
                     <p class="seller-product-uploader">업로더: ${product.uploader_name || '-'}</p>
+                    <p class="seller-product-status">상태: ${getStatusText(product)}</p>
+                    ${getFeaturedText(product) ? `<p class="seller-product-featured">${getFeaturedText(product)}</p>` : ''}
 
                     <div class="seller-product-actions">
-                        ${Number(product.is_active) === 1
-                ? `<a href="/products-page/${product.id}" class="btn btn-outline">상세보기</a>`
-                : `<button
-                                    type="button"
-                                    class="btn btn-outline stopped-detail-btn"
-                                    data-message="판매중지된 상품은 상세보기할 수 없습니다."
-                            >
-                                    상세보기
-                            </button>`
-            }
+                        ${renderDetailButton(product)}
                         <a href="/seller-products/edit/${product.id}" class="btn btn-outline">수정</a>
                         <button
                             type="button"
@@ -139,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         >
                             삭제
                         </button>
+                        ${renderFeaturedControl(product)}
                     </div>
 
                     ${currentUserRole === 'admin'
@@ -176,10 +206,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    async function deleteProduct(productId) {
+        const response = await fetch(`/api/seller/products/${productId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        return response.json();
+    }
+
+    async function updateProductStatus(productId, isActive, stopMemo = '') {
+        const response = await fetch(`/api/admin/products/${productId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                isActive,
+                stopMemo
+            })
+        });
+
+        return response.json();
+    }
+
+    async function updateFeaturedStatus(productId, isFeatured) {
+        const response = await fetch(`/api/admin/products/${productId}/featured`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                isFeatured
+            })
+        });
+
+        return response.json();
+    }
+
     document.addEventListener('click', async (e) => {
         const stoppedDetailBtn = e.target.closest('.stopped-detail-btn');
         if (stoppedDetailBtn) {
-            const message = stoppedDetailBtn.dataset.message || '판매중지된 상품은 상세보기할 수 없습니다.';
+            const message = stoppedDetailBtn.dataset.message || '현재 판매중지 상태인 상품입니다. 상세보기는 제한됩니다.';
             alert(message);
             return;
         }
@@ -193,12 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             try {
-                const response = await fetch(`/api/seller/products/${productId}`, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
+                const data = await deleteProduct(productId);
 
                 if (data.success) {
                     alert(data.message);
@@ -221,19 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const stopMemo = memoInput ? memoInput.value.trim() : '';
 
             try {
-                const response = await fetch(`/api/admin/products/${productId}/status`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        isActive: 0,
-                        stopMemo
-                    })
-                });
-
-                const data = await response.json();
+                const data = await updateProductStatus(productId, 0, stopMemo);
 
                 if (data.success) {
                     alert(data.message);
@@ -255,19 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nextStatus = Number(statusBtn.dataset.nextStatus);
 
             try {
-                const response = await fetch(`/api/admin/products/${productId}/status`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        isActive: nextStatus,
-                        stopMemo: ''
-                    })
-                });
-
-                const data = await response.json();
+                const data = await updateProductStatus(productId, nextStatus, '');
 
                 if (data.success) {
                     alert(data.message);
@@ -277,6 +318,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error('판매 상태 변경 실패:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+            }
+
+            return;
+        }
+
+        const featuredBtn = e.target.closest('.seller-featured-btn');
+        if (featuredBtn) {
+            const productId = featuredBtn.dataset.productId;
+            const nextFeatured = Number(featuredBtn.dataset.nextFeatured);
+
+            try {
+                const data = await updateFeaturedStatus(productId, nextFeatured);
+
+                if (data.success) {
+                    alert(data.message);
+                    await loadProducts();
+                } else {
+                    alert(data.message || '추천 상품 설정에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('추천 상품 설정 실패:', error);
                 alert('서버와 통신 중 오류가 발생했습니다.');
             }
 

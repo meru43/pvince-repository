@@ -21,9 +21,17 @@
             <section class="mypage-layout">
                 <aside class="mypage-sidebar">
                     <div class="profile-card">
-                        <p class="profile-label">ACCOUNT</p>
-                        <h3 class="profile-name" id="profile-name">로딩 중...</h3>
-                        <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
+                        <div class="profile-card-top">
+                            <div class="profile-card-image">
+                                <img src="/images/normal user.jpg" alt="프로필 이미지" id="profile-card-image">
+                            </div>
+
+                            <div>
+                                <p class="profile-label">ACCOUNT</p>
+                                <h3 class="profile-name" id="profile-name">로딩 중...</h3>
+                                <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <nav class="mypage-menu">
@@ -31,13 +39,14 @@
                         <a href="#download-list" class="mypage-menu-item">다운로드 내역</a>
                         <a href="#account-info" class="mypage-menu-item">내 정보</a>
                     </nav>
-                    <% if (userRole === 'seller' || userRole === 'admin') { %>
+
+                    <% if (userRole==='seller' || userRole==='admin' ) { %>
                         <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">
                             판매상품 관리
                         </a>
-                    <% } %>
+                        <% } %>
 
-                    <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
+                            <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
                 </aside>
 
                 <div class="mypage-content">
@@ -69,33 +78,81 @@
                         </div>
 
                         <div class="account-info-list">
-                            <div class="account-info-row">
-                                <span>아이디</span>
-                                <strong id="account-username">-</strong>
+                            <div class="account-info-row" data-field="username">
+                                <span class="account-label">아이디</span>
+                                <strong class="account-value" id="account-username">-</strong>
                             </div>
-                            <div class="account-info-row">
-                                <span>로그인 상태</span>
-                                <strong id="account-status">확인 중</strong>
+
+                            <div class="account-info-row editable-row" data-field="nickname">
+                                <span class="account-label">닉네임</span>
+                                <div class="account-edit-area">
+                                    <strong class="account-value" id="account-nickname">-</strong>
+                                    <input type="text" class="account-input" id="account-nickname-input" hidden />
+                                    <button type="button" class="btn btn-outline account-toggle-btn"
+                                        data-field="nickname" data-mode="edit">
+                                        수정
+                                    </button>
+                                    <p class="account-message" id="account-nickname-message"></p>
+                                </div>
+                            </div>
+
+                            <div class="account-info-row editable-row" data-field="email">
+                                <span class="account-label">이메일</span>
+                                <div class="account-edit-area">
+                                    <strong class="account-value" id="account-email">-</strong>
+                                    <input type="email" class="account-input" id="account-email-input" hidden />
+                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="email"
+                                        data-mode="edit">
+                                        수정
+                                    </button>
+                                    <p class="account-message" id="account-email-message"></p>
+                                </div>
+                            </div>
+
+                            <div class="account-info-row editable-row" data-field="name">
+                                <span class="account-label">이름</span>
+                                <div class="account-edit-area">
+                                    <strong class="account-value" id="account-name">-</strong>
+                                    <input type="text" class="account-input" id="account-name-input" hidden />
+                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="name"
+                                        data-mode="edit">
+                                        수정
+                                    </button>
+                                    <p class="account-message" id="account-name-message"></p>
+                                </div>
+                            </div>
+
+                            <div class="account-info-row editable-row" data-field="phone">
+                                <span class="account-label">전화번호</span>
+                                <div class="account-edit-area">
+                                    <strong class="account-value" id="account-phone">-</strong>
+                                    <input type="text" class="account-input" id="account-phone-input" hidden />
+                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="phone"
+                                        data-mode="edit">
+                                        수정
+                                    </button>
+                                    <p class="account-message" id="account-phone-message"></p>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="account-info-row">
-                            <span>닉네임</span>
-                            <strong id="account-nickname">-</strong>
-                        </div>
-
-                        <div class="nickname-edit-box">
-                            <div class="nickname-edit-row">
-                                <input type="text" id="nickname-input" placeholder="새 닉네임을 입력하세요" />
-                                <button type="button" class="btn btn-outline" id="nickname-check-btn">중복확인</button>
-                                <button type="button" class="btn btn-primary" id="nickname-save-btn">변경</button>
+                        <div class="profile-upload-box">
+                            <div class="profile-upload-preview">
+                                <img src="/images/normal user.jpg" alt="프로필 이미지 미리보기" id="profile-image-preview">
                             </div>
-                            <p class="nickname-message" id="nickname-message"></p>
+
+                            <div class="profile-upload-controls">
+                                <input type="file" id="profile-image-input" accept="image/*" />
+                                <button type="button" class="btn btn-primary" id="profile-image-save-btn">프로필 사진
+                                    변경</button>
+                                <p class="profile-image-message" id="profile-image-message"></p>
+                            </div>
                         </div>
                     </section>
                 </div>
             </section>
         </main>
+
         <%- include('partials/footer') %>
             <script src="/js/mypage.js"></script>
             <script src="/js/common.js"></script>

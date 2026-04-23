@@ -4,12 +4,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const passwordInput = document.getElementById('register-password');
     const passwordConfirmInput = document.getElementById('register-password-confirm');
     const nicknameInput = document.getElementById('register-nickname');
+    const emailInput = document.getElementById('register-email');
+    const nameInput = document.getElementById('register-name');
+    const phoneInput = document.getElementById('register-phone');
+
     const checkNicknameBtn = document.getElementById('check-nickname-btn');
     const errorText = document.getElementById('register-error');
     const checkMessage = document.getElementById('register-check-message');
 
     let nicknameChecked = false;
     let checkedNicknameValue = '';
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
 
     nicknameInput.addEventListener('input', () => {
         nicknameChecked = false;
@@ -61,11 +69,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const password = passwordInput.value.trim();
         const passwordConfirm = passwordConfirmInput.value.trim();
         const nickname = nicknameInput.value.trim();
+        const email = emailInput.value.trim();
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
 
         errorText.textContent = '';
 
-        if (!username || !password || !passwordConfirm || !nickname) {
-            errorText.textContent = '모든 항목을 입력해주세요.';
+        if (!username || !password || !passwordConfirm || !nickname || !email) {
+            errorText.textContent = '아이디, 비밀번호, 비밀번호 확인, 닉네임, 이메일을 입력해주세요.';
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            errorText.textContent = '올바른 이메일 형식을 입력해주세요.';
             return;
         }
 
@@ -89,7 +105,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({
                     username,
                     password,
-                    nickname
+                    nickname,
+                    email,
+                    name,
+                    phone
                 })
             });
 

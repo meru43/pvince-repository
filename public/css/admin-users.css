@@ -16,6 +16,7 @@
 }
 
 .admin-users-head {
+    grid-template-columns: max-content 120px 120px 220px 100px 140px 110px 180px;
     background: #fafafa;
     font-weight: 700;
     color: #666;
@@ -179,6 +180,131 @@
     color: #777;
     font-size: 15px;
 }
+
+.admin-users-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.admin-users-search input {
+    flex: 1;
+    min-width: 260px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.admin-user-row {
+    display: grid;
+    grid-template-columns: auto 120px 120px 220px 100px 140px 110px 180px;
+    gap: 14px;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-user-head {
+    font-weight: 700;
+}
+
+.admin-user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.role-switch {
+    position: relative;
+    width: 150px;
+    height: 44px;
+    border-radius: 999px;
+    border: 2px solid #222;
+    background: #fff;
+    padding: 3px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.role-switch-track,
+.role-switch-thumb-track {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+    align-items: center;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.role-switch-option,
+.role-switch-thumb-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.role-switch-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background: #222;
+    color: #fff;
+    transition: transform 0.2s ease;
+    overflow: hidden;
+}
+
+.role-switch.member .role-switch-thumb {
+    transform: translateX(100%);
+}
+
+.role-switch.seller .role-switch-thumb {
+    transform: translateX(0);
+}
+
+.account-info-row {
+    padding: 18px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.account-label {
+    display: inline-block;
+    width: 90px;
+    font-weight: 600;
+}
+
+.account-edit-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.account-value {
+    min-width: 220px;
+    text-align: right;
+}
+
+.account-input {
+    min-width: 220px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.account-message {
+    margin: 8px 0 0 90px;
+    font-size: 13px;
+    color: #666;
+}
+
 
 @media (max-width: 768px) {
     .admin-users-head {

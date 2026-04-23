@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         cartListBox.innerHTML = items.map(item => `
             <article class="cart-item">
                 <div class="cart-thumb">
-                    <img src="https://via.placeholder.com/320x220?text=Product+${item.product_id}" alt="${item.title}" />
+                    <img src="${getThumbSrc(item)}" alt="${item.title}">
                 </div>
 
                 <div class="cart-info">

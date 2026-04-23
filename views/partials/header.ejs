@@ -7,22 +7,34 @@
         <nav class="nav">
             <a href="/products-page">상품리스트</a>
             <a href="/qna-page">Q/A</a>
-            <a href="/cart-page" id="cart-link" style="display: none;">장바구니</a>
-            <a href="/order-check-page" id="order-check-link" style="display: none;">주문조회</a>
 
-            <a href="/seller-upload-page" id="seller-upload-link" style="display: none;">상품등록</a>
-            <a href="/admin-users-page" id="admin-link" style="display: none;">회원관리</a>
-
+            <!-- 로그인 전용 -->
+            <a href="/order-check-page" id="order-check-link">주문조회</a>
             <a href="/login-page" id="auth-link" class="auth-link">로그인</a>
 
+            <!-- 로그인 후 공통 -->
+            <a href="/cart-page" id="cart-link" hidden>장바구니</a>
+
+            <!-- seller / admin -->
+            <a href="/seller-upload-page" id="seller-upload-link" hidden>상품등록</a>
+
+            <!-- admin 전용 -->
+            <a href="/admin-users-page" id="admin-link" hidden>회원관리</a>
+
             <div class="header-user-menu" id="header-user-menu" hidden>
-                <button type="button" class="header-user-trigger" id="header-user-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="header-user-panel">
-                    <span class="header-user-avatar" id="header-user-avatar">U</span>
+                <button type="button" class="header-user-trigger" id="header-user-trigger" aria-expanded="false"
+                    aria-haspopup="true" aria-controls="header-user-panel">
+                    <span class="header-user-avatar" id="header-user-avatar">
+                        <img src="/images/normal user.jpg" alt="프로필 이미지" id="header-user-avatar-image">
+                    </span>
                 </button>
 
                 <div class="header-user-panel" id="header-user-panel" hidden>
                     <div class="header-user-summary">
-                        <div class="header-user-avatar large" id="header-user-avatar-large">U</div>
+                        <div class="header-user-avatar large" id="header-user-avatar-large">
+                            <img src="/images/normal user.jpg" alt="프로필 이미지" id="header-user-avatar-large-image">
+                        </div>
+
                         <div class="header-user-meta">
                             <strong class="header-user-name" id="header-user-name">사용자</strong>
                             <span class="header-user-role" id="header-user-role">일반회원</span>

@@ -583,5 +583,54 @@ module.exports = (db) => {
         });
     });
 
+    router.patch('/api/admin/products/:id/featured', requireSellerOrAdminApi, (req, res) => {
+        if (req.session.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: '관리자만 추천 상품을 설정할 수 있습니다.'
+            });
+        }
+
+        const productId = req.params.id;
+        const { isFeatured } = req.body;
+
+        if (isFeatured !== 0 && isFeatured !== 1 && isFeatured !== '0' && isFeatured !== '1') {
+            return res.status(400).json({
+                success: false,
+                message: '올바른 추천 상태 값이 아닙니다.'
+            });
+        }
+
+        const sql = `
+        UPDATE products
+        SET is_featured = ?
+        WHERE id = ?
+    `;
+
+        db.query(sql, [Number(isFeatured), productId], (err, result) => {
+            if (err) {
+                console.error('추천 상품 상태 변경 오류:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: '추천 상품 설정에 실패했습니다.'
+                });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: '상품을 찾을 수 없습니다.'
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: Number(isFeatured) === 1
+                    ? '추천 상품으로 설정되었습니다.'
+                    : '추천 상품에서 해제되었습니다.'
+            });
+        });
+    });
+
     return router;
 };

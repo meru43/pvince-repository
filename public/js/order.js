@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (item.thumbnail_path && String(item.thumbnail_path).trim() !== '') {
             return item.thumbnail_path;
         }
+
         return `https://via.placeholder.com/280x190?text=Product+${item.product_id || item.id}`;
     }
 

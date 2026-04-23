@@ -130,5 +130,35 @@ module.exports = (db) => {
         });
     });
 
+    // 추천상품
+    router.get('/api/featured-products', (req, res) => {
+        const sql = `
+        SELECT
+            products.*,
+            COALESCE(users.nickname, users.username) AS uploader_name
+        FROM products
+        LEFT JOIN users ON products.created_by = users.id
+        WHERE products.is_active = 1
+          AND products.is_featured = 1
+        ORDER BY products.id DESC
+        LIMIT 6
+    `;
+
+        db.query(sql, (err, results) => {
+            if (err) {
+                console.error('추천 상품 조회 오류:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: '추천 상품을 불러오지 못했습니다.'
+                });
+            }
+
+            return res.json({
+                success: true,
+                products: results
+            });
+        });
+    });
+
     return router;
 };

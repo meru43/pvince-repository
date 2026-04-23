@@ -23,6 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
     }
 
+    function getThumbSrc(item) {
+        if (item.thumbnail_path && String(item.thumbnail_path).trim() !== '') {
+            return item.thumbnail_path;
+        }
+
+        return `https://via.placeholder.com/280x190?text=Product+${item.product_id}`;
+    }
+
     function renderResult(order, items) {
         resultInfoBox.innerHTML = `
             <div class="result-info-row">
@@ -44,25 +52,27 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         resultProductsBox.innerHTML = items.map(item => `
-            <div class="result-product">
-                <div class="result-product-thumb">
-                    <img src="https://via.placeholder.com/280x190?text=Product+${item.product_id}" alt="${item.title}" />
-                </div>
+            <div class="result-product-wrap">
+                <a
+                    href="/products-page/${item.product_id}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="result-product"
+                >
+                    <div class="result-product-thumb">
+                        <img src="${getThumbSrc(item)}" alt="${item.title}" />
+                    </div>
 
-                <div class="result-product-info">
-                    <p class="result-product-category">상품</p>
-                    <h4 class="result-product-title">${item.title}</h4>
-                    <p class="result-product-desc">${item.description || '상품 설명이 없습니다.'}</p>
-                </div>
+                    <div class="result-product-info">
+                        <p class="result-product-category">상품</p>
+                        <h4 class="result-product-title">${item.title}</h4>
+                        <p class="result-product-desc">${item.description || '상품 설명이 없습니다.'}</p>
+                    </div>
 
-                <div class="result-product-side">
-                    <span class="btn btn-outline">${Number(item.price).toLocaleString()}원</span>
-                    <a
-                        href="/products-page/${item.product_id}"
-                        class="btn btn-outline"
-                    >
-                        상세페이지
-                    </a>
+                    <div class="result-product-side">${Number(item.price).toLocaleString()}원</div>
+                </a>
+
+                <div class="result-product-download">
                     <button
                         type="button"
                         class="btn btn-primary guest-download-btn"
@@ -122,8 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn) return;
 
         const productId = btn.dataset.productId;
-        const orderNumber = document.getElementById('order-number').value.trim();
-        const guestOrderPassword = document.getElementById('order-password').value.trim();
+        const orderNumber = orderNumberInput.value.trim();
+        const guestOrderPassword = orderPasswordInput.value.trim();
 
         if (!orderNumber || !guestOrderPassword || !productId) {
             alert('주문번호와 비밀번호를 다시 확인해주세요.');
@@ -136,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     orderNumber,
                     guestOrderPassword,
@@ -143,15 +154,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
+            const contentType = response.headers.get('Content-Type') || '';
+
+            if (contentType.includes('application/json')) {
+                const errorData = await response.json();
+                alert(errorData.message || '파일 다운로드에 실패했습니다.');
+                return;
+            }
+
             if (!response.ok) {
-                let message = '파일 다운로드에 실패했습니다.';
-
-                try {
-                    const errorData = await response.json();
-                    message = errorData.message || message;
-                } catch (_) { }
-
-                alert(message);
+                alert('파일 다운로드에 실패했습니다.');
                 return;
             }
 

@@ -1,29 +1,35 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const profileName = document.getElementById('profile-name');
     const profileEmail = document.getElementById('profile-email');
+    const profileCardImage = document.getElementById('profile-card-image');
+    const profileImagePreview = document.getElementById('profile-image-preview');
+    const profileImageInput = document.getElementById('profile-image-input');
+    const profileImageSaveBtn = document.getElementById('profile-image-save-btn');
+    const profileImageMessage = document.getElementById('profile-image-message');
+
     const accountUsername = document.getElementById('account-username');
     const accountNickname = document.getElementById('account-nickname');
-    const accountStatus = document.getElementById('account-status');
+    const accountEmail = document.getElementById('account-email');
+    const accountName = document.getElementById('account-name');
+    const accountPhone = document.getElementById('account-phone');
 
-    const nicknameInput = document.getElementById('nickname-input');
-    const nicknameCheckBtn = document.getElementById('nickname-check-btn');
-    const nicknameSaveBtn = document.getElementById('nickname-save-btn');
-    const nicknameMessage = document.getElementById('nickname-message');
-
-    const orderCount = document.getElementById('order-count');
-    const orderHistoryBox = document.getElementById('order-history-box');
+    const accountNicknameInput = document.getElementById('account-nickname-input');
+    const accountEmailInput = document.getElementById('account-email-input');
+    const accountNameInput = document.getElementById('account-name-input');
+    const accountPhoneInput = document.getElementById('account-phone-input');
 
     const purchaseCount = document.getElementById('purchase-count');
     const purchaseListBox = document.getElementById('purchase-list-box');
-
     const downloadCount = document.getElementById('download-count');
     const downloadHistoryBox = document.getElementById('download-history-box');
-
-    let nicknameChecked = false;
-    let checkedNicknameValue = '';
+    const logoutBtn = document.getElementById('logout-btn');
 
     function formatPrice(value) {
         return `${Number(value || 0).toLocaleString()}원`;
+    }
+
+    function displayValue(value) {
+        return value && String(value).trim() !== '' ? value : '-';
     }
 
     function getThumbSrc(item) {
@@ -36,6 +42,75 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         return `https://via.placeholder.com/160x110?text=Product+${item.productId || item.product_id || ''}`;
+    }
+
+    function setProfileImages(src) {
+        const profileSrc = src || '/images/normal user.jpg';
+
+        if (profileCardImage) profileCardImage.src = profileSrc;
+        if (profileImagePreview) profileImagePreview.src = profileSrc;
+
+        const headerAvatar = document.getElementById('header-user-avatar-image');
+        const headerAvatarLarge = document.getElementById('header-user-avatar-large-image');
+        if (headerAvatar) headerAvatar.src = profileSrc;
+        if (headerAvatarLarge) headerAvatarLarge.src = profileSrc;
+    }
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function getFieldElements(field) {
+        return {
+            valueEl: document.getElementById(`account-${field}`),
+            inputEl: document.getElementById(`account-${field}-input`),
+            toggleBtn: document.querySelector(`.account-toggle-btn[data-field="${field}"]`),
+            messageEl: document.getElementById(`account-${field}-message`)
+        };
+    }
+
+    function enterEditMode(field) {
+        const { valueEl, inputEl, toggleBtn, messageEl } = getFieldElements(field);
+        if (!valueEl || !inputEl || !toggleBtn) return;
+
+        if (messageEl) messageEl.textContent = '';
+
+        valueEl.hidden = true;
+        inputEl.hidden = false;
+
+        toggleBtn.textContent = '저장';
+        toggleBtn.classList.remove('btn-outline');
+        toggleBtn.classList.add('btn-primary');
+        toggleBtn.dataset.mode = 'save';
+
+        inputEl.focus();
+        inputEl.select?.();
+    }
+
+    function exitEditMode(field) {
+        const { valueEl, inputEl, toggleBtn } = getFieldElements(field);
+        if (!valueEl || !inputEl || !toggleBtn) return;
+
+        valueEl.hidden = false;
+        inputEl.hidden = true;
+
+        toggleBtn.textContent = '수정';
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add('btn-outline');
+        toggleBtn.dataset.mode = 'edit';
+    }
+
+    async function checkNicknameAvailable(nickname) {
+        const response = await fetch('/check-nickname', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ nickname })
+        });
+
+        return response.json();
     }
 
     async function loadMyInfo() {
@@ -52,68 +127,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             return false;
         }
 
-        profileName.textContent = `${meData.nickname || meData.username} 님`;
-        profileEmail.textContent = '로그인된 회원입니다.';
-        accountUsername.textContent = meData.username;
-        accountNickname.textContent = meData.nickname || '-';
-        accountStatus.textContent = '로그인됨';
+        const roleTextMap = {
+            member: '일반회원입니다.',
+            seller: '셀러회원입니다.',
+            admin: '관리자회원입니다.'
+        };
 
-        nicknameInput.value = meData.nickname || '';
+        setProfileImages(meData.profileImage);
+        if (profileName) profileName.textContent = `${meData.nickname || meData.username} 님`;
+        if (profileEmail) profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
+
+        if (accountUsername) accountUsername.textContent = displayValue(meData.username);
+        if (accountNickname) accountNickname.textContent = displayValue(meData.nickname);
+        if (accountEmail) accountEmail.textContent = displayValue(meData.email);
+        if (accountName) accountName.textContent = displayValue(meData.name);
+        if (accountPhone) accountPhone.textContent = displayValue(meData.phone);
+
+        if (accountNicknameInput) accountNicknameInput.value = meData.nickname || '';
+        if (accountEmailInput) accountEmailInput.value = meData.email || '';
+        if (accountNameInput) accountNameInput.value = meData.name || '';
+        if (accountPhoneInput) accountPhoneInput.value = meData.phone || '';
+
         return true;
-    }
-
-    async function loadMyOrders() {
-        if (!orderHistoryBox || !orderCount) return;
-
-        try {
-            const response = await fetch('/api/my-orders', {
-                method: 'GET',
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                orderHistoryBox.innerHTML = `<p class="empty-message">${data.message || '주문내역을 불러오지 못했습니다.'}</p>`;
-                orderCount.textContent = '총 0건';
-                return;
-            }
-
-            const orders = data.orders || [];
-            orderCount.textContent = `총 ${orders.length}건`;
-
-            if (orders.length === 0) {
-                orderHistoryBox.innerHTML = `<p class="empty-message">주문내역이 없습니다.</p>`;
-                return;
-            }
-
-            orderHistoryBox.innerHTML = orders.map(order => `
-                <div class="history-row">
-                    <div class="history-main">
-                        <p><strong>주문번호</strong> ${order.orderNumber}</p>
-                        <p><strong>주문상태</strong> ${order.status}</p>
-                        <p><strong>주문금액</strong> ${formatPrice(order.totalPrice)}</p>
-                        <p><strong>주문일시</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-                    </div>
-
-                    <div class="history-items">
-                        ${(order.items || []).map(item => `
-                            <div class="history-item">
-                                <img src="${getThumbSrc(item)}" alt="${item.title}">
-                                <div>
-                                    <p>${item.title}</p>
-                                    <p>${formatPrice(item.price)}</p>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            console.error('주문내역 조회 실패:', error);
-            orderHistoryBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
-            orderCount.textContent = '총 0건';
-        }
     }
 
     async function loadMyProducts() {
@@ -137,11 +172,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             purchaseCount.textContent = `총 ${products.length}건`;
 
             if (products.length === 0) {
-                purchaseListBox.innerHTML = `<p class="empty-message">구매한 상품이 없습니다.</p>`;
+                purchaseListBox.innerHTML = '<p class="empty-message">구매한 상품이 없습니다.</p>';
                 return;
             }
 
-            purchaseListBox.innerHTML = products.map(product => `
+            purchaseListBox.innerHTML = products.map((product) => `
                 <article class="product-card">
                     <a href="/products-page/${product.product_id}" class="product-thumb">
                         <img src="${getThumbSrc(product)}" alt="${product.title}">
@@ -152,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <h3 class="product-name">
                             <a href="/products-page/${product.product_id}">${product.title}</a>
                         </h3>
-                        <p class="product-price">${formatPrice(product.price)}</p>
+                        <p class="product-price">${formatPrice(product.sale_price || product.price)}</p>
                         <div class="product-actions">
                             <a href="/download/${product.product_id}" class="btn btn-outline">다운로드</a>
                         </div>
@@ -161,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `).join('');
         } catch (error) {
             console.error('구매한 상품 조회 실패:', error);
-            purchaseListBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+            purchaseListBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
             purchaseCount.textContent = '총 0건';
         }
     }
@@ -187,112 +222,184 @@ document.addEventListener('DOMContentLoaded', async () => {
             downloadCount.textContent = `총 ${logs.length}건`;
 
             if (logs.length === 0) {
-                downloadHistoryBox.innerHTML = `<p class="empty-message">다운로드 내역이 없습니다.</p>`;
+                downloadHistoryBox.innerHTML = '<p class="empty-message">다운로드 내역이 없습니다.</p>';
                 return;
             }
 
-            downloadHistoryBox.innerHTML = logs.map(log => `
+            downloadHistoryBox.innerHTML = logs.map((log) => `
                 <div class="history-row">
                     <p><strong>상품명</strong> ${log.title}</p>
                     <p><strong>가격</strong> ${formatPrice(log.sale_price || log.price)}</p>
-                    <p><strong>파일명</strong> ${log.file_name || '-'}</p>
+                    <p><strong>파일명</strong> ${displayValue(log.file_name)}</p>
                     <p><strong>다운로드 일시</strong> ${new Date(log.downloaded_at).toLocaleString()}</p>
                 </div>
             `).join('');
         } catch (error) {
             console.error('다운로드 내역 조회 실패:', error);
-            downloadHistoryBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+            downloadHistoryBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
             downloadCount.textContent = '총 0건';
         }
     }
 
-    nicknameInput.addEventListener('input', () => {
-        nicknameChecked = false;
-        checkedNicknameValue = '';
-        nicknameMessage.textContent = '';
-    });
+    async function saveProfileField(field) {
+        const nickname = accountNicknameInput?.value.trim() || '';
+        const email = accountEmailInput?.value.trim() || '';
+        const name = accountNameInput?.value.trim() || '';
+        const phone = accountPhoneInput?.value.trim() || '';
 
-    nicknameCheckBtn.addEventListener('click', async () => {
-        const nickname = nicknameInput.value.trim();
-
-        nicknameMessage.textContent = '';
+        const { messageEl } = getFieldElements(field);
+        if (messageEl) messageEl.textContent = '';
 
         if (!nickname) {
-            nicknameMessage.textContent = '닉네임을 입력해주세요.';
+            if (messageEl) messageEl.textContent = '닉네임을 입력해주세요.';
             return;
         }
 
-        try {
-            const response = await fetch('/check-nickname', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ nickname })
-            });
+        if (!email) {
+            if (messageEl) messageEl.textContent = '이메일을 입력해주세요.';
+            return;
+        }
 
-            const data = await response.json();
+        if (!isValidEmail(email)) {
+            if (messageEl) messageEl.textContent = '올바른 이메일 형식을 입력해주세요.';
+            return;
+        }
 
-            if (data.success) {
-                nicknameChecked = true;
-                checkedNicknameValue = nickname;
-                nicknameMessage.textContent = data.message;
-            } else {
-                nicknameChecked = false;
-                checkedNicknameValue = '';
-                nicknameMessage.textContent = data.message || '중복확인에 실패했습니다.';
+        if (field === 'nickname') {
+            const checkData = await checkNicknameAvailable(nickname);
+            const currentNickname = accountNickname?.textContent?.trim() || '';
+
+            if (!checkData.success && nickname !== currentNickname) {
+                if (messageEl) messageEl.textContent = checkData.message || '이미 사용 중인 닉네임입니다.';
+                return;
             }
-        } catch (error) {
-            console.error('닉네임 중복확인 실패:', error);
-            nicknameMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
-        }
-    });
-
-    nicknameSaveBtn.addEventListener('click', async () => {
-        const nickname = nicknameInput.value.trim();
-
-        if (!nickname) {
-            nicknameMessage.textContent = '닉네임을 입력해주세요.';
-            return;
-        }
-
-        if (!nicknameChecked || checkedNicknameValue !== nickname) {
-            nicknameMessage.textContent = '닉네임 중복확인을 완료해주세요.';
-            return;
         }
 
         try {
-            const response = await fetch('/my-nickname', {
+            const response = await fetch('/my-profile', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify({ nickname })
+                body: JSON.stringify({
+                    nickname,
+                    email,
+                    name,
+                    phone
+                })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                alert(data.message);
-                nicknameChecked = false;
-                checkedNicknameValue = '';
-                nicknameMessage.textContent = '';
+                if (messageEl) messageEl.textContent = '저장되었습니다.';
                 await loadMyInfo();
+                exitEditMode(field);
             } else {
-                nicknameMessage.textContent = data.message || '닉네임 변경에 실패했습니다.';
+                if (messageEl) messageEl.textContent = data.message || '회원 정보 변경에 실패했습니다.';
             }
         } catch (error) {
-            console.error('닉네임 변경 실패:', error);
-            nicknameMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
+            console.error('회원 정보 변경 실패:', error);
+            if (messageEl) messageEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        }
+    }
+
+    profileImageInput?.addEventListener('change', () => {
+        const file = profileImageInput.files?.[0];
+        if (!profileImageMessage) return;
+
+        profileImageMessage.textContent = '';
+
+        if (!file) return;
+
+        const previewUrl = URL.createObjectURL(file);
+        setProfileImages(previewUrl);
+    });
+
+    profileImageSaveBtn?.addEventListener('click', async () => {
+        const file = profileImageInput?.files?.[0];
+
+        if (!file) {
+            if (profileImageMessage) {
+                profileImageMessage.textContent = '프로필 이미지를 선택해주세요.';
+            }
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('profileImage', file);
+
+        try {
+            const response = await fetch('/my-profile-image', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                if (profileImageMessage) {
+                    profileImageMessage.textContent = data.message || '프로필 이미지 변경에 실패했습니다.';
+                }
+                return;
+            }
+
+            if (profileImageMessage) {
+                profileImageMessage.textContent = data.message;
+            }
+
+            setProfileImages(data.profileImage);
+            if (profileImageInput) profileImageInput.value = '';
+        } catch (error) {
+            console.error('프로필 이미지 변경 실패:', error);
+            if (profileImageMessage) {
+                profileImageMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
+            }
+        }
+    });
+
+    document.addEventListener('click', async (e) => {
+        const toggleBtn = e.target.closest('.account-toggle-btn');
+        if (!toggleBtn) return;
+
+        const field = toggleBtn.dataset.field;
+        const mode = toggleBtn.dataset.mode || 'edit';
+
+        if (mode === 'edit') {
+            enterEditMode(field);
+            return;
+        }
+
+        if (mode === 'save') {
+            await saveProfileField(field);
+        }
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+        try {
+            const response = await fetch('/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = '/';
+            } else {
+                alert(data.message || '로그아웃에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('로그아웃 실패:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
         }
     });
 
     const ok = await loadMyInfo();
     if (!ok) return;
 
-    await loadMyOrders();
     await loadMyProducts();
     await loadMyDownloadLogs();
 });

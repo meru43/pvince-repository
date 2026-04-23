@@ -1,8 +1,22 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const adminUsersList = document.getElementById('admin-users-list');
+    const searchInput = document.getElementById('admin-user-search');
+    const searchBtn = document.getElementById('admin-user-search-btn');
+
+    const DEFAULT_PROFILE_IMAGE = '/images/normal user.jpg';
 
     function getNextRole(role) {
         return role === 'seller' ? 'member' : 'seller';
+    }
+
+    function displayValue(value) {
+        return value && String(value).trim() !== '' ? value : '-';
+    }
+
+    function getProfileImageSrc(user) {
+        return user.profile_image && String(user.profile_image).trim() !== ''
+            ? user.profile_image
+            : DEFAULT_PROFILE_IMAGE;
     }
 
     function updateSwitchState(button, role) {
@@ -29,15 +43,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         adminUsersList.innerHTML = users.map((user) => `
             <div class="admin-user-row">
-                <span class="col-id">${user.id}</span>
-                <span class="col-username">${user.username}</span>
+                <span class="col-profile">
+                    <img
+                        src="${getProfileImageSrc(user)}"
+                        alt="${displayValue(user.username)} 프로필"
+                        class="admin-user-avatar"
+                    >
+                </span>
+
+                <span class="col-username">${displayValue(user.username)}</span>
+                <span class="col-nickname">${displayValue(user.nickname)}</span>
+                <span class="col-email">${displayValue(user.email)}</span>
+                <span class="col-name">${displayValue(user.name)}</span>
+                <span class="col-phone">${displayValue(user.phone)}</span>
+
                 <span class="col-role">
                     <span class="role-badge ${user.role}">${user.role}</span>
                 </span>
+
                 <span class="col-action">
                     ${user.role === 'admin'
-                        ? '<span>변경 불가</span>'
-                        : `
+                ? '<span>변경 불가</span>'
+                : `
                             <button
                                 type="button"
                                 class="role-switch ${user.role}"
@@ -59,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 </span>
                             </button>
                         `
-                    }
+            }
                 </span>
             </div>
         `).join('');
@@ -119,7 +146,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const response = await fetch('/api/admin/users', {
+            const params = new URLSearchParams({
+                q: searchInput?.value?.trim() || ''
+            });
+
+            const response = await fetch(`/api/admin/users?${params.toString()}`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -136,6 +167,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminUsersList.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
         }
     }
+
+    searchBtn?.addEventListener('click', async () => {
+        await loadUsers();
+    });
+
+    searchInput?.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            await loadUsers();
+        }
+    });
 
     loadUsers();
 });
