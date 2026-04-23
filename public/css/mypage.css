@@ -115,6 +115,28 @@
     gap: 18px;
 }
 
+.purchase-list .product-card-wrap {
+    border: 1px solid #e1e1e1;
+    padding: 30px;
+}
+
+.purchase-list .product-card-wrap .product-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.purchase-list .product-card-wrap .product-card .product-thumb {
+    height: 250px;
+    aspect-ratio: 16 / 9;
+    border: 1px solid #f1f1f2;
+}
+
+.purchase-list .product-card-wrap .product-card .product-info {
+    width: 100%;
+    margin-left: 20px;
+}
+
 .purchase-item {
     display: grid;
     grid-template-columns: 220px 1fr 160px;
@@ -321,6 +343,41 @@
     font-size: 13px;
     color: #666;
     margin: 0;
+}
+
+.password-change-box {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.password-change-title {
+    margin-bottom: 14px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.password-change-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.password-change-grid input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.password-change-actions {
+    margin-top: 12px;
+}
+
+.password-message {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #666;
 }
 
 @media (max-width: 1024px) {

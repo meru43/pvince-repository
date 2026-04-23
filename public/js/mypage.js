@@ -24,6 +24,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const downloadHistoryBox = document.getElementById('download-history-box');
     const logoutBtn = document.getElementById('logout-btn');
 
+    const currentPasswordInput = document.getElementById('current-password-input');
+    const newPasswordInput = document.getElementById('new-password-input');
+    const newPasswordConfirmInput = document.getElementById('new-password-confirm-input');
+    const passwordSaveBtn = document.getElementById('password-save-btn');
+    const passwordMessage = document.getElementById('password-message');
+
     function formatPrice(value) {
         return `${Number(value || 0).toLocaleString()}원`;
     }
@@ -177,20 +183,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             purchaseListBox.innerHTML = products.map((product) => `
-                <article class="product-card">
-                    <a href="/products-page/${product.product_id}" class="product-thumb">
-                        <img src="${getThumbSrc(product)}" alt="${product.title}">
+                <article class="product-card-wrap">
+                    <a href="/products-page/${product.product_id}" target="_blank" rel="noopener noreferrer" class="product-card">
+                        <div class="product-thumb">
+                            <img src="${getThumbSrc(product)}" alt="${product.title}">
+                        </div>
+
+                        <div class="product-info">
+                            <p class="product-category">구매 완료</p>
+                            <h3 class="product-name">${product.title}</h3>
+                            <p class="product-price">${formatPrice(product.sale_price || product.price)}</p>
+                        </div>
                     </a>
 
-                    <div class="product-info">
-                        <p class="product-category">구매 완료</p>
-                        <h3 class="product-name">
-                            <a href="/products-page/${product.product_id}">${product.title}</a>
-                        </h3>
-                        <p class="product-price">${formatPrice(product.sale_price || product.price)}</p>
-                        <div class="product-actions">
-                            <a href="/download/${product.product_id}" class="btn btn-outline">다운로드</a>
-                        </div>
+                    <div class="product-download-area">
+                        <a href="/download/${product.product_id}" class="btn btn-outline">다운로드</a>
                     </div>
                 </article>
             `).join('');
@@ -394,6 +401,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('로그아웃 실패:', error);
             alert('서버와 통신 중 오류가 발생했습니다.');
+        }
+    });
+
+    passwordSaveBtn?.addEventListener('click', async () => {
+        const currentPassword = currentPasswordInput?.value.trim() || '';
+        const newPassword = newPasswordInput?.value.trim() || '';
+        const newPasswordConfirm = newPasswordConfirmInput?.value.trim() || '';
+
+        if (passwordMessage) passwordMessage.textContent = '';
+
+        if (!currentPassword || !newPassword || !newPasswordConfirm) {
+            if (passwordMessage) passwordMessage.textContent = '모든 비밀번호 항목을 입력해주세요.';
+            return;
+        }
+
+        if (newPassword !== newPasswordConfirm) {
+            if (passwordMessage) passwordMessage.textContent = '새 비밀번호가 일치하지 않습니다.';
+            return;
+        }
+
+        if (newPassword.length < 4) {
+            if (passwordMessage) passwordMessage.textContent = '새 비밀번호는 4자 이상 입력해주세요.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/my-password', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (passwordMessage) passwordMessage.textContent = data.message;
+                if (currentPasswordInput) currentPasswordInput.value = '';
+                if (newPasswordInput) newPasswordInput.value = '';
+                if (newPasswordConfirmInput) newPasswordConfirmInput.value = '';
+            } else {
+                if (passwordMessage) passwordMessage.textContent = data.message || '비밀번호 변경에 실패했습니다.';
+            }
+        } catch (error) {
+            console.error('비밀번호 변경 실패:', error);
+            if (passwordMessage) passwordMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
         }
     });
 

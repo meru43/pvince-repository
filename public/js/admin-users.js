@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             : DEFAULT_PROFILE_IMAGE;
     }
 
+    function getStatusText(user) {
+        return Number(user.is_active) === 1 ? '활동중' : '활동중지';
+    }
+
     function updateSwitchState(button, role) {
         const row = button.closest('.admin-user-row');
         const badge = row?.querySelector('.role-badge');
@@ -57,6 +61,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="col-name">${displayValue(user.name)}</span>
                 <span class="col-phone">${displayValue(user.phone)}</span>
 
+                <span class="col-user-status">
+                    <span class="user-status-badge ${Number(user.is_active) === 1 ? 'active' : 'inactive'}">
+                        ${getStatusText(user)}
+                    </span>
+                </span>
+
                 <span class="col-role">
                     <span class="role-badge ${user.role}">${user.role}</span>
                 </span>
@@ -65,26 +75,50 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${user.role === 'admin'
                 ? '<span>변경 불가</span>'
                 : `
-                            <button
-                                type="button"
-                                class="role-switch ${user.role}"
-                                data-id="${user.id}"
-                                data-current-role="${user.role}"
-                                data-role="${getNextRole(user.role)}"
-                                aria-label="회원 권한 변경"
-                                aria-pressed="${user.role === 'seller'}"
-                            >
-                                <span class="role-switch-track">
-                                    <span class="role-switch-option seller">셀러회원</span>
-                                    <span class="role-switch-option member">일반회원</span>
-                                </span>
-                                <span class="role-switch-thumb" aria-hidden="true">
-                                    <span class="role-switch-thumb-track">
-                                        <span class="role-switch-thumb-option">셀러회원</span>
-                                        <span class="role-switch-thumb-option">일반회원</span>
-                                    </span>
-                                </span>
-                            </button>
+                            <div class="admin-user-actions">
+                                <div class="admin-user-actions-top">
+                                    <button
+                                        type="button"
+                                        class="role-switch ${user.role}"
+                                        data-id="${user.id}"
+                                        data-current-role="${user.role}"
+                                        data-role="${getNextRole(user.role)}"
+                                        aria-label="회원 권한 변경"
+                                        aria-pressed="${user.role === 'seller'}"
+                                    >
+                                        <span class="role-switch-track">
+                                            <span class="role-switch-option seller">셀러회원</span>
+                                            <span class="role-switch-option member">일반회원</span>
+                                        </span>
+                                        <span class="role-switch-thumb" aria-hidden="true">
+                                            <span class="role-switch-thumb-track">
+                                                <span class="role-switch-thumb-option">셀러회원</span>
+                                                <span class="role-switch-thumb-option">일반회원</span>
+                                            </span>
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <div class="admin-user-actions-bottom">
+                                    <button
+                                        type="button"
+                                        class="btn user-status-btn ${Number(user.is_active) === 1 ? 'danger' : 'btn-outline'}"
+                                        data-id="${user.id}"
+                                        data-next-status="${Number(user.is_active) === 1 ? 0 : 1}"
+                                    >
+                                        ${Number(user.is_active) === 1 ? '활동중지' : '활동재개'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline user-password-reset-btn"
+                                        data-id="${user.id}"
+                                        data-username="${displayValue(user.username)}"
+                                    >
+                                        비밀번호 초기화
+                                    </button>
+                                </div>
+                            </div>
                         `
             }
                 </span>
@@ -167,6 +201,99 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminUsersList.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
         }
     }
+
+    document.addEventListener('click', async (e) => {
+        const statusBtn = e.target.closest('.user-status-btn');
+        if (statusBtn) {
+            const userId = statusBtn.dataset.id;
+            const nextStatus = Number(statusBtn.dataset.nextStatus);
+
+            const firstMessage = nextStatus === 0
+                ? '정말 이 회원의 활동을 중지하시겠습니까?'
+                : '이 회원의 활동을 다시 활성화하시겠습니까?';
+
+            if (!confirm(firstMessage)) {
+                return;
+            }
+
+            if (nextStatus === 0) {
+                const finalConfirm = confirm('최종 확인: 활동중지 처리하면 이 계정은 로그인할 수 없습니다. 계속하시겠습니까?');
+                if (!finalConfirm) {
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        isActive: nextStatus
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    await loadUsers();
+                } else {
+                    alert(data.message || '회원 상태 변경에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('회원 상태 변경 실패:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+            }
+
+            return;
+        }
+
+        const resetPasswordBtn = e.target.closest('.user-password-reset-btn');
+        if (resetPasswordBtn) {
+            const userId = resetPasswordBtn.dataset.id;
+            const username = resetPasswordBtn.dataset.username || '해당 회원';
+
+            const firstConfirm = confirm(`${username}의 비밀번호를 초기화하시겠습니까?`);
+            if (!firstConfirm) {
+                return;
+            }
+
+            const finalConfirm = confirm('최종 확인: 임시 비밀번호로 변경됩니다. 계속하시겠습니까?');
+            if (!finalConfirm) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(
+                        `비밀번호가 초기화되었습니다.\n\n` +
+                        `임시 비밀번호: ${data.tempPassword}\n\n` +
+                        `이 임시 비밀번호를 회원에게 전달한 뒤, 로그인 후 마이페이지에서 새 비밀번호로 변경하도록 안내해주세요.`
+                    );
+                } else {
+                    alert(data.message || '비밀번호 초기화에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('비밀번호 초기화 실패:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+            }
+
+            return;
+        }
+    });
 
     searchBtn?.addEventListener('click', async () => {
         await loadUsers();

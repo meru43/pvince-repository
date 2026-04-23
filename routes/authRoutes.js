@@ -387,6 +387,88 @@ module.exports = (db, bcrypt) => {
             });
         });
     });
+    router.patch('/my-password', async (req, res) => {
+        if (!req.session.userId) {
+            return res.json({
+                success: false,
+                message: '로그인이 필요합니다.'
+            });
+        }
+
+        const currentPassword = req.body.currentPassword?.trim();
+        const newPassword = req.body.newPassword?.trim();
+
+        if (!currentPassword || !newPassword) {
+            return res.json({
+                success: false,
+                message: '현재 비밀번호와 새 비밀번호를 입력해주세요.'
+            });
+        }
+
+        if (newPassword.length < 4) {
+            return res.json({
+                success: false,
+                message: '새 비밀번호는 4자 이상 입력해주세요.'
+            });
+        }
+
+        const sql = 'SELECT id, password FROM users WHERE id = ? LIMIT 1';
+
+        db.query(sql, [req.session.userId], async (err, results) => {
+            if (err) {
+                console.error('회원 비밀번호 조회 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '회원 정보를 확인하지 못했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '회원을 찾을 수 없습니다.'
+                });
+            }
+
+            const user = results[0];
+
+            try {
+                const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '현재 비밀번호가 올바르지 않습니다.'
+                    });
+                }
+
+                const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+                const updateSql = 'UPDATE users SET password = ? WHERE id = ?';
+
+                db.query(updateSql, [hashedPassword, req.session.userId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('비밀번호 변경 오류:', updateErr);
+                        return res.json({
+                            success: false,
+                            message: '비밀번호 변경에 실패했습니다.'
+                        });
+                    }
+
+                    return res.json({
+                        success: true,
+                        message: '비밀번호가 변경되었습니다.'
+                    });
+                });
+            } catch (error) {
+                console.error('비밀번호 처리 오류:', error);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 처리 중 오류가 발생했습니다.'
+                });
+            }
+        });
+    });
 
     router.post('/my-profile-image', (req, res) => {
         if (!req.session.userId) {
@@ -466,6 +548,13 @@ module.exports = (db, bcrypt) => {
             }
 
             const user = results[0];
+
+            if (Number(user.is_active) === 0) {
+                return res.json({
+                    success: false,
+                    message: '해당 아이디는 활동이 중지된 계정입니다.'
+                });
+            }
 
             try {
                 const isMatch = await bcrypt.compare(password, user.password);
