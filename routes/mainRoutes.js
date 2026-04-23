@@ -47,7 +47,9 @@ router.get('/order-check-page', (req, res) => {
 
 // 마이페이지
 router.get('/mypage-page', (req, res) => {
-    res.render('mypage');
+    res.render('mypage', {
+        userRole: req.session.role || null
+    });
 });
 
 // Q&A 페이지
