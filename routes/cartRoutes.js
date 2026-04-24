@@ -64,8 +64,11 @@ module.exports = (db) => {
         products.id AS product_id,
         products.title,
         products.price,
+        products.sale_price,
+        products.is_free,
         products.description,
-        products.file_name
+        products.file_name,
+        products.thumbnail_path
       FROM cart_items
       JOIN products ON cart_items.product_id = products.id
       WHERE cart_items.user_id = ?

@@ -23,17 +23,26 @@
 
             <section id="qna-answer-box-wrap"></section>
 
-            <section class="admin-answer-form-box" id="admin-answer-form-box" style="display: none;">
-                <div class="answer-form-head">
-                    <h3 class="answer-form-title">관리자 답변 작성</h3>
+            <section id="admin-answer-form-box" class="admin-answer-box" style="display: none;">
+                <div class="admin-answer-actions" id="admin-answer-actions">
+                    <button type="button" class="btn btn-primary" id="admin-answer-open-btn">답변 등록</button>
                 </div>
 
-                <form id="admin-answer-form" class="admin-answer-form">
-                    <textarea id="admin-answer-content" placeholder="답변 내용을 입력하세요"></textarea>
-                    <div class="admin-answer-actions">
-                        <button type="submit" class="btn btn-primary">답변 등록</button>
-                    </div>
-                </form>
+                <div class="admin-answer-editor" id="admin-answer-editor" style="display: none;">
+                    <form id="admin-answer-form">
+                        <textarea id="admin-answer-content" placeholder="답변 내용을 입력하세요"></textarea>
+
+                        <div class="admin-answer-editor-actions">
+                            <button type="submit" class="btn btn-primary">답변 등록</button>
+                            <button type="button" class="btn btn-outline" id="admin-answer-cancel-btn">취소</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-answer-manage" id="admin-answer-manage" style="display: none;">
+                    <button type="button" class="btn btn-outline" id="admin-answer-edit-btn">수정</button>
+                    <button type="button" class="btn btn-outline" id="admin-answer-delete-btn">삭제</button>
+                </div>
             </section>
 
             <section class="detail-actions">
@@ -43,6 +52,16 @@
                 <button type="button" class="btn btn-outline" id="admin-edit-btn" style="display:none;">수정</button>
                 <button type="button" class="btn btn-outline" id="admin-delete-btn" style="display:none;">삭제</button>
                 <button type="button" class="btn btn-primary" id="admin-notice-btn" style="display:none;">공지 설정</button>
+                <div id="guest-action-box" style="display: none;">
+                    <input
+                        type="password"
+                        id="guest-action-password"
+                        placeholder="비회원 수정/삭제용 비밀번호를 입력하세요"
+                        style="display: none;"
+                    />
+                    <button type="button" id="guest-edit-btn">수정</button>
+                    <button type="button" id="guest-delete-btn">삭제</button>
+                </div>
             </section>
             <section class="admin-edit-box" id="admin-edit-box" style="display:none;">
                 <div class="admin-edit-head">
@@ -68,8 +87,9 @@
             </section>
         </main>
 
-        <script src="/js/common.js"></script>
-        <script src="/js/qna-detail.js"></script>
+        <%- include('partials/footer') %>
+            <script src="/js/common.js"></script>
+            <script src="/js/qna-detail.js"></script>
 </body>
 
 </html>

@@ -4,6 +4,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const summaryTotalPrice = document.getElementById('summary-total-price');
     const orderBtn = document.getElementById('order-btn');
 
+    function getThumbSrc(item) {
+        if (item.thumbnail_path && String(item.thumbnail_path).trim() !== '') {
+            return item.thumbnail_path;
+        }
+
+        return `https://via.placeholder.com/600x400?text=Product+${item.product_id || ''}`;
+    }
+
+    function getItemPrice(item) {
+        if (Number(item.is_free) === 1) {
+            return 0;
+        }
+
+        if (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== '') {
+            return Number(item.sale_price) || 0;
+        }
+
+        return Number(item.price) || 0;
+    }
+
+    function formatPrice(value) {
+        return `${Number(value || 0).toLocaleString()}원`;
+    }
+
     async function removeCartItem(cartId) {
         try {
             const response = await fetch(`/api/cart/${cartId}`, {
@@ -26,31 +50,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderCart(items) {
         if (!items || items.length === 0) {
-            cartListBox.innerHTML = `<p class="empty-message">장바구니에 담긴 상품이 없습니다.</p>`;
+            cartListBox.innerHTML = '<p class="empty-message">장바구니에 담긴 상품이 없습니다.</p>';
             summaryProductPrice.textContent = '0원';
             summaryTotalPrice.textContent = '0원';
             return;
         }
 
-        const totalPrice = items.reduce((sum, item) => sum + Number(item.price), 0);
+        const totalPrice = items.reduce((sum, item) => sum + getItemPrice(item), 0);
 
-        summaryProductPrice.textContent = `${totalPrice.toLocaleString()}원`;
-        summaryTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
+        summaryProductPrice.textContent = formatPrice(totalPrice);
+        summaryTotalPrice.textContent = formatPrice(totalPrice);
 
-        cartListBox.innerHTML = items.map(item => `
+        cartListBox.innerHTML = items.map((item) => `
             <article class="cart-item">
-                <div class="cart-thumb">
+                <a href="/products-page/${item.product_id}" class="cart-thumb">
                     <img src="${getThumbSrc(item)}" alt="${item.title}">
-                </div>
+                </a>
 
                 <div class="cart-info">
                     <p class="cart-category">상품</p>
-                    <h3 class="cart-title">${item.title}</h3>
+                    <h3 class="cart-title">
+                        <a href="/products-page/${item.product_id}">${item.title}</a>
+                    </h3>
                     <p class="cart-desc">${item.description || '상품 설명이 없습니다.'}</p>
                 </div>
 
                 <div class="cart-side">
-                    <p class="cart-price">${Number(item.price).toLocaleString()}원</p>
+                    <p class="cart-price">${formatPrice(getItemPrice(item))}</p>
                     <button type="button" class="btn btn-outline remove-btn" data-id="${item.cart_id}">삭제</button>
                 </div>
             </article>
@@ -58,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const removeButtons = document.querySelectorAll('.remove-btn');
 
-        removeButtons.forEach(button => {
+        removeButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 removeCartItem(button.dataset.id);
             });
@@ -81,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             console.error('장바구니 불러오기 실패:', error);
-            cartListBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+            cartListBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
         }
     }
 

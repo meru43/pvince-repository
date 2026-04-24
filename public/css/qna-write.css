@@ -54,6 +54,8 @@
     font-size: 15px;
     font-family: inherit;
     background: #fff;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .form-group input {
@@ -66,10 +68,29 @@
     line-height: 1.7;
 }
 
+#guest-password-group {
+    padding: 16px;
+    border: 1px solid #f0e4c7;
+    background: #fffaf0;
+    border-radius: 14px;
+}
+
+#guest-password-group label {
+    color: #7a5d00;
+}
+
+#guest-password-group input {
+    background: #fff;
+}
+
 .write-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+.write-actions .btn {
+    min-width: 120px;
 }
 
 @media (max-width: 768px) {

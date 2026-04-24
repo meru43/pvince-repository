@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 
 module.exports = (db) => {
     const router = express.Router();
@@ -22,7 +23,7 @@ module.exports = (db) => {
     }
 
     // 글 저장
-    router.post('/api/qna', (req, res) => {
+    router.post('/api/qna', async (req, res) => {
         const title = req.body.title?.trim();
         const content = req.body.content?.trim();
 
@@ -32,6 +33,7 @@ module.exports = (db) => {
             : req.body.writer?.trim();
 
         const userId = loggedIn ? req.session.userId : null;
+        const guestPassword = loggedIn ? null : req.body.guestPassword?.trim();
 
         if (!title || !content || !writer) {
             return res.json({
@@ -40,26 +42,45 @@ module.exports = (db) => {
             });
         }
 
-        const sql = `
-            INSERT INTO qna_posts (title, writer, content, user_id)
-            VALUES (?, ?, ?, ?)
-        `;
-
-        db.query(sql, [title, writer, content, userId], (err, result) => {
-            if (err) {
-                console.error('Q&A 글 저장 오류:', err);
-                return res.json({
-                    success: false,
-                    message: '글 저장에 실패했습니다.'
-                });
-            }
-
+        if (!loggedIn && !guestPassword) {
             return res.json({
-                success: true,
-                message: '글이 등록되었습니다.',
-                postId: result.insertId
+                success: false,
+                message: '비회원은 비밀번호를 입력해야 합니다.'
             });
-        });
+        }
+
+        try {
+            const hashedGuestPassword = (!loggedIn && guestPassword)
+                ? await bcrypt.hash(guestPassword, 10)
+                : null;
+
+            const sql = `
+                INSERT INTO qna_posts (title, writer, content, user_id, guest_password)
+                VALUES (?, ?, ?, ?, ?)
+            `;
+
+            db.query(sql, [title, writer, content, userId, hashedGuestPassword], (err, result) => {
+                if (err) {
+                    console.error('Q&A 글 저장 오류:', err);
+                    return res.json({
+                        success: false,
+                        message: '글 저장에 실패했습니다.'
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: '글이 등록되었습니다.',
+                    postId: result.insertId
+                });
+            });
+        } catch (error) {
+            console.error('Q&A 비밀번호 처리 오류:', error);
+            return res.json({
+                success: false,
+                message: '비밀번호 처리에 실패했습니다.'
+            });
+        }
     });
 
     // 목록조회
@@ -147,6 +168,223 @@ module.exports = (db) => {
         });
     });
 
+    // 비회원 비밀번호 확인
+    router.post('/api/qna/:id/verify-password', async (req, res) => {
+        const postId = req.params.id;
+        const guestPassword = req.body.guestPassword?.trim();
+
+        if (!guestPassword) {
+            return res.json({
+                success: false,
+                message: '비밀번호를 입력해주세요.'
+            });
+        }
+
+        const sql = `
+            SELECT id, guest_password, user_id
+            FROM qna_posts
+            WHERE id = ?
+            LIMIT 1
+        `;
+
+        db.query(sql, [postId], async (err, results) => {
+            if (err) {
+                console.error('Q&A 비밀번호 확인 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 확인에 실패했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '게시글을 찾을 수 없습니다.'
+                });
+            }
+
+            const post = results[0];
+
+            if (post.user_id) {
+                return res.json({
+                    success: false,
+                    message: '회원이 작성한 글입니다.'
+                });
+            }
+
+            try {
+                const isMatch = await bcrypt.compare(guestPassword, post.guest_password || '');
+
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '비밀번호가 올바르지 않습니다.'
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: '비밀번호가 확인되었습니다.'
+                });
+            } catch (error) {
+                console.error('Q&A 비밀번호 비교 오류:', error);
+                return res.json({
+                    success: false,
+                    message: '비밀번호 비교에 실패했습니다.'
+                });
+            }
+        });
+    });
+
+    // 게시글 수정 (관리자 또는 본인/비회원 비밀번호 확인)
+    router.patch('/api/qna/:id', async (req, res) => {
+        const postId = req.params.id;
+        const title = req.body.title?.trim();
+        const content = req.body.content?.trim();
+        const guestPassword = req.body.guestPassword?.trim();
+
+        if (!title || !content) {
+            return res.json({
+                success: false,
+                message: '제목과 내용을 입력해주세요.'
+            });
+        }
+
+        const checkSql = `
+            SELECT id, user_id, guest_password
+            FROM qna_posts
+            WHERE id = ?
+            LIMIT 1
+        `;
+
+        db.query(checkSql, [postId], async (checkErr, results) => {
+            if (checkErr) {
+                console.error('Q&A 수정 권한 확인 오류:', checkErr);
+                return res.json({
+                    success: false,
+                    message: '게시글 정보를 확인하지 못했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '게시글을 찾을 수 없습니다.'
+                });
+            }
+
+            const post = results[0];
+            const isAdmin = req.session.role === 'admin';
+            const isOwner = req.session.userId && Number(req.session.userId) === Number(post.user_id);
+
+            if (!isAdmin && !isOwner) {
+                if (!guestPassword) {
+                    return res.json({
+                        success: false,
+                        message: '비밀번호를 입력해주세요.'
+                    });
+                }
+
+                const isMatch = await bcrypt.compare(guestPassword, post.guest_password || '');
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '비밀번호가 올바르지 않습니다.'
+                    });
+                }
+            }
+
+            const sql = `
+                UPDATE qna_posts
+                SET title = ?, content = ?, updated_at = NOW()
+                WHERE id = ?
+            `;
+
+            db.query(sql, [title, content, postId], (err) => {
+                if (err) {
+                    console.error('Q&A 게시글 수정 오류:', err);
+                    return res.json({
+                        success: false,
+                        message: '게시글 수정에 실패했습니다.'
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: '게시글이 수정되었습니다.'
+                });
+            });
+        });
+    });
+
+    // 게시글 삭제 (관리자 또는 본인/비회원 비밀번호 확인)
+    router.delete('/api/qna/:id', async (req, res) => {
+        const postId = req.params.id;
+        const guestPassword = req.body?.guestPassword?.trim();
+
+        const checkSql = `
+            SELECT id, user_id, guest_password
+            FROM qna_posts
+            WHERE id = ?
+            LIMIT 1
+        `;
+
+        db.query(checkSql, [postId], async (checkErr, results) => {
+            if (checkErr) {
+                console.error('Q&A 삭제 권한 확인 오류:', checkErr);
+                return res.json({
+                    success: false,
+                    message: '게시글 정보를 확인하지 못했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '게시글을 찾을 수 없습니다.'
+                });
+            }
+
+            const post = results[0];
+            const isAdmin = req.session.role === 'admin';
+            const isOwner = req.session.userId && Number(req.session.userId) === Number(post.user_id);
+
+            if (!isAdmin && !isOwner) {
+                if (!guestPassword) {
+                    return res.json({
+                        success: false,
+                        message: '비밀번호를 입력해주세요.'
+                    });
+                }
+
+                const isMatch = await bcrypt.compare(guestPassword, post.guest_password || '');
+                if (!isMatch) {
+                    return res.json({
+                        success: false,
+                        message: '비밀번호가 올바르지 않습니다.'
+                    });
+                }
+            }
+
+            const sql = `DELETE FROM qna_posts WHERE id = ?`;
+
+            db.query(sql, [postId], (err) => {
+                if (err) {
+                    console.error('Q&A 게시글 삭제 오류:', err);
+                    return res.json({
+                        success: false,
+                        message: '게시글 삭제에 실패했습니다.'
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: '게시글이 삭제되었습니다.'
+                });
+            });
+        });
+    });
+
     // 관리자 답변
     router.post('/api/qna/:id/answer', requireAdmin, (req, res) => {
         const postId = req.params.id;
@@ -181,59 +419,27 @@ module.exports = (db) => {
         });
     });
 
-    // 관리자 게시글 수정
-    router.patch('/api/qna/:id', requireAdmin, (req, res) => {
+    router.delete('/api/qna/:id/answer', requireAdmin, (req, res) => {
         const postId = req.params.id;
-        const title = req.body.title?.trim();
-        const content = req.body.content?.trim();
-
-        if (!title || !content) {
-            return res.json({
-                success: false,
-                message: '제목과 내용을 입력해주세요.'
-            });
-        }
 
         const sql = `
             UPDATE qna_posts
-            SET title = ?, content = ?, updated_at = NOW()
+            SET answer_content = NULL, answer_created_at = NULL
             WHERE id = ?
         `;
 
-        db.query(sql, [title, content, postId], (err) => {
-            if (err) {
-                console.error('Q&A 게시글 수정 오류:', err);
-                return res.json({
-                    success: false,
-                    message: '게시글 수정에 실패했습니다.'
-                });
-            }
-
-            return res.json({
-                success: true,
-                message: '게시글이 수정되었습니다.'
-            });
-        });
-    });
-
-    // 관리자 게시글 삭제
-    router.delete('/api/qna/:id', requireAdmin, (req, res) => {
-        const postId = req.params.id;
-
-        const sql = `DELETE FROM qna_posts WHERE id = ?`;
-
         db.query(sql, [postId], (err) => {
             if (err) {
-                console.error('Q&A 게시글 삭제 오류:', err);
+                console.error('Q&A 답변 삭제 오류:', err);
                 return res.json({
                     success: false,
-                    message: '게시글 삭제에 실패했습니다.'
+                    message: '답변 삭제에 실패했습니다.'
                 });
             }
 
             return res.json({
                 success: true,
-                message: '게시글이 삭제되었습니다.'
+                message: '답변이 삭제되었습니다.'
             });
         });
     });
