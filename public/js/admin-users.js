@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('admin-user-search');
     const searchBtn = document.getElementById('admin-user-search-btn');
 
+    const passwordModal = document.getElementById('admin-password-modal');
+    const passwordModalBackdrop = document.getElementById('admin-password-modal-backdrop');
+    const passwordModalCode = document.getElementById('admin-password-modal-code');
+    const passwordModalMessage = document.getElementById('admin-password-modal-message');
+    const passwordCopyBtn = document.getElementById('admin-password-copy-btn');
+    const passwordCloseBtn = document.getElementById('admin-password-close-btn');
+
     const DEFAULT_PROFILE_IMAGE = '/images/normal user.jpg';
 
     function getNextRole(role) {
@@ -21,6 +28,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function getStatusText(user) {
         return Number(user.is_active) === 1 ? '활동중' : '활동중지';
+    }
+
+    function openPasswordModal(tempPassword) {
+        if (!passwordModal || !passwordModalCode) return;
+
+        passwordModalCode.textContent = tempPassword;
+        if (passwordModalMessage) {
+            passwordModalMessage.textContent = '';
+        }
+
+        passwordModal.hidden = false;
+    }
+
+    function closePasswordModal() {
+        if (!passwordModal) return;
+        passwordModal.hidden = true;
     }
 
     function updateSwitchState(button, role) {
@@ -73,8 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 <span class="col-action">
                     ${user.role === 'admin'
-                ? '<span>변경 불가</span>'
-                : `
+                        ? '<span>변경 불가</span>'
+                        : `
                             <div class="admin-user-actions">
                                 <div class="admin-user-actions-top">
                                     <button
@@ -120,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 </div>
                             </div>
                         `
-            }
+                    }
                 </span>
             </div>
         `).join('');
@@ -278,11 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const data = await response.json();
 
                 if (data.success) {
-                    alert(
-                        `비밀번호가 초기화되었습니다.\n\n` +
-                        `임시 비밀번호: ${data.tempPassword}\n\n` +
-                        `이 임시 비밀번호를 회원에게 전달한 뒤, 로그인 후 마이페이지에서 새 비밀번호로 변경하도록 안내해주세요.`
-                    );
+                    openPasswordModal(data.tempPassword);
                 } else {
                     alert(data.message || '비밀번호 초기화에 실패했습니다.');
                 }
@@ -292,6 +311,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             return;
+        }
+    });
+
+    passwordCopyBtn?.addEventListener('click', async () => {
+        const tempPassword = passwordModalCode?.textContent?.trim() || '';
+        if (!tempPassword) return;
+
+        try {
+            await navigator.clipboard.writeText(tempPassword);
+            if (passwordModalMessage) {
+                passwordModalMessage.textContent = '임시 비밀번호가 복사되었습니다.';
+            }
+        } catch (error) {
+            console.error('클립보드 복사 실패:', error);
+            if (passwordModalMessage) {
+                passwordModalMessage.textContent = '자동 복사에 실패했습니다. 직접 복사해주세요.';
+            }
+        }
+    });
+
+    passwordCloseBtn?.addEventListener('click', closePasswordModal);
+    passwordModalBackdrop?.addEventListener('click', closePasswordModal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closePasswordModal();
         }
     });
 

@@ -227,6 +227,75 @@
     font-size: 15px;
 }
 
+/* 비밀번호 초기화 모달 */
+.admin-password-modal[hidden] {
+    display: none;
+}
+
+.admin-password-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+}
+
+.admin-password-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.admin-password-modal-dialog {
+    position: relative;
+    width: min(440px, calc(100% - 32px));
+    margin: 10vh auto 0;
+    background: #fff;
+    border-radius: 18px;
+    padding: 24px;
+    box-sizing: border-box;
+    z-index: 1;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.admin-password-modal-title {
+    margin: 0 0 10px;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.admin-password-modal-desc {
+    margin: 0 0 16px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.admin-password-modal-code-wrap {
+    padding: 14px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f9fafb;
+    margin-bottom: 16px;
+}
+
+.admin-password-modal-code {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    word-break: break-all;
+}
+
+.admin-password-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.admin-password-modal-message {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: #666;
+}
+
 @media (max-width: 768px) {
     .admin-users-head {
         display: none;

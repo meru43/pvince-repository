@@ -9,6 +9,29 @@
     <link rel="stylesheet" href="/css/admin-users.css" />
 </head>
 
+<div class="admin-password-modal" id="admin-password-modal" hidden>
+    <div class="admin-password-modal-backdrop" id="admin-password-modal-backdrop"></div>
+
+    <div class="admin-password-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-password-modal-title">
+        <h3 class="admin-password-modal-title" id="admin-password-modal-title">임시 비밀번호</h3>
+
+        <p class="admin-password-modal-desc">
+            아래 임시 비밀번호를 회원에게 전달한 뒤, 로그인 후 마이페이지에서 새 비밀번호로 변경하도록 안내해주세요.
+        </p>
+
+        <div class="admin-password-modal-code-wrap">
+            <code class="admin-password-modal-code" id="admin-password-modal-code">SJ000000</code>
+        </div>
+
+        <div class="admin-password-modal-actions">
+            <button type="button" class="btn btn-outline" id="admin-password-copy-btn">복사</button>
+            <button type="button" class="btn btn-primary" id="admin-password-close-btn">확인</button>
+        </div>
+
+        <p class="admin-password-modal-message" id="admin-password-modal-message"></p>
+    </div>
+</div>
+
 <body>
     <%- include('partials/header') %>
 
