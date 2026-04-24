@@ -15,7 +15,7 @@
         <main class="container page">
             <section class="page-title-wrap">
                 <h2 class="page-title">마이페이지</h2>
-                <p class="page-desc">내 정보와 구매한 상품, 다운로드 내역을 확인할 수 있습니다.</p>
+                <p class="page-desc">내 정보와 구매한 상품을 확인할 수 있습니다.</p>
             </section>
 
             <section class="mypage-layout">
@@ -36,17 +36,14 @@
 
                     <nav class="mypage-menu">
                         <a href="#purchase-list" class="mypage-menu-item active">구매한 상품</a>
-                        <a href="#download-list" class="mypage-menu-item">다운로드 내역</a>
                         <a href="#account-info" class="mypage-menu-item">내 정보</a>
                     </nav>
 
-                    <% if (userRole==='seller' || userRole==='admin' ) { %>
-                        <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">
-                            판매상품 관리
-                        </a>
-                        <% } %>
+                    <% if (userRole === 'seller' || userRole === 'admin') { %>
+                        <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">판매상품 관리</a>
+                    <% } %>
 
-                            <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
+                    <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
                 </aside>
 
                 <div class="mypage-content">
@@ -59,17 +56,8 @@
                         <div class="purchase-list" id="purchase-list-box">
                             <p class="empty-message">구매한 상품이 없습니다.</p>
                         </div>
-                    </section>
 
-                    <section class="mypage-box" id="download-list">
-                        <div class="box-head">
-                            <h3 class="box-title">다운로드 내역</h3>
-                            <span class="box-count" id="download-count">총 0건</span>
-                        </div>
-
-                        <div class="history-table" id="download-history-box">
-                            <p class="empty-message">다운로드 내역이 없습니다.</p>
-                        </div>
+                        <div class="mypage-pagination" id="purchase-pagination"></div>
                     </section>
 
                     <section class="mypage-box" id="account-info">
@@ -145,8 +133,7 @@
                                 </div>
 
                                 <div class="password-change-actions">
-                                    <button type="button" class="btn btn-primary" id="password-save-btn">비밀번호
-                                        변경</button>
+                                    <button type="button" class="btn btn-primary" id="password-save-btn">비밀번호 변경</button>
                                 </div>
 
                                 <p class="password-message" id="password-message"></p>
@@ -160,8 +147,7 @@
 
                             <div class="profile-upload-controls">
                                 <input type="file" id="profile-image-input" accept="image/*" />
-                                <button type="button" class="btn btn-primary" id="profile-image-save-btn">프로필 사진
-                                    변경</button>
+                                <button type="button" class="btn btn-primary" id="profile-image-save-btn">프로필 사진 변경</button>
                                 <p class="profile-image-message" id="profile-image-message"></p>
                             </div>
                         </div>

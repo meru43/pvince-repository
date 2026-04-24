@@ -88,34 +88,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     function buildRows(products, containerWidth, gap, targetHeight) {
         const rows = [];
         let row = [];
-        let rowWidth = 0;
+        let ratioSum = 0;
 
         products.forEach((product, index) => {
-            const baseWidth = product._ratio * targetHeight;
-
-            row.push({ product, baseWidth });
-            rowWidth += baseWidth;
+            row.push(product);
+            ratioSum += product._ratio;
 
             const totalGap = gap * (row.length - 1);
-            const filledWidth = rowWidth + totalGap;
-            const isLast = index === products.length - 1;
+            const expectedWidth = ratioSum * targetHeight + totalGap;
+            const isLastProduct = index === products.length - 1;
 
-            if (filledWidth >= containerWidth || isLast) {
+            if (expectedWidth >= containerWidth || isLastProduct) {
                 const availableWidth = Math.max(containerWidth - totalGap, 0);
-                const rawScale = rowWidth > 0 ? availableWidth / rowWidth : 1;
-                const scale = isLast ? Math.min(rawScale, 1) : rawScale;
-                const rowHeight = targetHeight * scale;
+                const shouldFillRow = expectedWidth >= containerWidth;
+                const rowHeight = shouldFillRow
+                    ? availableWidth / ratioSum
+                    : targetHeight;
+
+                let usedWidth = 0;
+
+                const items = row.map((rowProduct, rowIndex) => {
+                    const isLastItem = rowIndex === row.length - 1;
+
+                    if (shouldFillRow && isLastItem) {
+                        return {
+                            product: rowProduct,
+                            width: Math.max(0, availableWidth - usedWidth)
+                        };
+                    }
+
+                    const width = rowProduct._ratio * rowHeight;
+                    usedWidth += width;
+
+                    return {
+                        product: rowProduct,
+                        width
+                    };
+                });
 
                 rows.push({
-                    items: row.map(({ product, baseWidth }) => ({
-                        product,
-                        width: Math.max(baseWidth * scale, 120)
-                    })),
+                    items,
                     height: rowHeight
                 });
 
                 row = [];
-                rowWidth = 0;
+                ratioSum = 0;
             }
         });
 
@@ -218,12 +235,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${visibleRows.map((row) => `
                 <div class="product-row" style="gap:${gap}px;">
                     ${row.items.map(({ product, width }) => `
-                        <a href="/products-page/${product.id}" class="product-card" style="width:${width}px;">
+                        <a
+                            href="/products-page/${product.id}"
+                            class="product-card"
+                            style="--card-width:${width}px;"
+                        >
                             <span class="product-thumb">
                                 <img
                                     src="${product._thumbnailSrc}"
                                     alt="${product.title}"
-                                    style="width:${width}px; height:${row.height}px;"
                                 >
                             </span>
 

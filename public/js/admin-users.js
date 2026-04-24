@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const passwordCloseBtn = document.getElementById('admin-password-close-btn');
 
     const DEFAULT_PROFILE_IMAGE = '/images/normal user.jpg';
+    const USERS_PER_PAGE = 20;
+
+    let cachedUsers = [];
+    let currentPage = 1;
 
     function getNextRole(role) {
         return role === 'seller' ? 'member' : 'seller';
@@ -46,6 +50,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         passwordModal.hidden = true;
     }
 
+    function getPaginationMarkup(totalPages) {
+        const pageButtons = Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            const activeClass = page === currentPage ? ' active' : '';
+
+            return `
+                <button type="button" class="admin-pagination-btn page-number${activeClass}" data-page="${page}">
+                    ${page}
+                </button>
+            `;
+        }).join('');
+
+        return `
+            <div class="admin-pagination">
+                <button
+                    type="button"
+                    class="admin-pagination-btn"
+                    data-page="${currentPage - 1}"
+                    ${currentPage === 1 ? 'disabled' : ''}
+                >
+                    이전
+                </button>
+                <div class="admin-pagination-numbers">
+                    ${pageButtons}
+                </div>
+                <button
+                    type="button"
+                    class="admin-pagination-btn"
+                    data-page="${currentPage + 1}"
+                    ${currentPage === totalPages ? 'disabled' : ''}
+                >
+                    다음
+                </button>
+            </div>
+        `;
+    }
+
     function updateSwitchState(button, role) {
         const row = button.closest('.admin-user-row');
         const badge = row?.querySelector('.role-badge');
@@ -68,85 +109,94 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        adminUsersList.innerHTML = users.map((user) => `
-            <div class="admin-user-row">
-                <span class="col-profile">
-                    <img
-                        src="${getProfileImageSrc(user)}"
-                        alt="${displayValue(user.username)} 프로필"
-                        class="admin-user-avatar"
-                    >
-                </span>
+        const totalPages = Math.max(Math.ceil(users.length / USERS_PER_PAGE), 1);
+        currentPage = Math.min(currentPage, totalPages);
 
-                <span class="col-username">${displayValue(user.username)}</span>
-                <span class="col-nickname">${displayValue(user.nickname)}</span>
-                <span class="col-email">${displayValue(user.email)}</span>
-                <span class="col-name">${displayValue(user.name)}</span>
-                <span class="col-phone">${displayValue(user.phone)}</span>
+        const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+        const visibleUsers = users.slice(startIndex, startIndex + USERS_PER_PAGE);
 
-                <span class="col-user-status">
-                    <span class="user-status-badge ${Number(user.is_active) === 1 ? 'active' : 'inactive'}">
-                        ${getStatusText(user)}
+        adminUsersList.innerHTML = `
+            ${visibleUsers.map((user) => `
+                <div class="admin-user-row">
+                    <span class="col-profile">
+                        <img
+                            src="${getProfileImageSrc(user)}"
+                            alt="${displayValue(user.username)} 프로필"
+                            class="admin-user-avatar"
+                        >
                     </span>
-                </span>
 
-                <span class="col-role">
-                    <span class="role-badge ${user.role}">${user.role}</span>
-                </span>
+                    <span class="col-username">${displayValue(user.username)}</span>
+                    <span class="col-nickname">${displayValue(user.nickname)}</span>
+                    <span class="col-email">${displayValue(user.email)}</span>
+                    <span class="col-name">${displayValue(user.name)}</span>
+                    <span class="col-phone">${displayValue(user.phone)}</span>
 
-                <span class="col-action">
-                    ${user.role === 'admin'
-                        ? '<span>변경 불가</span>'
-                        : `
-                            <div class="admin-user-actions">
-                                <div class="admin-user-actions-top">
-                                    <button
-                                        type="button"
-                                        class="role-switch ${user.role}"
-                                        data-id="${user.id}"
-                                        data-current-role="${user.role}"
-                                        data-role="${getNextRole(user.role)}"
-                                        aria-label="회원 권한 변경"
-                                        aria-pressed="${user.role === 'seller'}"
-                                    >
-                                        <span class="role-switch-track">
-                                            <span class="role-switch-option seller">셀러회원</span>
-                                            <span class="role-switch-option member">일반회원</span>
-                                        </span>
-                                        <span class="role-switch-thumb" aria-hidden="true">
-                                            <span class="role-switch-thumb-track">
-                                                <span class="role-switch-thumb-option">셀러회원</span>
-                                                <span class="role-switch-thumb-option">일반회원</span>
+                    <span class="col-user-status">
+                        <span class="user-status-badge ${Number(user.is_active) === 1 ? 'active' : 'inactive'}">
+                            ${getStatusText(user)}
+                        </span>
+                    </span>
+
+                    <span class="col-role">
+                        <span class="role-badge ${user.role}">${user.role}</span>
+                    </span>
+
+                    <span class="col-action">
+                        ${user.role === 'admin'
+                            ? '<span>변경 불가</span>'
+                            : `
+                                <div class="admin-user-actions">
+                                    <div class="admin-user-actions-top">
+                                        <button
+                                            type="button"
+                                            class="role-switch ${user.role}"
+                                            data-id="${user.id}"
+                                            data-current-role="${user.role}"
+                                            data-role="${getNextRole(user.role)}"
+                                            aria-label="회원 권한 변경"
+                                            aria-pressed="${user.role === 'seller'}"
+                                        >
+                                            <span class="role-switch-track">
+                                                <span class="role-switch-option seller">셀러회원</span>
+                                                <span class="role-switch-option member">일반회원</span>
                                             </span>
-                                        </span>
-                                    </button>
-                                </div>
+                                            <span class="role-switch-thumb" aria-hidden="true">
+                                                <span class="role-switch-thumb-track">
+                                                    <span class="role-switch-thumb-option">셀러회원</span>
+                                                    <span class="role-switch-thumb-option">일반회원</span>
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
 
-                                <div class="admin-user-actions-bottom">
-                                    <button
-                                        type="button"
-                                        class="btn user-status-btn ${Number(user.is_active) === 1 ? 'danger' : 'btn-outline'}"
-                                        data-id="${user.id}"
-                                        data-next-status="${Number(user.is_active) === 1 ? 0 : 1}"
-                                    >
-                                        ${Number(user.is_active) === 1 ? '활동중지' : '활동재개'}
-                                    </button>
+                                    <div class="admin-user-actions-bottom">
+                                        <button
+                                            type="button"
+                                            class="btn user-status-btn ${Number(user.is_active) === 1 ? 'danger' : 'btn-outline'}"
+                                            data-id="${user.id}"
+                                            data-next-status="${Number(user.is_active) === 1 ? 0 : 1}"
+                                        >
+                                            ${Number(user.is_active) === 1 ? '활동중지' : '활동재개'}
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline user-password-reset-btn"
-                                        data-id="${user.id}"
-                                        data-username="${displayValue(user.username)}"
-                                    >
-                                        비밀번호 초기화
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline user-password-reset-btn"
+                                            data-id="${user.id}"
+                                            data-username="${displayValue(user.username)}"
+                                        >
+                                            비밀번호 초기화
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        `
-                    }
-                </span>
-            </div>
-        `).join('');
+                            `
+                        }
+                    </span>
+                </div>
+            `).join('')}
+            ${getPaginationMarkup(totalPages)}
+        `;
 
         const roleButtons = document.querySelectorAll('.role-switch');
 
@@ -176,6 +226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!data.success) {
                         updateSwitchState(button, previousRole);
                         alert(data.message || '권한 변경에 실패했습니다.');
+                    } else {
+                        await loadUsers(false);
                     }
                 } catch (error) {
                     updateSwitchState(button, previousRole);
@@ -188,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function loadUsers() {
+    async function loadUsers(resetPage = true) {
         try {
             const meResponse = await fetch('/me', {
                 method: 'GET',
@@ -214,26 +266,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                renderUsers(data.users);
-            } else {
+            if (!data.success) {
                 adminUsersList.innerHTML = `<p class="empty-message">${data.message || '회원 목록을 불러오지 못했습니다.'}</p>`;
+                return;
             }
+
+            cachedUsers = data.users || [];
+            if (resetPage) {
+                currentPage = 1;
+            }
+
+            renderUsers(cachedUsers);
         } catch (error) {
             console.error('회원 목록 불러오기 실패:', error);
             adminUsersList.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
         }
     }
 
-    document.addEventListener('click', async (e) => {
+    adminUsersList.addEventListener('click', async (e) => {
+        const paginationBtn = e.target.closest('.admin-pagination-btn[data-page]');
+        if (paginationBtn && !paginationBtn.disabled) {
+            const nextPage = Number(paginationBtn.dataset.page);
+            if (Number.isFinite(nextPage) && nextPage >= 1) {
+                currentPage = nextPage;
+                renderUsers(cachedUsers);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            return;
+        }
+
         const statusBtn = e.target.closest('.user-status-btn');
         if (statusBtn) {
             const userId = statusBtn.dataset.id;
             const nextStatus = Number(statusBtn.dataset.nextStatus);
 
             const firstMessage = nextStatus === 0
-                ? '정말 이 회원의 활동을 중지하시겠습니까?'
-                : '이 회원의 활동을 다시 활성화하시겠습니까?';
+                ? '정말 이 회원을 활동 중지 처리하시겠습니까?'
+                : '이 회원을 다시 활동 상태로 변경하시겠습니까?';
 
             if (!confirm(firstMessage)) {
                 return;
@@ -262,7 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (data.success) {
                     alert(data.message);
-                    await loadUsers();
+                    await loadUsers(false);
                 } else {
                     alert(data.message || '회원 상태 변경에 실패했습니다.');
                 }
@@ -309,8 +378,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('비밀번호 초기화 실패:', error);
                 alert('서버와 통신 중 오류가 발생했습니다.');
             }
-
-            return;
         }
     });
 
@@ -341,15 +408,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     searchBtn?.addEventListener('click', async () => {
-        await loadUsers();
+        await loadUsers(true);
     });
 
     searchInput?.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            await loadUsers();
+            await loadUsers(true);
         }
     });
 
-    loadUsers();
+    loadUsers(true);
 });

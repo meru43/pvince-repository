@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const PURCHASES_PER_PAGE = 6;
+
     const profileName = document.getElementById('profile-name');
     const profileEmail = document.getElementById('profile-email');
     const profileCardImage = document.getElementById('profile-card-image');
@@ -20,8 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const purchaseCount = document.getElementById('purchase-count');
     const purchaseListBox = document.getElementById('purchase-list-box');
-    const downloadCount = document.getElementById('download-count');
-    const downloadHistoryBox = document.getElementById('download-history-box');
+    const purchasePagination = document.getElementById('purchase-pagination');
     const logoutBtn = document.getElementById('logout-btn');
 
     const currentPasswordInput = document.getElementById('current-password-input');
@@ -29,6 +30,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newPasswordConfirmInput = document.getElementById('new-password-confirm-input');
     const passwordSaveBtn = document.getElementById('password-save-btn');
     const passwordMessage = document.getElementById('password-message');
+
+    const purchasedProducts = new Map();
+    let profilePreviewUrl = '';
+    let purchaseItems = [];
+    let currentPurchasePage = 1;
 
     function formatPrice(value) {
         return `${Number(value || 0).toLocaleString()}원`;
@@ -58,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const headerAvatar = document.getElementById('header-user-avatar-image');
         const headerAvatarLarge = document.getElementById('header-user-avatar-large-image');
+
         if (headerAvatar) headerAvatar.src = profileSrc;
         if (headerAvatarLarge) headerAvatarLarge.src = profileSrc;
     }
@@ -75,11 +82,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
+    function parseProductFiles(product) {
+        if (product?.product_files_json) {
+            try {
+                const parsedFiles = JSON.parse(product.product_files_json);
+
+                if (Array.isArray(parsedFiles)) {
+                    return parsedFiles.filter((file) => file?.name && file?.path);
+                }
+            } catch (error) {
+                console.error('상품 파일 목록 파싱 실패:', error);
+            }
+        }
+
+        if (product?.file_name && product?.file_path) {
+            return [{
+                name: product.file_name,
+                path: product.file_path
+            }];
+        }
+
+        return [];
+    }
+
     function enterEditMode(field) {
         const { valueEl, inputEl, toggleBtn, messageEl } = getFieldElements(field);
-        if (!valueEl || !inputEl || !toggleBtn) return;
 
-        if (messageEl) messageEl.textContent = '';
+        if (!valueEl || !inputEl || !toggleBtn) {
+            return;
+        }
+
+        if (messageEl) {
+            messageEl.textContent = '';
+        }
 
         valueEl.hidden = true;
         inputEl.hidden = false;
@@ -95,7 +130,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function exitEditMode(field) {
         const { valueEl, inputEl, toggleBtn } = getFieldElements(field);
-        if (!valueEl || !inputEl || !toggleBtn) return;
+
+        if (!valueEl || !inputEl || !toggleBtn) {
+            return;
+        }
 
         valueEl.hidden = false;
         inputEl.hidden = true;
@@ -119,6 +157,156 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response.json();
     }
 
+    function createDownloadModal() {
+        const modal = document.createElement('div');
+        modal.className = 'download-modal';
+        modal.hidden = true;
+        modal.innerHTML = `
+            <div class="download-modal-backdrop" data-download-modal-close></div>
+            <div class="download-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="download-modal-title">
+                <div class="download-modal-head">
+                    <div>
+                        <p class="download-modal-label">DOWNLOAD</p>
+                        <h3 class="download-modal-title" id="download-modal-title">다운로드 파일 선택</h3>
+                    </div>
+                    <button type="button" class="download-modal-close" data-download-modal-close aria-label="팝업 닫기">X</button>
+                </div>
+                <p class="download-modal-desc" id="download-modal-desc">다운로드할 파일을 선택해 주세요.</p>
+                <div class="download-file-list" id="download-file-list"></div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const titleEl = modal.querySelector('#download-modal-title');
+        const descEl = modal.querySelector('#download-modal-desc');
+        const listEl = modal.querySelector('#download-file-list');
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            listEl.innerHTML = '';
+        }
+
+        function openModal(product) {
+            const files = parseProductFiles(product);
+
+            titleEl.textContent = product.title || '다운로드 파일 선택';
+            descEl.textContent = files.length > 1
+                ? '구매한 파일 중 하나를 선택해서 다운로드할 수 있습니다.'
+                : '다운로드할 파일을 선택해 주세요.';
+
+            listEl.innerHTML = files.map((file, index) => `
+                <button type="button" class="download-file-item" data-download-file-index="${index}">
+                    <strong>${file.name}</strong>
+                    <span>파일 ${index + 1}</span>
+                </button>
+            `).join('');
+
+            listEl.querySelectorAll('.download-file-item').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const fileIndex = Number(button.dataset.downloadFileIndex || 0);
+                    closeModal();
+                    window.location.href = `/download/${product.product_id}?file=${fileIndex}`;
+                });
+            });
+
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+        }
+
+        modal.addEventListener('click', (event) => {
+            if (event.target.closest('[data-download-modal-close]')) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        return { openModal };
+    }
+
+    const downloadModal = createDownloadModal();
+
+    function renderPurchasePagination(totalPages) {
+        if (!purchasePagination) {
+            return;
+        }
+
+        purchasePagination.innerHTML = `
+            <button type="button" class="mypage-pagination-btn" data-page-move="prev" ${currentPurchasePage === 1 ? 'disabled' : ''}>이전</button>
+            ${Array.from({ length: totalPages }, (_, index) => {
+                const page = index + 1;
+                return `
+                    <button type="button" class="mypage-pagination-btn ${page === currentPurchasePage ? 'is-active' : ''}" data-page="${page}">
+                        ${page}
+                    </button>
+                `;
+            }).join('')}
+            <button type="button" class="mypage-pagination-btn" data-page-move="next" ${currentPurchasePage === totalPages ? 'disabled' : ''}>다음</button>
+        `;
+    }
+
+    function renderPurchasePage() {
+        if (!purchaseListBox || !purchaseCount) {
+            return;
+        }
+
+        purchaseCount.textContent = `총 ${purchaseItems.length}건`;
+
+        if (!purchaseItems.length) {
+            purchaseListBox.innerHTML = '<p class="empty-message">구매한 상품이 없습니다.</p>';
+            if (purchasePagination) {
+                purchasePagination.innerHTML = `
+                    <button type="button" class="mypage-pagination-btn" disabled>이전</button>
+                    <button type="button" class="mypage-pagination-btn is-active">1</button>
+                    <button type="button" class="mypage-pagination-btn" disabled>다음</button>
+                `;
+            }
+            return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(purchaseItems.length / PURCHASES_PER_PAGE));
+        currentPurchasePage = Math.min(currentPurchasePage, totalPages);
+
+        const startIndex = (currentPurchasePage - 1) * PURCHASES_PER_PAGE;
+        const visibleItems = purchaseItems.slice(startIndex, startIndex + PURCHASES_PER_PAGE);
+
+        purchaseListBox.innerHTML = visibleItems.map((product) => {
+            const files = parseProductFiles(product);
+            const fileCountText = files.length > 1 ? `${files.length}개 파일` : '1개 파일';
+
+            return `
+                <article class="product-card-wrap">
+                    <a href="/products-page/${product.product_id}" target="_blank" rel="noopener noreferrer" class="product-card">
+                        <div class="product-thumb">
+                            <img src="${getThumbSrc(product)}" alt="${product.title}">
+                        </div>
+
+                        <div class="product-info">
+                            <p class="product-category">구매 완료</p>
+                            <h3 class="product-name">${product.title}</h3>
+                            <p class="product-price">${formatPrice(product.sale_price || product.price)}</p>
+                            <p class="purchase-file-count">${fileCountText}</p>
+                        </div>
+                    </a>
+
+                    <div class="product-download-area">
+                        <button type="button" class="btn btn-outline purchase-download-btn" data-product-id="${product.product_id}">
+                            다운로드
+                        </button>
+                    </div>
+                </article>
+            `;
+        }).join('');
+
+        renderPurchasePagination(totalPages);
+    }
+
     async function loadMyInfo() {
         const meResponse = await fetch('/me', {
             method: 'GET',
@@ -140,8 +328,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         setProfileImages(meData.profileImage);
-        if (profileName) profileName.textContent = `${meData.nickname || meData.username} 님`;
-        if (profileEmail) profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
+
+        if (profileName) {
+            profileName.textContent = meData.nickname || meData.username || '회원';
+        }
+
+        if (profileEmail) {
+            profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
+        }
 
         if (accountUsername) accountUsername.textContent = displayValue(meData.username);
         if (accountNickname) accountNickname.textContent = displayValue(meData.nickname);
@@ -158,7 +352,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadMyProducts() {
-        if (!purchaseListBox || !purchaseCount) return;
+        if (!purchaseListBox || !purchaseCount) {
+            return;
+        }
 
         try {
             const response = await fetch('/my-products', {
@@ -169,82 +365,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (!data.success) {
+                purchaseItems = [];
                 purchaseListBox.innerHTML = `<p class="empty-message">${data.message || '구매한 상품을 불러오지 못했습니다.'}</p>`;
-                purchaseCount.textContent = '총 0건';
+                renderPurchasePage();
                 return;
             }
 
-            const products = data.products || [];
-            purchaseCount.textContent = `총 ${products.length}건`;
+            purchaseItems = data.products || [];
+            purchasedProducts.clear();
 
-            if (products.length === 0) {
-                purchaseListBox.innerHTML = '<p class="empty-message">구매한 상품이 없습니다.</p>';
-                return;
-            }
-
-            purchaseListBox.innerHTML = products.map((product) => `
-                <article class="product-card-wrap">
-                    <a href="/products-page/${product.product_id}" target="_blank" rel="noopener noreferrer" class="product-card">
-                        <div class="product-thumb">
-                            <img src="${getThumbSrc(product)}" alt="${product.title}">
-                        </div>
-
-                        <div class="product-info">
-                            <p class="product-category">구매 완료</p>
-                            <h3 class="product-name">${product.title}</h3>
-                            <p class="product-price">${formatPrice(product.sale_price || product.price)}</p>
-                        </div>
-                    </a>
-
-                    <div class="product-download-area">
-                        <a href="/download/${product.product_id}" class="btn btn-outline">다운로드</a>
-                    </div>
-                </article>
-            `).join('');
-        } catch (error) {
-            console.error('구매한 상품 조회 실패:', error);
-            purchaseListBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
-            purchaseCount.textContent = '총 0건';
-        }
-    }
-
-    async function loadMyDownloadLogs() {
-        if (!downloadHistoryBox || !downloadCount) return;
-
-        try {
-            const response = await fetch('/my-download-logs', {
-                method: 'GET',
-                credentials: 'include'
+            purchaseItems.forEach((product) => {
+                purchasedProducts.set(String(product.product_id), product);
             });
 
-            const data = await response.json();
-
-            if (!data.success) {
-                downloadHistoryBox.innerHTML = `<p class="empty-message">${data.message || '다운로드 내역을 불러오지 못했습니다.'}</p>`;
-                downloadCount.textContent = '총 0건';
-                return;
-            }
-
-            const logs = data.logs || [];
-            downloadCount.textContent = `총 ${logs.length}건`;
-
-            if (logs.length === 0) {
-                downloadHistoryBox.innerHTML = '<p class="empty-message">다운로드 내역이 없습니다.</p>';
-                return;
-            }
-
-            downloadHistoryBox.innerHTML = logs.map((log) => `
-                <div class="history-row">
-                    <p><strong>상품명</strong> ${log.title}</p>
-                    <p><strong>가격</strong> ${formatPrice(log.sale_price || log.price)}</p>
-                    <p><strong>파일명</strong> ${displayValue(log.file_name)}</p>
-                    <p><strong>다운로드 일시</strong> ${new Date(log.downloaded_at).toLocaleString()}</p>
-                </div>
-            `).join('');
+            currentPurchasePage = 1;
+            renderPurchasePage();
         } catch (error) {
-            console.error('다운로드 내역 조회 실패:', error);
-            downloadHistoryBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
-            downloadCount.textContent = '총 0건';
+            console.error('구매한 상품 조회 실패:', error);
+            purchaseItems = [];
+            purchaseListBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
+            renderPurchasePage();
         }
     }
 
@@ -255,20 +395,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         const phone = accountPhoneInput?.value.trim() || '';
 
         const { messageEl } = getFieldElements(field);
-        if (messageEl) messageEl.textContent = '';
+
+        if (messageEl) {
+            messageEl.textContent = '';
+        }
 
         if (!nickname) {
-            if (messageEl) messageEl.textContent = '닉네임을 입력해주세요.';
+            if (messageEl) messageEl.textContent = '닉네임을 입력해 주세요.';
             return;
         }
 
         if (!email) {
-            if (messageEl) messageEl.textContent = '이메일을 입력해주세요.';
+            if (messageEl) messageEl.textContent = '이메일을 입력해 주세요.';
             return;
         }
 
         if (!isValidEmail(email)) {
-            if (messageEl) messageEl.textContent = '올바른 이메일 형식을 입력해주세요.';
+            if (messageEl) messageEl.textContent = '올바른 이메일 형식을 입력해 주세요.';
             return;
         }
 
@@ -277,7 +420,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentNickname = accountNickname?.textContent?.trim() || '';
 
             if (!checkData.success && nickname !== currentNickname) {
-                if (messageEl) messageEl.textContent = checkData.message || '이미 사용 중인 닉네임입니다.';
+                if (messageEl) {
+                    messageEl.textContent = checkData.message || '이미 사용 중인 닉네임입니다.';
+                }
                 return;
             }
         }
@@ -299,29 +444,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                if (messageEl) messageEl.textContent = '저장되었습니다.';
-                await loadMyInfo();
-                exitEditMode(field);
-            } else {
-                if (messageEl) messageEl.textContent = data.message || '회원 정보 변경에 실패했습니다.';
+            if (!data.success) {
+                if (messageEl) {
+                    messageEl.textContent = data.message || '회원 정보 변경에 실패했습니다.';
+                }
+                return;
             }
+
+            if (messageEl) {
+                messageEl.textContent = '저장되었습니다.';
+            }
+
+            await loadMyInfo();
+            exitEditMode(field);
         } catch (error) {
             console.error('회원 정보 변경 실패:', error);
-            if (messageEl) messageEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+
+            if (messageEl) {
+                messageEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+            }
         }
     }
 
     profileImageInput?.addEventListener('change', () => {
         const file = profileImageInput.files?.[0];
-        if (!profileImageMessage) return;
+
+        if (!profileImageMessage) {
+            return;
+        }
 
         profileImageMessage.textContent = '';
 
-        if (!file) return;
+        if (profilePreviewUrl) {
+            URL.revokeObjectURL(profilePreviewUrl);
+            profilePreviewUrl = '';
+        }
 
-        const previewUrl = URL.createObjectURL(file);
-        setProfileImages(previewUrl);
+        if (!file) {
+            return;
+        }
+
+        profilePreviewUrl = URL.createObjectURL(file);
+        setProfileImages(profilePreviewUrl);
     });
 
     profileImageSaveBtn?.addEventListener('click', async () => {
@@ -329,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!file) {
             if (profileImageMessage) {
-                profileImageMessage.textContent = '프로필 이미지를 선택해주세요.';
+                profileImageMessage.textContent = '프로필 이미지를 선택해 주세요.';
             }
             return;
         }
@@ -357,30 +521,90 @@ document.addEventListener('DOMContentLoaded', async () => {
                 profileImageMessage.textContent = data.message;
             }
 
+            if (profilePreviewUrl) {
+                URL.revokeObjectURL(profilePreviewUrl);
+                profilePreviewUrl = '';
+            }
+
             setProfileImages(data.profileImage);
-            if (profileImageInput) profileImageInput.value = '';
+
+            if (profileImageInput) {
+                profileImageInput.value = '';
+            }
         } catch (error) {
             console.error('프로필 이미지 변경 실패:', error);
+
             if (profileImageMessage) {
                 profileImageMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
             }
         }
     });
 
-    document.addEventListener('click', async (e) => {
-        const toggleBtn = e.target.closest('.account-toggle-btn');
-        if (!toggleBtn) return;
+    document.addEventListener('click', async (event) => {
+        const toggleBtn = event.target.closest('.account-toggle-btn');
 
-        const field = toggleBtn.dataset.field;
-        const mode = toggleBtn.dataset.mode || 'edit';
+        if (toggleBtn) {
+            const field = toggleBtn.dataset.field;
+            const mode = toggleBtn.dataset.mode || 'edit';
 
-        if (mode === 'edit') {
-            enterEditMode(field);
+            if (mode === 'edit') {
+                enterEditMode(field);
+                return;
+            }
+
+            if (mode === 'save') {
+                await saveProfileField(field);
+            }
+
             return;
         }
 
-        if (mode === 'save') {
-            await saveProfileField(field);
+        const downloadBtn = event.target.closest('.purchase-download-btn');
+
+        if (downloadBtn) {
+            const productId = String(downloadBtn.dataset.productId || '');
+            const product = purchasedProducts.get(productId);
+
+            if (!product) {
+                alert('다운로드할 상품 정보를 찾을 수 없습니다.');
+                return;
+            }
+
+            const files = parseProductFiles(product);
+
+            if (!files.length) {
+                alert('다운로드할 파일이 없습니다.');
+                return;
+            }
+
+            downloadModal.openModal(product);
+            return;
+        }
+
+        const paginationBtn = event.target.closest('.mypage-pagination-btn');
+
+        if (paginationBtn && purchasePagination?.contains(paginationBtn)) {
+            const moveType = paginationBtn.dataset.pageMove;
+            const totalPages = Math.max(1, Math.ceil(purchaseItems.length / PURCHASES_PER_PAGE));
+
+            if (moveType === 'prev') {
+                currentPurchasePage = Math.max(1, currentPurchasePage - 1);
+                renderPurchasePage();
+                return;
+            }
+
+            if (moveType === 'next') {
+                currentPurchasePage = Math.min(totalPages, currentPurchasePage + 1);
+                renderPurchasePage();
+                return;
+            }
+
+            const nextPage = Number(paginationBtn.dataset.page || 1);
+
+            if (!Number.isNaN(nextPage)) {
+                currentPurchasePage = nextPage;
+                renderPurchasePage();
+            }
         }
     });
 
@@ -393,11 +617,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                window.location.href = '/';
-            } else {
+            if (!data.success) {
                 alert(data.message || '로그아웃에 실패했습니다.');
+                return;
             }
+
+            window.location.href = '/';
         } catch (error) {
             console.error('로그아웃 실패:', error);
             alert('서버와 통신 중 오류가 발생했습니다.');
@@ -409,10 +634,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newPassword = newPasswordInput?.value.trim() || '';
         const newPasswordConfirm = newPasswordConfirmInput?.value.trim() || '';
 
-        if (passwordMessage) passwordMessage.textContent = '';
+        if (passwordMessage) {
+            passwordMessage.textContent = '';
+        }
 
         if (!currentPassword || !newPassword || !newPasswordConfirm) {
-            if (passwordMessage) passwordMessage.textContent = '모든 비밀번호 항목을 입력해주세요.';
+            if (passwordMessage) passwordMessage.textContent = '모든 비밀번호 항목을 입력해 주세요.';
             return;
         }
 
@@ -422,7 +649,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (newPassword.length < 4) {
-            if (passwordMessage) passwordMessage.textContent = '새 비밀번호는 4자 이상 입력해주세요.';
+            if (passwordMessage) passwordMessage.textContent = '새 비밀번호는 4자 이상 입력해 주세요.';
             return;
         }
 
@@ -441,23 +668,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                if (passwordMessage) passwordMessage.textContent = data.message;
-                if (currentPasswordInput) currentPasswordInput.value = '';
-                if (newPasswordInput) newPasswordInput.value = '';
-                if (newPasswordConfirmInput) newPasswordConfirmInput.value = '';
-            } else {
-                if (passwordMessage) passwordMessage.textContent = data.message || '비밀번호 변경에 실패했습니다.';
+            if (!data.success) {
+                if (passwordMessage) {
+                    passwordMessage.textContent = data.message || '비밀번호 변경에 실패했습니다.';
+                }
+                return;
             }
+
+            if (passwordMessage) {
+                passwordMessage.textContent = data.message;
+            }
+
+            if (currentPasswordInput) currentPasswordInput.value = '';
+            if (newPasswordInput) newPasswordInput.value = '';
+            if (newPasswordConfirmInput) newPasswordConfirmInput.value = '';
         } catch (error) {
             console.error('비밀번호 변경 실패:', error);
-            if (passwordMessage) passwordMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
+
+            if (passwordMessage) {
+                passwordMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
+            }
         }
     });
 
     const ok = await loadMyInfo();
-    if (!ok) return;
+
+    if (!ok) {
+        return;
+    }
 
     await loadMyProducts();
-    await loadMyDownloadLogs();
 });

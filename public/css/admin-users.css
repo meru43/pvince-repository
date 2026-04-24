@@ -227,6 +227,51 @@
     font-size: 15px;
 }
 
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+
+.admin-pagination-numbers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-pagination-btn {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid #d9dde3;
+    border-radius: 999px;
+    background: #fff;
+    color: #222;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-pagination-btn:hover:not(:disabled) {
+    border-color: #222;
+}
+
+.admin-pagination-btn.active {
+    border-color: #222;
+    background: #222;
+    color: #fff;
+}
+
+.admin-pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* 비밀번호 초기화 모달 */
 .admin-password-modal[hidden] {
     display: none;
@@ -315,5 +360,9 @@
 
     .admin-user-actions {
         justify-content: flex-start;
+    }
+
+    .admin-pagination {
+        flex-wrap: wrap;
     }
 }

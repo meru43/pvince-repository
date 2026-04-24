@@ -36,6 +36,26 @@ module.exports = (db) => {
         next();
     }
 
+    function normalizeUploadFileName(fileName) {
+        if (!fileName) {
+            return '';
+        }
+
+        const rawName = String(fileName);
+
+        try {
+            const decodedName = Buffer.from(rawName, 'latin1').toString('utf8');
+
+            if (/[가-힣]/.test(decodedName) && !/[가-힣]/.test(rawName)) {
+                return decodedName;
+            }
+        } catch (error) {
+            console.error('upload file name normalize error:', error);
+        }
+
+        return rawName;
+    }
+
     const thumbnailDir = path.join(__dirname, '..', 'public', 'uploads', 'thumbnails');
     const productFileDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
 
@@ -46,6 +66,39 @@ module.exports = (db) => {
     if (!fs.existsSync(productFileDir)) {
         fs.mkdirSync(productFileDir, { recursive: true });
     }
+
+    function ensureProductFilesJsonColumn() {
+        const checkSql = `
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'products'
+              AND COLUMN_NAME = 'product_files_json'
+            LIMIT 1
+        `;
+
+        db.query(checkSql, (checkErr, checkResults) => {
+            if (checkErr) {
+                console.error('product_files_json column check error:', checkErr);
+                return;
+            }
+
+            if (checkResults.length > 0) {
+                return;
+            }
+
+            db.query(
+                `ALTER TABLE products ADD COLUMN product_files_json LONGTEXT NULL AFTER file_path`,
+                (alterErr) => {
+                    if (alterErr) {
+                        console.error('product_files_json column add error:', alterErr);
+                    }
+                }
+            );
+        });
+    }
+
+    ensureProductFilesJsonColumn();
 
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
@@ -58,6 +111,7 @@ module.exports = (db) => {
             }
         },
         filename: (req, file, cb) => {
+            file.originalname = normalizeUploadFileName(file.originalname);
             const ext = path.extname(file.originalname);
             const baseName = path.basename(file.originalname, ext).replace(/[^\w가-힣.-]/g, '_');
             cb(null, `${Date.now()}_${baseName}${ext}`);
@@ -82,7 +136,7 @@ module.exports = (db) => {
         requireSellerOrAdminApi,
         upload.fields([
             { name: 'thumbnail', maxCount: 1 },
-            { name: 'productFile', maxCount: 1 }
+            { name: 'productFile', maxCount: 5 }
         ]),
         (req, res) => {
             const title = req.body.title?.trim();
@@ -93,7 +147,8 @@ module.exports = (db) => {
             const keywords = req.body.keywords?.trim();
 
             const thumbnail = req.files?.thumbnail?.[0];
-            const productFile = req.files?.productFile?.[0];
+            const productFiles = req.files?.productFile || [];
+            const productFile = productFiles[0];
 
             if (!title) {
                 return res.json({
@@ -130,14 +185,27 @@ module.exports = (db) => {
                 });
             }
 
+            if (productFiles.length > 5) {
+                return res.json({
+                    success: false,
+                    message: '판매상품 파일은 최대 5개까지 업로드할 수 있습니다.'
+                });
+            }
+
             const cleanedKeywords = (keywords || '')
                 .split(',')
                 .map(v => v.trim())
                 .filter(Boolean)
                 .join(',');
 
-            const fileName = productFile.originalname;
+            const fileName = normalizeUploadFileName(productFile.originalname);
             const filePath = `/uploads/products/${productFile.filename}`;
+            const productFilesJson = JSON.stringify(
+                productFiles.map((file) => ({
+                    name: normalizeUploadFileName(file.originalname),
+                    path: `/uploads/products/${file.filename}`
+                }))
+            );
             const thumbnailPath = `/uploads/thumbnails/${thumbnail.filename}`;
 
             const sql = `
@@ -149,11 +217,12 @@ module.exports = (db) => {
                     description,
                     file_name,
                     file_path,
+                    product_files_json,
                     thumbnail_path,
                     keywords,
                     created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -164,6 +233,7 @@ module.exports = (db) => {
                 description,
                 fileName,
                 filePath,
+                productFilesJson,
                 thumbnailPath,
                 cleanedKeywords,
                 req.session.userId

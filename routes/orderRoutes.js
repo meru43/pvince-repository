@@ -16,6 +16,101 @@ module.exports = (db, path) => {
         return Number(product.price || 0);
     }
 
+    function normalizeFileName(fileName) {
+        if (!fileName) {
+            return '';
+        }
+
+        const rawName = String(fileName);
+
+        try {
+            const decodedName = Buffer.from(rawName, 'latin1').toString('utf8');
+
+            if (/[가-힣]/.test(decodedName) && !/[가-힣]/.test(rawName)) {
+                return decodedName;
+            }
+        } catch (error) {
+            console.error('download file name normalize error:', error);
+        }
+
+        return rawName;
+    }
+
+    function getProductFiles(product) {
+        if (product?.product_files_json) {
+            try {
+                const parsedFiles = JSON.parse(product.product_files_json);
+
+                if (Array.isArray(parsedFiles) && parsedFiles.length > 0) {
+                    return parsedFiles
+                        .map((file) => ({
+                            name: normalizeFileName(file?.name || ''),
+                            path: file?.path || ''
+                        }))
+                        .filter((file) => file.name && file.path);
+                }
+            } catch (error) {
+                console.error('product_files_json parse error:', error);
+            }
+        }
+
+        if (product?.file_name && product?.file_path) {
+            return [{
+                name: normalizeFileName(product.file_name),
+                path: product.file_path
+            }];
+        }
+
+        return [];
+    }
+
+    function setDownloadHeaders(res, fileName) {
+        const normalizedName = normalizeFileName(fileName) || 'download';
+        const asciiFallback = normalizedName
+            .replace(/[^\x20-\x7E]/g, '_')
+            .replace(/["\\]/g, '_');
+
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${asciiFallback || 'download'}"; filename*=UTF-8''${encodeURIComponent(normalizedName)}`
+        );
+    }
+
+    function sendProductFile(res, product, fileIndex, onBeforeSend = null) {
+        const files = getProductFiles(product);
+        const safeIndex = Number.isInteger(fileIndex) && fileIndex >= 0 ? fileIndex : 0;
+        const selectedFile = files[safeIndex] || files[0];
+
+        if (!selectedFile) {
+            return res.status(404).json({
+                success: false,
+                message: '다운로드할 파일을 찾을 수 없습니다.'
+            });
+        }
+
+        const safeRelativePath = String(selectedFile.path || '').replace(/^\/+/, '');
+        const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
+
+        if (typeof onBeforeSend === 'function') {
+            onBeforeSend();
+        }
+
+        setDownloadHeaders(res, selectedFile.name);
+
+        return res.sendFile(filePath, (downloadErr) => {
+            if (downloadErr) {
+                console.error('파일 다운로드 오류:', downloadErr);
+
+                if (!res.headersSent) {
+                    return res.status(500).json({
+                        success: false,
+                        message: '파일 다운로드 실패'
+                    });
+                }
+            }
+        });
+    }
+
     // 회원 장바구니 주문 생성 API
     router.post('/api/orders', (req, res) => {
         if (!req.session.userId) {
@@ -463,7 +558,7 @@ module.exports = (db, path) => {
 
     // 비회원 다운로드 API
     router.post('/api/guest-orders/download', async (req, res) => {
-        const { orderNumber, guestOrderPassword, productId } = req.body;
+        const { orderNumber, guestOrderPassword, productId, fileIndex } = req.body;
 
         if (!orderNumber || !guestOrderPassword || !productId) {
             return res.json({
@@ -535,8 +630,7 @@ module.exports = (db, path) => {
                     }
 
                     const product = itemResults[0];
-                    const safeRelativePath = String(product.file_path || '').replace(/^\/+/, '');
-                    const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
+                    return sendProductFile(res, product, Number(fileIndex));
 
                     return res.download(filePath, product.file_name, (downloadErr) => {
                         if (downloadErr) {
@@ -618,6 +712,7 @@ module.exports = (db, path) => {
 
     router.get('/download/:productId', (req, res) => {
         const productId = req.params.productId;
+        const fileIndex = Number(req.query.file || 0);
 
         if (!req.session.userId) {
             return res.json({
@@ -666,8 +761,6 @@ module.exports = (db, path) => {
                 }
 
                 const product = productResults[0];
-                const safeRelativePath = String(product.file_path || '').replace(/^\/+/, '');
-                const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
 
                 const logSql = 'INSERT INTO download_logs (user_id, product_id) VALUES (?, ?)';
 
@@ -675,6 +768,12 @@ module.exports = (db, path) => {
                     if (logErr) {
                         console.error('다운로드 로그 저장 오류:', logErr);
                     }
+
+                    return sendProductFile(res, product, fileIndex, () => {
+                        if (logErr) {
+                            console.error('?ㅼ슫濡쒕뱶 濡쒓렇 ????ㅻ쪟:', logErr);
+                        }
+                    });
 
                     return res.download(filePath, product.file_name, (downloadErr) => {
                         if (downloadErr) {
@@ -714,6 +813,7 @@ module.exports = (db, path) => {
                 products.description,
                 products.file_name,
                 products.file_path,
+                products.product_files_json,
                 products.thumbnail_path
             FROM purchases
             JOIN products ON purchases.product_id = products.id
@@ -730,9 +830,15 @@ module.exports = (db, path) => {
                 });
             }
 
+            const normalizedProducts = results.map((product) => ({
+                ...product,
+                file_name: normalizeFileName(product.file_name),
+                product_files_json: JSON.stringify(getProductFiles(product))
+            }));
+
             return res.json({
                 success: true,
-                products: results
+                products: normalizedProducts
             });
         });
     });
@@ -770,9 +876,14 @@ module.exports = (db, path) => {
                 });
             }
 
+            const normalizedLogs = results.map((log) => ({
+                ...log,
+                file_name: normalizeFileName(log.file_name)
+            }));
+
             return res.json({
                 success: true,
-                logs: results
+                logs: normalizedLogs
             });
         });
     });

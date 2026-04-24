@@ -34,10 +34,10 @@ ul {
 }
 
 .container {
-    width: 90%;
-    /* max-width: 1200px; */
+    width: 100%;
+    max-width: 1680px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0;
 }
 
 .site-header {
@@ -206,7 +206,7 @@ ul {
 }
 
 .page {
-    padding: 40px 20px 60px;
+    padding: 40px 0 60px;
 }
 
 .page-title {
