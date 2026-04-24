@@ -18,6 +18,10 @@ module.exports = (db, bcrypt) => {
         return DEFAULT_PROFILE_IMAGE;
     }
 
+    function isValidAccountPassword(password) {
+        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(String(password || ''));
+    }
+
     function ensureProfileImageColumn() {
         const checkSql = `
             SELECT COUNT(*) AS count
@@ -81,6 +85,13 @@ module.exports = (db, bcrypt) => {
             return res.json({
                 success: false,
                 message: '아이디, 비밀번호, 닉네임, 이메일을 입력해주세요.'
+            });
+        }
+
+        if (!isValidAccountPassword(password)) {
+            return res.json({
+                success: false,
+                message: '비밀번호는 영문과 숫자를 포함해 8자 이상 입력해주세요.'
             });
         }
 
@@ -405,7 +416,7 @@ module.exports = (db, bcrypt) => {
             });
         }
 
-        if (newPassword.length < 4) {
+        if (!isValidAccountPassword(newPassword)) {
             return res.json({
                 success: false,
                 message: '새 비밀번호는 4자 이상 입력해주세요.'

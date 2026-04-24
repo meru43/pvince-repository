@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
+    function isValidPassword(password) {
+        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+    }
+
     nicknameInput.addEventListener('input', () => {
         nicknameChecked = false;
         checkedNicknameValue = '';
@@ -47,15 +51,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                nicknameChecked = true;
-                checkedNicknameValue = nickname;
-                checkMessage.textContent = data.message;
-            } else {
+            if (!data.success) {
                 nicknameChecked = false;
                 checkedNicknameValue = '';
                 checkMessage.textContent = data.message || '중복확인에 실패했습니다.';
+                return;
             }
+
+            nicknameChecked = true;
+            checkedNicknameValue = nickname;
+            checkMessage.textContent = data.message;
         } catch (error) {
             console.error('닉네임 중복확인 실패:', error);
             checkMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
@@ -82,6 +87,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!isValidEmail(email)) {
             errorText.textContent = '올바른 이메일 형식을 입력해주세요.';
+            return;
+        }
+
+        if (!isValidPassword(password)) {
+            errorText.textContent = '비밀번호는 영문과 숫자를 포함해 8자 이상 입력해주세요.';
             return;
         }
 
@@ -114,12 +124,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
-                window.location.href = '/login-page';
-            } else {
+            if (!data.success) {
                 errorText.textContent = data.message || '회원가입에 실패했습니다.';
+                return;
             }
+
+            alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+            window.location.href = '/login-page';
         } catch (error) {
             console.error('회원가입 요청 실패:', error);
             errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
