@@ -155,10 +155,223 @@
     justify-content: flex-end;
 }
 
+.result-product-download {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.guest-invoice-btn {
+    min-width: 92px;
+}
+
 .empty-message {
     margin: 0;
     color: #777;
     font-size: 15px;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.download-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+}
+
+.download-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.download-modal-dialog {
+    position: relative;
+    width: min(560px, calc(100vw - 32px));
+    padding: 24px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+}
+
+.download-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.download-modal-label {
+    margin: 0 0 6px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: #6b7280;
+}
+
+.download-modal-title {
+    margin: 0;
+    font-size: 24px;
+}
+
+.download-modal-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.invoice-modal-dialog {
+    max-height: calc(100vh - 40px);
+    margin: 20px auto 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.invoice-sheet {
+    margin-top: 20px;
+    border: 1px solid #e6ebf2;
+    border-radius: 24px;
+    padding: 24px 22px;
+    background: #fff;
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
+    scrollbar-gutter: stable;
+}
+
+.invoice-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.invoice-save-btn {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+}
+
+.invoice-sheet-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.invoice-sheet-label {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: #94a3b8;
+}
+
+.invoice-store-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.invoice-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.invoice-section {
+    display: grid;
+    gap: 0;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.invoice-section:first-of-type {
+    margin-top: 0;
+    padding-top: 18px;
+    border-top: 0;
+}
+
+.invoice-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 8px 0;
+}
+
+.invoice-row.total {
+    margin-top: 4px;
+    padding-top: 12px;
+}
+
+.invoice-label {
+    color: #475569;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.invoice-value {
+    color: #334155;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: right;
+    word-break: break-word;
+}
+
+.invoice-section:first-of-type .invoice-value {
+    max-width: 68%;
+}
+
+.invoice-row.total .invoice-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.invoice-row.total .invoice-label {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.invoice-section.merchant {
+    gap: 18px;
+}
+
+.invoice-merchant-block {
+    display: grid;
+    gap: 8px;
+}
+
+.invoice-merchant-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.invoice-merchant-text {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.7;
 }
 
 @media (max-width: 1024px) {
@@ -198,5 +411,38 @@
 
     .result-product {
         grid-template-columns: 1fr;
+    }
+
+    .download-modal-dialog {
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .invoice-modal-dialog {
+        max-height: calc(100vh - 24px);
+    }
+
+    .invoice-sheet {
+        max-height: calc(100vh - 170px);
+        padding: 20px 18px;
+        border-radius: 20px;
+    }
+
+    .invoice-modal-actions {
+        gap: 8px;
+    }
+
+    .invoice-save-btn {
+        padding: 0 12px;
+        font-size: 12px;
+    }
+
+    .invoice-row {
+        gap: 14px;
+    }
+
+    .invoice-section:first-of-type .invoice-value {
+        max-width: 62%;
     }
 }
