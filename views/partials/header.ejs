@@ -8,14 +8,14 @@
             <a href="/products-page">상품리스트</a>
             <a href="/qna-page">Q/A</a>
 
-            <a href="/order-check-page" id="order-check-link">주문조회</a>
-            <a href="/login-page" id="auth-link" class="auth-link">로그인</a>
+            <a href="/order-check-page" id="order-check-link" <%= currentUser.loggedIn ? 'hidden' : '' %>>주문조회</a>
+            <a href="/login-page" id="auth-link" class="auth-link" <%= currentUser.loggedIn ? 'hidden' : '' %>>로그인</a>
 
             <a href="/cart-page" id="cart-link" hidden>장바구니</a>
-            <a href="/seller-upload-page" id="seller-upload-link" hidden>상품등록</a>
-            <a href="/admin-users-page" id="admin-link" hidden>회원관리</a>
+            <a href="/seller-upload-page" id="seller-upload-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품등록</a>
+            <a href="/admin-users-page" id="admin-link" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>
 
-            <div class="header-user-menu" id="header-user-menu" hidden>
+            <div class="header-user-menu" id="header-user-menu" <%= currentUser.loggedIn ? '' : 'hidden' %>>
                 <button
                     type="button"
                     class="header-user-trigger"
@@ -25,29 +25,31 @@
                     aria-controls="header-user-panel"
                 >
                     <span class="header-user-avatar" id="header-user-avatar">
-                        <img src="/images/normal user.jpg" alt="프로필 이미지" id="header-user-avatar-image">
+                        <img src="<%= currentUser.profileImage %>" alt="프로필 이미지" id="header-user-avatar-image">
                     </span>
                 </button>
 
                 <div class="header-user-panel" id="header-user-panel" hidden>
                     <div class="header-user-summary">
                         <div class="header-user-avatar large" id="header-user-avatar-large">
-                            <img src="/images/normal user.jpg" alt="프로필 이미지" id="header-user-avatar-large-image">
+                            <img src="<%= currentUser.profileImage %>" alt="프로필 이미지" id="header-user-avatar-large-image">
                         </div>
 
                         <div class="header-user-meta">
-                            <strong class="header-user-name" id="header-user-name">사용자</strong>
-                            <span class="header-user-role" id="header-user-role">일반회원</span>
+                            <strong class="header-user-name" id="header-user-name"><%= currentUser.nickname || currentUser.username || '사용자' %></strong>
+                            <span class="header-user-role" id="header-user-role">
+                                <%= currentUser.role === 'admin' ? '슈퍼관리자' : currentUser.role === 'seller' ? '셀러회원' : '일반회원' %>
+                            </span>
                         </div>
                     </div>
 
                     <div class="header-user-links">
                         <a href="/mypage-page" class="header-user-link" id="header-menu-mypage">마이페이지</a>
                         <a href="/cart-page" class="header-user-link" id="header-menu-cart">장바구니</a>
-                        <a href="/seller-products-page" class="header-user-link" id="header-menu-seller" hidden>상품관리</a>
-                        <a href="/seller-sales-page" class="header-user-link" id="header-menu-sales" hidden>판매관리</a>
-                        <a href="/admin-users-page" class="header-user-link" id="header-menu-admin" hidden>회원관리</a>
-                        <a href="/admin-settlements-page" class="header-user-link" id="header-menu-admin-settlement" hidden>정산관리</a>
+                        <a href="/seller-products-page" class="header-user-link" id="header-menu-seller" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품관리</a>
+                        <a href="/seller-sales-page" class="header-user-link" id="header-menu-sales" <%= currentUser.canManageProducts ? '' : 'hidden' %>>판매관리</a>
+                        <a href="/admin-users-page" class="header-user-link" id="header-menu-admin" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>
+                        <a href="/admin-settlements-page" class="header-user-link" id="header-menu-admin-settlement" <%= currentUser.isAdmin ? '' : 'hidden' %>>정산관리</a>
                         <button type="button" class="header-user-link logout" id="header-menu-logout">로그아웃</button>
                     </div>
                 </div>

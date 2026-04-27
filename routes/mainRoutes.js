@@ -21,6 +21,11 @@ router.get('/login-page', (req, res) => {
     res.render('login');
 });
 
+// 비밀번호 찾기 페이지
+router.get('/forgot-password-page', (req, res) => {
+    res.render('forgot-password');
+});
+
 // 장바구니 페이지
 router.get('/cart-page', (req, res) => {
     res.render('cart');

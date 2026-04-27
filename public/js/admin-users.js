@@ -192,14 +192,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             ${Number(user.is_active) === 1 ? '활동중지' : '활동재개'}
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-outline user-password-reset-btn"
-                                            data-id="${user.id}"
-                                            data-username="${displayValue(user.username)}"
-                                        >
-                                            비밀번호 초기화
-                                        </button>
+                                        ${isGoogleUser(user)
+                                            ? ''
+                                            : `
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline user-password-reset-btn"
+                                                    data-id="${user.id}"
+                                                    data-username="${displayValue(user.username)}"
+                                                >
+                                                    비밀번호 초기화
+                                                </button>
+                                            `
+                                        }
                                     </div>
                                 </div>
                             `

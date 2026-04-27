@@ -39,6 +39,22 @@ app.use(session({
   }
 }));
 
+app.use((req, res, next) => {
+  const role = req.session?.role || null;
+
+  res.locals.currentUser = {
+    loggedIn: Boolean(req.session?.userId),
+    username: req.session?.username || '',
+    nickname: req.session?.nickname || '',
+    role,
+    profileImage: req.session?.profileImage || '/images/normal user.jpg',
+    canManageProducts: role === 'seller' || role === 'admin',
+    isAdmin: role === 'admin'
+  };
+
+  next();
+});
+
 /* =========================
    DB 연결
 ========================= */

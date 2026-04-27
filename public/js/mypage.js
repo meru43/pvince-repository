@@ -30,11 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newPasswordConfirmInput = document.getElementById('new-password-confirm-input');
     const passwordSaveBtn = document.getElementById('password-save-btn');
     const passwordMessage = document.getElementById('password-message');
+    const passwordChangeBox = document.querySelector('.password-change-box');
 
     const purchasedProducts = new Map();
     let profilePreviewUrl = '';
     let purchaseItems = [];
     let currentPurchasePage = 1;
+    let currentViewerName = '-';
 
     function formatPrice(value) {
         return `${Number(value || 0).toLocaleString()}원`;
@@ -42,6 +44,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function displayValue(value) {
         return value && String(value).trim() !== '' ? value : '-';
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return '-';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '-')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function isValidEmail(email) {
@@ -243,6 +274,315 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const downloadModal = createDownloadModal();
 
+    function createInvoiceModal() {
+        const modal = document.createElement('div');
+        modal.className = 'download-modal invoice-modal';
+        modal.hidden = true;
+        modal.innerHTML = `
+            <div class="download-modal-backdrop" data-invoice-modal-close></div>
+            <div class="download-modal-dialog invoice-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title">
+                <div class="download-modal-head">
+                    <div>
+                        <p class="download-modal-label">RECEIPT</p>
+                        <h3 class="download-modal-title" id="invoice-modal-title">영수증</h3>
+                    </div>
+                    <div class="invoice-modal-actions">
+                        <button type="button" class="btn btn-outline invoice-save-btn" id="invoice-save-btn">PDF 저장</button>
+                        <button type="button" class="download-modal-close" data-invoice-modal-close aria-label="팝업 닫기">X</button>
+                    </div>
+                </div>
+                <div class="invoice-sheet" id="invoice-sheet"></div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const sheetEl = modal.querySelector('#invoice-sheet');
+        const saveBtn = modal.querySelector('#invoice-save-btn');
+
+        function buildInvoicePrintMarkup() {
+            return `
+                <!doctype html>
+                <html lang="ko">
+                <head>
+                    <meta charset="utf-8">
+                    <title>영수증</title>
+                    <style>
+                        * { box-sizing: border-box; }
+                        body {
+                            margin: 0;
+                            padding: 32px 24px;
+                            font-family: Arial, "Malgun Gothic", sans-serif;
+                            color: #111827;
+                            background: #ffffff;
+                        }
+                        .invoice-sheet {
+                            width: 100%;
+                            max-width: 720px;
+                            margin: 0 auto;
+                            border: 1px solid #e6ebf2;
+                            border-radius: 24px;
+                            padding: 24px 22px;
+                            background: #fff;
+                        }
+                        .invoice-sheet-head {
+                            display: flex;
+                            align-items: flex-start;
+                            justify-content: space-between;
+                            gap: 16px;
+                            padding-bottom: 18px;
+                            border-bottom: 1px solid #e5e7eb;
+                        }
+                        .invoice-sheet-label {
+                            margin: 0 0 8px;
+                            font-size: 12px;
+                            letter-spacing: 0.16em;
+                            color: #94a3b8;
+                        }
+                        .invoice-store-name {
+                            font-size: 26px;
+                            font-weight: 800;
+                            color: #111827;
+                        }
+                        .invoice-status {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 34px;
+                            padding: 0 14px;
+                            border-radius: 999px;
+                            background: #111827;
+                            color: #fff;
+                            font-size: 13px;
+                            font-weight: 700;
+                        }
+                        .invoice-section {
+                            display: grid;
+                            gap: 0;
+                            margin-top: 18px;
+                            padding-top: 18px;
+                            border-top: 1px solid #e5e7eb;
+                        }
+                        .invoice-section:first-of-type {
+                            margin-top: 0;
+                            padding-top: 18px;
+                            border-top: 0;
+                        }
+                        .invoice-row {
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 20px;
+                            align-items: flex-start;
+                            padding: 8px 0;
+                        }
+                        .invoice-label {
+                            color: #475569;
+                            font-size: 14px;
+                            flex-shrink: 0;
+                        }
+                        .invoice-value {
+                            color: #334155;
+                            font-size: 15px;
+                            font-weight: 700;
+                            text-align: right;
+                            word-break: break-word;
+                        }
+                        .invoice-section:first-of-type .invoice-value {
+                            max-width: 68%;
+                        }
+                        .invoice-row.total {
+                            margin-top: 4px;
+                            padding-top: 12px;
+                        }
+                        .invoice-row.total .invoice-label,
+                        .invoice-row.total .invoice-value {
+                            color: #2563eb;
+                            font-weight: 800;
+                        }
+                        .invoice-row.total .invoice-value {
+                            font-size: 20px;
+                        }
+                        .invoice-section.merchant {
+                            gap: 18px;
+                        }
+                        .invoice-merchant-block {
+                            display: grid;
+                            gap: 8px;
+                        }
+                        .invoice-merchant-title {
+                            font-size: 15px;
+                            font-weight: 800;
+                            color: #334155;
+                        }
+                        .invoice-merchant-text {
+                            margin: 0;
+                            color: #64748b;
+                            font-size: 14px;
+                            line-height: 1.7;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${sheetEl.outerHTML}
+                </body>
+                </html>
+            `;
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            sheetEl.innerHTML = '';
+        }
+
+        function saveAsPdf() {
+            if (!sheetEl.innerHTML.trim()) {
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'width=560,height=720');
+
+            if (!printWindow) {
+                alert('팝업이 차단되어 PDF 저장 창을 열 수 없습니다.');
+                return;
+            }
+
+            printWindow.document.open();
+            printWindow.document.write(buildInvoicePrintMarkup());
+            printWindow.document.close();
+            printWindow.focus();
+
+            printWindow.addEventListener('load', () => {
+                printWindow.print();
+            }, { once: true });
+        }
+
+        function openModal(product) {
+            const receiptPrice = Number(product.paid_price ?? product.sale_price ?? product.price ?? 0);
+            const supplyPrice = Math.round(receiptPrice / 1.1);
+            const vatPrice = Math.max(receiptPrice - supplyPrice, 0);
+            const safeOrderNumber = escapeHtml(displayValue(product.order_number));
+            const safeBuyerName = escapeHtml(displayValue(currentViewerName));
+            const safeProductTitle = escapeHtml(displayValue(product.title));
+            const safePaymentMethod = escapeHtml(displayValue(product.payment_method_label));
+            const safeOrderedAt = escapeHtml(formatDateTime(product.ordered_at || product.purchased_at));
+
+            sheetEl.innerHTML = `
+                <div class="invoice-sheet-head">
+                    <div>
+                        <p class="invoice-sheet-label">INVOICE</p>
+                        <strong class="invoice-store-name">SJ SHOP</strong>
+                    </div>
+                    <span class="invoice-status">결제 완료</span>
+                </div>
+
+                <div class="invoice-section">
+                    <div class="invoice-row">
+                        <span class="invoice-label">주문번호</span>
+                        <strong class="invoice-value">${safeOrderNumber}</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">구매자</span>
+                        <strong class="invoice-value">${safeBuyerName}</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">구매상품</span>
+                        <strong class="invoice-value">${safeProductTitle}</strong>
+                    </div>
+                </div>
+
+                <div class="invoice-section">
+                    <div class="invoice-row">
+                        <span class="invoice-label">카드종류</span>
+                        <strong class="invoice-value">-</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">카드번호</span>
+                        <strong class="invoice-value">-</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">할부</span>
+                        <strong class="invoice-value">-</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">결제상태</span>
+                        <strong class="invoice-value">완료</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">승인번호</span>
+                        <strong class="invoice-value">-</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">결제수단</span>
+                        <strong class="invoice-value">${safePaymentMethod}</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">결제일시</span>
+                        <strong class="invoice-value">${safeOrderedAt}</strong>
+                    </div>
+                </div>
+
+                <div class="invoice-section">
+                    <div class="invoice-row">
+                        <span class="invoice-label">공급가액</span>
+                        <strong class="invoice-value">${formatPrice(supplyPrice)}</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">면세가액</span>
+                        <strong class="invoice-value">0원</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">부가세</span>
+                        <strong class="invoice-value">${formatPrice(vatPrice)}</strong>
+                    </div>
+                    <div class="invoice-row">
+                        <span class="invoice-label">과세제외액</span>
+                        <strong class="invoice-value">0원</strong>
+                    </div>
+                    <div class="invoice-row total">
+                        <span class="invoice-label">합계</span>
+                        <strong class="invoice-value">${formatPrice(receiptPrice)}</strong>
+                    </div>
+                </div>
+
+                <div class="invoice-section merchant">
+                    <div class="invoice-merchant-block">
+                        <span class="invoice-merchant-title">이용상점</span>
+                        <p class="invoice-merchant-text">
+                            SJ SHOP | 대표자명: - | 사업자등록번호: -<br>
+                            전화: - | 주소: -
+                        </p>
+                    </div>
+                    <div class="invoice-merchant-block">
+                        <span class="invoice-merchant-title">결제서비스업체</span>
+                        <p class="invoice-merchant-text">-</p>
+                    </div>
+                </div>
+            `;
+
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+        }
+
+        modal.addEventListener('click', (event) => {
+            if (event.target.closest('[data-invoice-modal-close]')) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        saveBtn?.addEventListener('click', saveAsPdf);
+
+        return { openModal };
+    }
+
+    const invoiceModal = createInvoiceModal();
+
     function renderPurchasePagination(totalPages) {
         if (!purchasePagination) {
             return;
@@ -312,6 +652,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button type="button" class="btn btn-outline purchase-download-btn" data-product-id="${product.product_id}">
                             다운로드
                         </button>
+                        <button type="button" class="btn btn-outline purchase-invoice-btn" data-product-id="${product.product_id}">
+                            영수증
+                        </button>
                     </div>
                 </article>
             `;
@@ -343,6 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setProfileImages(meData.profileImage);
 
         if (profileName) profileName.textContent = meData.nickname || meData.username || '회원';
+        currentViewerName = meData.nickname || meData.name || meData.username || '-';
         if (profileEmail) profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
         if (accountUsername) accountUsername.textContent = displayValue(meData.username);
         if (accountNickname) accountNickname.textContent = displayValue(meData.nickname);
@@ -354,6 +698,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (accountEmailInput) accountEmailInput.value = meData.email || '';
         if (accountNameInput) accountNameInput.value = meData.name || '';
         if (accountPhoneInput) accountPhoneInput.value = meData.phone || '';
+
+        if (passwordChangeBox) {
+            passwordChangeBox.hidden = Boolean(meData.isGoogleUser);
+        }
 
         return true;
     }
@@ -568,6 +916,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             downloadModal.openModal(product);
+            return;
+        }
+
+        const invoiceBtn = event.target.closest('.purchase-invoice-btn');
+
+        if (invoiceBtn) {
+            const productId = String(invoiceBtn.dataset.productId || '');
+            const product = purchasedProducts.get(productId);
+
+            if (!product) {
+                alert('영수증 정보를 찾을 수 없습니다.');
+                return;
+            }
+
+            invoiceModal.openModal(product);
             return;
         }
 

@@ -107,6 +107,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutButton?.addEventListener('click', handleLogout);
     }
 
+    function markHeaderReady() {
+        document.body.classList.add('header-auth-ready');
+    }
+
     try {
         const response = await fetch('/me', {
             method: 'GET',
@@ -115,18 +119,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const data = await response.json();
 
-        show(authLink);
-        show(orderCheckLink);
-        hide(cartLink);
-        hide(sellerUploadLink);
-        hide(adminLink);
-        hide(userMenu);
-        hide(sellerMenuLink);
-        hide(salesMenuLink);
-        hide(adminMenuLink);
-        hide(adminSettlementMenuLink);
-
         if (!data.loggedIn) {
+            show(authLink);
+            show(orderCheckLink);
+            hide(cartLink);
+            hide(sellerUploadLink);
+            hide(adminLink);
+            hide(userMenu);
+            hide(sellerMenuLink);
+            hide(salesMenuLink);
+            hide(adminMenuLink);
+            hide(adminSettlementMenuLink);
+
             if (authLink) {
                 authLink.textContent = '로그인';
                 authLink.href = '/login-page';
@@ -136,6 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 orderCheckLink.href = '/order-check-page';
             }
 
+            markHeaderReady();
             return;
         }
 
@@ -145,27 +150,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         hide(authLink);
         hide(orderCheckLink);
         hide(cartLink);
-        show(userMenu);
 
         setProfileImages(profileSrc);
 
         if (userName) userName.textContent = displayName;
         if (userRole) userRole.textContent = getRoleLabel(data.role);
 
-        if (data.role === 'seller' || data.role === 'admin') {
-            show(sellerUploadLink);
-            show(sellerMenuLink);
-            show(salesMenuLink);
-        }
-
-        if (data.role === 'admin') {
-            show(adminLink);
-            show(adminMenuLink);
-            show(adminSettlementMenuLink);
-        }
-
         bindUserMenuEvents();
     } catch (error) {
         console.error('공통 상태 확인 실패:', error);
+    } finally {
+        markHeaderReady();
     }
 });

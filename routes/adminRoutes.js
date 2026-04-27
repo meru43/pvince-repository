@@ -38,6 +38,8 @@ module.exports = (db) => {
     // 회원 목록 조회 API
     router.get('/api/admin/users', requireAdmin, (req, res) => {
         const q = (req.query.q || '').trim();
+        const normalizedQuery = q.toLowerCase();
+        const isGoogleOnlySearch = normalizedQuery === 'google' || normalizedQuery === '구글';
 
         let sql = `
             SELECT
@@ -58,7 +60,14 @@ module.exports = (db) => {
 
         const params = [];
 
-        if (q) {
+        if (isGoogleOnlySearch) {
+            sql += `
+                AND (
+                    (google_id IS NOT NULL AND TRIM(google_id) != '')
+                    OR (google_email IS NOT NULL AND TRIM(google_email) != '')
+                )
+            `;
+        } else if (q) {
             sql += `
                 AND (
                     username LIKE ?
@@ -105,7 +114,7 @@ module.exports = (db) => {
         }
 
         const checkSql = `
-            SELECT id, username, role
+            SELECT id, username, role, google_id, google_email
             FROM users
             WHERE id = ?
             LIMIT 1
@@ -263,6 +272,18 @@ module.exports = (db) => {
                 return res.json({
                     success: false,
                     message: 'admin 계정의 비밀번호는 여기서 초기화할 수 없습니다.'
+                });
+            }
+
+            const isGoogleUser = Boolean(
+                (targetUser.google_id && String(targetUser.google_id).trim() !== '')
+                || (targetUser.google_email && String(targetUser.google_email).trim() !== '')
+            );
+
+            if (isGoogleUser) {
+                return res.json({
+                    success: false,
+                    message: '구글 가입 회원은 비밀번호 초기화를 사용할 수 없습니다.'
                 });
             }
 

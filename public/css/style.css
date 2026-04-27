@@ -77,6 +77,11 @@ ul {
     align-items: center;
 }
 
+body:not(.header-auth-ready) #auth-link,
+body:not(.header-auth-ready) #order-check-link {
+    display: none !important;
+}
+
 .header-user-menu {
     position: relative;
 }

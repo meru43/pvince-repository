@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
 const path = require('path');
 const multer = require('multer');
 
@@ -24,6 +25,80 @@ module.exports = (db, bcrypt) => {
 
     function isValidAccountPassword(password) {
         return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(String(password || ''));
+    }
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+    }
+
+    function generateTemporaryPassword() {
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        let randomPart = '';
+
+        for (let index = 0; index < 8; index += 1) {
+            randomPart += alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+
+        return `Sj${randomPart}9`;
+    }
+
+    function getMailerConfig() {
+        const host = process.env.SMTP_HOST || '';
+        const port = Number(process.env.SMTP_PORT || 587);
+        const user = process.env.SMTP_USER || '';
+        const pass = process.env.SMTP_PASS || '';
+        const from = process.env.SMTP_FROM || user;
+        const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465;
+
+        return {
+            host,
+            port,
+            user,
+            pass,
+            from,
+            secure,
+            configured: Boolean(host && port && user && pass && from)
+        };
+    }
+
+    async function sendTemporaryPasswordEmail({ to, username, tempPassword }) {
+        const mailerConfig = getMailerConfig();
+
+        if (!mailerConfig.configured) {
+            throw new Error('SMTP is not configured.');
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: mailerConfig.host,
+            port: mailerConfig.port,
+            secure: mailerConfig.secure,
+            auth: {
+                user: mailerConfig.user,
+                pass: mailerConfig.pass
+            }
+        });
+
+        await transporter.sendMail({
+            from: mailerConfig.from,
+            to,
+            subject: '[SJ SHOP] 임시 비밀번호 안내',
+            text: [
+                `${username}님, 안녕하세요.`,
+                '',
+                '비밀번호 찾기 요청으로 임시 비밀번호를 발급해 드립니다.',
+                `임시 비밀번호: ${tempPassword}`,
+                '',
+                '로그인 후 마이페이지에서 비밀번호를 변경해 주세요.'
+            ].join('\n'),
+            html: `
+                <div style="font-family: Arial, 'Malgun Gothic', sans-serif; line-height: 1.7; color: #222;">
+                    <p>${username}님, 안녕하세요.</p>
+                    <p>비밀번호 찾기 요청으로 임시 비밀번호를 발급해 드립니다.</p>
+                    <p style="margin: 20px 0; font-size: 18px; font-weight: 700;">임시 비밀번호: ${tempPassword}</p>
+                    <p>로그인 후 마이페이지에서 비밀번호를 변경해 주세요.</p>
+                </div>
+            `
+        });
     }
 
     function getGoogleConfig(req) {
@@ -83,6 +158,10 @@ module.exports = (db, bcrypt) => {
         req.session.email = user.email || '';
         req.session.name = user.name || '';
         req.session.phone = user.phone || '';
+        req.session.isGoogleUser = Boolean(
+            (user.google_id && String(user.google_id).trim() !== '')
+            || (user.google_email && String(user.google_email).trim() !== '')
+        );
     }
 
     function buildUniqueValue(baseValue, existsSql, fallbackPrefix) {
@@ -623,7 +702,7 @@ module.exports = (db, bcrypt) => {
         if (!req.session.userId) {
             return res.json({
                 success: false,
-                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
+                message: '로그인이 필요합니다.'
             });
         }
 
@@ -633,7 +712,7 @@ module.exports = (db, bcrypt) => {
         if (!currentPassword || !newPassword) {
             return res.json({
                 success: false,
-                message: '?꾩옱 鍮꾨?踰덊샇? ??鍮꾨?踰덊샇瑜??낅젰?댁＜?몄슂.'
+                message: '현재 비밀번호와 새 비밀번호를 입력해주세요.'
             });
         }
 
@@ -644,25 +723,37 @@ module.exports = (db, bcrypt) => {
             });
         }
 
-        const sql = 'SELECT id, password FROM users WHERE id = ? LIMIT 1';
+        const sql = 'SELECT id, password, google_id, google_email FROM users WHERE id = ? LIMIT 1';
 
         db.query(sql, [req.session.userId], async (err, results) => {
             if (err) {
-                console.error('?뚯썝 鍮꾨?踰덊샇 議고쉶 ?ㅻ쪟:', err);
+                console.error('회원 비밀번호 조회 오류:', err);
                 return res.json({
                     success: false,
-                    message: '?뚯썝 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?듬땲??'
+                    message: '회원 정보를 확인하지 못했습니다.'
                 });
             }
 
             if (results.length === 0) {
                 return res.json({
                     success: false,
-                    message: '?뚯썝??李얠쓣 ???놁뒿?덈떎.'
+                    message: '회원을 찾을 수 없습니다.'
                 });
             }
 
             const user = results[0];
+
+            const isGoogleUser = Boolean(
+                (user.google_id && String(user.google_id).trim() !== '')
+                || (user.google_email && String(user.google_email).trim() !== '')
+            );
+
+            if (isGoogleUser) {
+                return res.json({
+                    success: false,
+                    message: '구글 가입 회원은 이곳에서 비밀번호를 변경할 수 없습니다.'
+                });
+            }
 
             try {
                 const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -670,7 +761,7 @@ module.exports = (db, bcrypt) => {
                 if (!isMatch) {
                     return res.json({
                         success: false,
-                        message: '?꾩옱 鍮꾨?踰덊샇媛 ?щ컮瑜댁? ?딆뒿?덈떎.'
+                        message: '현재 비밀번호가 올바르지 않습니다.'
                     });
                 }
 
@@ -680,23 +771,23 @@ module.exports = (db, bcrypt) => {
 
                 db.query(updateSql, [hashedPassword, req.session.userId], (updateErr) => {
                     if (updateErr) {
-                        console.error('鍮꾨?踰덊샇 蹂寃??ㅻ쪟:', updateErr);
+                        console.error('비밀번호 변경 오류:', updateErr);
                         return res.json({
                             success: false,
-                            message: '鍮꾨?踰덊샇 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.'
+                            message: '비밀번호 변경에 실패했습니다.'
                         });
                     }
 
                     return res.json({
                         success: true,
-                        message: '鍮꾨?踰덊샇媛 蹂寃쎈릺?덉뒿?덈떎.'
+                        message: '비밀번호가 변경되었습니다.'
                     });
                 });
             } catch (error) {
-                console.error('鍮꾨?踰덊샇 泥섎━ ?ㅻ쪟:', error);
+                console.error('비밀번호 처리 오류:', error);
                 return res.json({
                     success: false,
-                    message: '鍮꾨?踰덊샇 泥섎━ 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+                    message: '비밀번호 처리 중 오류가 발생했습니다.'
                 });
             }
         });
@@ -745,6 +836,106 @@ module.exports = (db, bcrypt) => {
                     profileImage: profileImagePath
                 });
             });
+        });
+    });
+
+    router.post('/forgot-password', async (req, res) => {
+        const username = req.body.username?.trim();
+        const email = req.body.email?.trim().toLowerCase();
+
+        if (!username || !email) {
+            return res.json({
+                success: false,
+                message: '아이디와 이메일을 모두 입력해 주세요.'
+            });
+        }
+
+        if (!isValidEmail(email)) {
+            return res.json({
+                success: false,
+                message: '올바른 이메일 형식을 입력해 주세요.'
+            });
+        }
+
+        const findUserSql = `
+            SELECT id, username, email, password, is_active
+            FROM users
+            WHERE username = ? AND email = ?
+            LIMIT 1
+        `;
+
+        db.query(findUserSql, [username, email], async (findErr, results) => {
+            if (findErr) {
+                console.error('비밀번호 찾기 회원 조회 오류:', findErr);
+                return res.json({
+                    success: false,
+                    message: '서버 오류가 발생했습니다.'
+                });
+            }
+
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '가입정보가 없습니다.'
+                });
+            }
+
+            const user = results[0];
+
+            if (Number(user.is_active) === 0) {
+                return res.json({
+                    success: false,
+                    message: '가입정보가 없습니다.'
+                });
+            }
+
+            try {
+                const tempPassword = generateTemporaryPassword();
+                const hashedPassword = await bcrypt.hash(tempPassword, 10);
+                const updateSql = 'UPDATE users SET password = ? WHERE id = ?';
+
+                db.query(updateSql, [hashedPassword, user.id], async (updateErr) => {
+                    if (updateErr) {
+                        console.error('임시 비밀번호 저장 오류:', updateErr);
+                        return res.json({
+                            success: false,
+                            message: '서버 오류가 발생했습니다.'
+                        });
+                    }
+
+                    try {
+                        await sendTemporaryPasswordEmail({
+                            to: user.email,
+                            username: user.username,
+                            tempPassword
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: '임시 비밀번호를 이메일로 발송했습니다.'
+                        });
+                    } catch (mailErr) {
+                        console.error('임시 비밀번호 메일 발송 오류:', mailErr);
+
+                        db.query('UPDATE users SET password = ? WHERE id = ?', [user.password, user.id], (rollbackErr) => {
+                            if (rollbackErr) {
+                                console.error('임시 비밀번호 롤백 오류:', rollbackErr);
+                            }
+
+                            return res.json({
+                                success: false,
+                                message: '임시 비밀번호 메일 발송에 실패했습니다.'
+                            });
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('비밀번호 찾기 처리 오류:', error);
+                return res.json({
+                    success: false,
+                    message: '서버 오류가 발생했습니다.'
+                });
+            }
         });
     });
 
@@ -885,6 +1076,10 @@ module.exports = (db, bcrypt) => {
                 req.session.email = user.email || '';
                 req.session.name = user.name || '';
                 req.session.phone = user.phone || '';
+                req.session.isGoogleUser = Boolean(
+                    (user.google_id && String(user.google_id).trim() !== '')
+                    || (user.google_email && String(user.google_email).trim() !== '')
+                );
 
                 return res.json({
                     success: true,
@@ -895,7 +1090,11 @@ module.exports = (db, bcrypt) => {
                     profileImage: getProfileImagePath(user),
                     email: user.email || '',
                     name: user.name || '',
-                    phone: user.phone || ''
+                    phone: user.phone || '',
+                    isGoogleUser: Boolean(
+                        (user.google_id && String(user.google_id).trim() !== '')
+                        || (user.google_email && String(user.google_email).trim() !== '')
+                    )
                 });
             } catch (error) {
                 console.error('비밀번호 비교 오류:', error);
@@ -909,17 +1108,38 @@ module.exports = (db, bcrypt) => {
 
     router.get('/me', (req, res) => {
         if (req.session.userId) {
-            return res.json({
-                loggedIn: true,
-                userId: req.session.userId,
-                username: req.session.username,
-                nickname: req.session.nickname,
-                role: req.session.role,
-                profileImage: req.session.profileImage || DEFAULT_PROFILE_IMAGE,
-                email: req.session.email || '',
-                name: req.session.name || '',
-                phone: req.session.phone || ''
+            const sql = `
+                SELECT google_id, google_email
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            `;
+
+            db.query(sql, [req.session.userId], (err, results) => {
+                const dbIsGoogleUser = !err && results.length > 0
+                    ? Boolean(
+                        (results[0].google_id && String(results[0].google_id).trim() !== '')
+                        || (results[0].google_email && String(results[0].google_email).trim() !== '')
+                    )
+                    : Boolean(req.session.isGoogleUser);
+
+                req.session.isGoogleUser = dbIsGoogleUser;
+
+                return res.json({
+                    loggedIn: true,
+                    userId: req.session.userId,
+                    username: req.session.username,
+                    nickname: req.session.nickname,
+                    role: req.session.role,
+                    profileImage: req.session.profileImage || DEFAULT_PROFILE_IMAGE,
+                    email: req.session.email || '',
+                    name: req.session.name || '',
+                    phone: req.session.phone || '',
+                    isGoogleUser: dbIsGoogleUser
+                });
             });
+
+            return;
         }
 
         return res.json({

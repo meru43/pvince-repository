@@ -902,7 +902,43 @@ module.exports = (db, path) => {
                 products.file_name,
                 products.file_path,
                 products.product_files_json,
-                products.thumbnail_path
+                products.thumbnail_path,
+                (
+                    SELECT o.order_number
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    WHERE o.user_id = purchases.user_id
+                      AND oi.product_id = purchases.product_id
+                    ORDER BY o.created_at DESC, oi.id DESC
+                    LIMIT 1
+                ) AS order_number,
+                (
+                    SELECT o.payment_method
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    WHERE o.user_id = purchases.user_id
+                      AND oi.product_id = purchases.product_id
+                    ORDER BY o.created_at DESC, oi.id DESC
+                    LIMIT 1
+                ) AS payment_method,
+                (
+                    SELECT o.created_at
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    WHERE o.user_id = purchases.user_id
+                      AND oi.product_id = purchases.product_id
+                    ORDER BY o.created_at DESC, oi.id DESC
+                    LIMIT 1
+                ) AS ordered_at,
+                (
+                    SELECT oi.price
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    WHERE o.user_id = purchases.user_id
+                      AND oi.product_id = purchases.product_id
+                    ORDER BY o.created_at DESC, oi.id DESC
+                    LIMIT 1
+                ) AS paid_price
             FROM purchases
             JOIN products ON purchases.product_id = products.id
             WHERE purchases.user_id = ?
@@ -921,7 +957,8 @@ module.exports = (db, path) => {
             const normalizedProducts = results.map((product) => ({
                 ...product,
                 file_name: normalizeFileName(product.file_name),
-                product_files_json: JSON.stringify(getProductFiles(product))
+                product_files_json: JSON.stringify(getProductFiles(product)),
+                payment_method_label: PAYMENT_METHOD_LABELS[normalizePaymentMethod(product.payment_method)] || '신용카드'
             }));
 
             return res.json({
