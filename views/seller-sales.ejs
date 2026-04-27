@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>판매관리</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/seller-sales.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="page-title-wrap">
+                <h2 class="page-title">판매관리</h2>
+                <p class="page-desc">판매 내역과 정산 상태를 한 번에 확인할 수 있습니다.</p>
+            </section>
+
+            <section class="settlement-summary" id="settlement-summary">
+                <div class="settlement-card">
+                    <span class="settlement-label">총 판매금액</span>
+                    <strong class="settlement-value" id="settlement-total-sales">0원</strong>
+                </div>
+                <div class="settlement-card">
+                    <span class="settlement-label">정산수수료 (8%)</span>
+                    <strong class="settlement-value" id="settlement-fee">0원</strong>
+                </div>
+                <div class="settlement-card highlight">
+                    <span class="settlement-label">정산금액</span>
+                    <strong class="settlement-value" id="settlement-amount">0원</strong>
+                    <span class="settlement-note">최소 정산신청 금액은 25,000원입니다.</span>
+                </div>
+                <button type="button" class="btn btn-primary settlement-request-btn" id="settlement-request-btn">정산신청</button>
+            </section>
+
+            <section class="seller-sales-box">
+                <div class="seller-sales-top">
+                    <div class="seller-sales-filters">
+                        <input type="text" id="seller-sales-search" placeholder="구매자명, 상품명, 주문번호 검색" />
+                        <button type="button" class="btn btn-outline" id="seller-sales-search-btn">검색</button>
+                    </div>
+
+                    <button type="button" class="btn btn-primary" id="seller-sales-export-btn">엑셀 다운로드</button>
+                </div>
+
+                <div class="seller-sales-table-wrap">
+                    <table class="seller-sales-table">
+                        <thead>
+                            <tr>
+                                <th>구매일시</th>
+                                <th>주문번호</th>
+                                <th>구매자</th>
+                                <th>판매자</th>
+                                <th>상품명</th>
+                                <th>결제수단</th>
+                                <th>결제금액</th>
+                                <th>정산상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="seller-sales-body">
+                            <tr>
+                                <td colspan="8" class="empty-message table-empty">판매 내역을 불러오는 중입니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="seller-sales-pagination" id="seller-sales-pagination"></div>
+            </section>
+        </main>
+
+        <%- include('partials/footer') %>
+            <script src="/js/seller-sales.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>

@@ -44,6 +44,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         return value && String(value).trim() !== '' ? value : '-';
     }
 
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function isValidPassword(password) {
+        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+    }
+
+    function setPasswordMessage(message = '', isError = false) {
+        if (!passwordMessage) {
+            return;
+        }
+
+        passwordMessage.textContent = message;
+        passwordMessage.classList.toggle('is-error', isError);
+    }
+
     function getThumbSrc(item) {
         if (item.thumbnailPath && String(item.thumbnailPath).trim() !== '') {
             return item.thumbnailPath;
@@ -67,10 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (headerAvatar) headerAvatar.src = profileSrc;
         if (headerAvatarLarge) headerAvatarLarge.src = profileSrc;
-    }
-
-    function isValidEmail(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
     function getFieldElements(field) {
@@ -118,7 +131,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         valueEl.hidden = true;
         inputEl.hidden = false;
-
         toggleBtn.textContent = '저장';
         toggleBtn.classList.remove('btn-outline');
         toggleBtn.classList.add('btn-primary');
@@ -137,7 +149,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         valueEl.hidden = false;
         inputEl.hidden = true;
-
         toggleBtn.textContent = '수정';
         toggleBtn.classList.remove('btn-primary');
         toggleBtn.classList.add('btn-outline');
@@ -260,6 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!purchaseItems.length) {
             purchaseListBox.innerHTML = '<p class="empty-message">구매한 상품이 없습니다.</p>';
+
             if (purchasePagination) {
                 purchasePagination.innerHTML = `
                     <button type="button" class="mypage-pagination-btn" disabled>이전</button>
@@ -267,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button type="button" class="mypage-pagination-btn" disabled>다음</button>
                 `;
             }
+
             return;
         }
 
@@ -329,14 +342,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setProfileImages(meData.profileImage);
 
-        if (profileName) {
-            profileName.textContent = meData.nickname || meData.username || '회원';
-        }
-
-        if (profileEmail) {
-            profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
-        }
-
+        if (profileName) profileName.textContent = meData.nickname || meData.username || '회원';
+        if (profileEmail) profileEmail.textContent = roleTextMap[meData.role] || '회원입니다.';
         if (accountUsername) accountUsername.textContent = displayValue(meData.username);
         if (accountNickname) accountNickname.textContent = displayValue(meData.nickname);
         if (accountEmail) accountEmail.textContent = displayValue(meData.email);
@@ -395,10 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const phone = accountPhoneInput?.value.trim() || '';
 
         const { messageEl } = getFieldElements(field);
-
-        if (messageEl) {
-            messageEl.textContent = '';
-        }
+        if (messageEl) messageEl.textContent = '';
 
         if (!nickname) {
             if (messageEl) messageEl.textContent = '닉네임을 입력해 주세요.';
@@ -451,18 +455,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            if (messageEl) {
-                messageEl.textContent = '저장되었습니다.';
-            }
-
+            if (messageEl) messageEl.textContent = '저장되었습니다.';
             await loadMyInfo();
             exitEditMode(field);
         } catch (error) {
             console.error('회원 정보 변경 실패:', error);
-
-            if (messageEl) {
-                messageEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
-            }
+            if (messageEl) messageEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
         }
     }
 
@@ -517,9 +515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            if (profileImageMessage) {
-                profileImageMessage.textContent = data.message;
-            }
+            if (profileImageMessage) profileImageMessage.textContent = data.message;
 
             if (profilePreviewUrl) {
                 URL.revokeObjectURL(profilePreviewUrl);
@@ -527,16 +523,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             setProfileImages(data.profileImage);
-
-            if (profileImageInput) {
-                profileImageInput.value = '';
-            }
+            if (profileImageInput) profileImageInput.value = '';
         } catch (error) {
             console.error('프로필 이미지 변경 실패:', error);
-
-            if (profileImageMessage) {
-                profileImageMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
-            }
+            if (profileImageMessage) profileImageMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
         }
     });
 
@@ -634,22 +624,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newPassword = newPasswordInput?.value.trim() || '';
         const newPasswordConfirm = newPasswordConfirmInput?.value.trim() || '';
 
-        if (passwordMessage) {
-            passwordMessage.textContent = '';
-        }
+        setPasswordMessage('');
 
         if (!currentPassword || !newPassword || !newPasswordConfirm) {
-            if (passwordMessage) passwordMessage.textContent = '모든 비밀번호 항목을 입력해 주세요.';
+            setPasswordMessage('모든 비밀번호 항목을 입력해 주세요.', true);
             return;
         }
 
         if (newPassword !== newPasswordConfirm) {
-            if (passwordMessage) passwordMessage.textContent = '새 비밀번호가 일치하지 않습니다.';
+            setPasswordMessage('새 비밀번호가 일치하지 않습니다.', true);
             return;
         }
 
-        if (newPassword.length < 4) {
-            if (passwordMessage) passwordMessage.textContent = '새 비밀번호는 4자 이상 입력해 주세요.';
+        if (!isValidPassword(newPassword)) {
+            setPasswordMessage('영문과 숫자를 포함해 8자 이상 입력해주세요.', true);
             return;
         }
 
@@ -669,25 +657,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (!data.success) {
-                if (passwordMessage) {
-                    passwordMessage.textContent = data.message || '비밀번호 변경에 실패했습니다.';
-                }
+                setPasswordMessage(data.message || '비밀번호 변경에 실패했습니다.', true);
                 return;
             }
 
-            if (passwordMessage) {
-                passwordMessage.textContent = data.message;
-            }
+            setPasswordMessage(data.message || '비밀번호가 변경되었습니다.');
 
             if (currentPasswordInput) currentPasswordInput.value = '';
             if (newPasswordInput) newPasswordInput.value = '';
             if (newPasswordConfirmInput) newPasswordConfirmInput.value = '';
         } catch (error) {
             console.error('비밀번호 변경 실패:', error);
-
-            if (passwordMessage) {
-                passwordMessage.textContent = '서버와 통신 중 오류가 발생했습니다.';
-            }
+            setPasswordMessage('서버와 통신 중 오류가 발생했습니다.', true);
         }
     });
 
@@ -696,6 +677,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!ok) {
         return;
     }
+
+    if (currentPasswordInput) {
+        currentPasswordInput.placeholder = '현재 비밀번호';
+    }
+
+    if (newPasswordInput) {
+        newPasswordInput.placeholder = '영문+숫자 포함 8자 이상';
+    }
+
+    if (newPasswordConfirmInput) {
+        newPasswordConfirmInput.placeholder = '새 비밀번호 확인';
+    }
+
+    setPasswordMessage('');
 
     await loadMyProducts();
 });

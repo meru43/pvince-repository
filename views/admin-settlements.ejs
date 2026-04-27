@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>정산관리</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/admin-settlements.css" />
+</head>
+
+<body>
+    <%- include('partials/header') %>
+
+        <main class="container page">
+            <section class="page-title-wrap">
+                <h2 class="page-title">정산관리</h2>
+                <p class="page-desc">판매자별 정산신청 내역과 신청 금액을 확인할 수 있습니다.</p>
+            </section>
+
+            <section class="admin-settlements-box">
+                <div class="admin-settlements-top">
+                    <div class="admin-settlements-filters">
+                        <input type="text" id="admin-settlement-search" placeholder="판매자명, 신청번호 검색" />
+                        <button type="button" class="btn btn-outline" id="admin-settlement-search-btn">검색</button>
+                    </div>
+
+                </div>
+
+                <div class="admin-settlements-table-wrap">
+                    <table class="admin-settlements-table">
+                        <thead>
+                            <tr>
+                                <th>신청일시</th>
+                                <th>판매자</th>
+                                <th>판매건수</th>
+                                <th>총 판매금액</th>
+                                <th>수수료</th>
+                                <th>정산금액</th>
+                                <th>상태</th>
+                                <th>정산내역</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-settlements-body">
+                            <tr>
+                                <td colspan="8" class="empty-message table-empty">정산신청 내역을 불러오는 중입니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <%- include('partials/footer') %>
+            <script src="/js/admin-settlements.js"></script>
+            <script src="/js/common.js"></script>
+</body>
+
+</html>

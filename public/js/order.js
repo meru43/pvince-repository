@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let orderItems = [];
     let directProductId = null;
 
+    function getSelectedPaymentMethod() {
+        const checkedInput = document.querySelector('input[name="payment"]:checked');
+        return checkedInput?.value || 'card';
+    }
+
     function getDisplayPrice(item) {
         if (Number(item.is_free) === 1) return 0;
         if (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== '') {
@@ -53,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         orderProductPrice.textContent = `${totalPrice.toLocaleString()}원`;
         orderTotalPrice.textContent = `${totalPrice.toLocaleString()}원`;
 
-        orderProductsBox.innerHTML = items.map(item => `
+        orderProductsBox.innerHTML = items.map((item) => `
             <article class="order-product">
                 <div class="order-product-thumb">
                     <img src="${getThumbSrc(item)}" alt="${item.title}" />
@@ -74,16 +79,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (loggedIn) {
             guestOrderForm.hidden = true;
             guestOrderForm.style.display = 'none';
-
             memberOrderNotice.hidden = false;
             memberOrderNotice.style.display = 'block';
-        } else {
-            guestOrderForm.hidden = false;
-            guestOrderForm.style.display = 'grid';
-
-            memberOrderNotice.hidden = true;
-            memberOrderNotice.style.display = 'none';
+            return;
         }
+
+        guestOrderForm.hidden = false;
+        guestOrderForm.style.display = 'grid';
+        memberOrderNotice.hidden = true;
+        memberOrderNotice.style.display = 'none';
     }
 
     try {
@@ -98,10 +102,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('로그인 상태 확인 실패:', error);
     }
 
-    // 로그인 여부만으로 폼 표시 제어
     toggleOrdererForm();
 
-    // /order-page -> 회원 장바구니 주문 페이지
     if (loggedIn && maybeProductId === 'order-page') {
         try {
             const cartResponse = await fetch('/api/cart', {
@@ -122,7 +124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
         }
     } else {
-        // 단건 주문 페이지
         directProductId = maybeProductId;
 
         try {
@@ -140,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 orderProductsBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
             }
         } catch (error) {
-            console.error('단건 주문용 상품 조회 실패:', error);
+            console.error('단일 주문 상품 조회 실패:', error);
             orderProductsBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
         }
     }
@@ -149,15 +150,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let response;
 
-            // 회원 장바구니 주문
             if (loggedIn && maybeProductId === 'order-page') {
                 response = await fetch('/api/orders', {
                     method: 'POST',
-                    credentials: 'include'
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        paymentMethod: getSelectedPaymentMethod()
+                    })
                 });
-            }
-            // 회원 단건 바로구매
-            else if (loggedIn && directProductId) {
+            } else if (loggedIn && directProductId) {
                 response = await fetch('/api/orders/direct', {
                     method: 'POST',
                     headers: {
@@ -165,12 +169,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     credentials: 'include',
                     body: JSON.stringify({
-                        productId: directProductId
+                        productId: directProductId,
+                        paymentMethod: getSelectedPaymentMethod()
                     })
                 });
-            }
-            // 비회원 단건 주문
-            else {
+            } else {
                 const guestName = orderNameInput.value.trim();
                 const guestEmail = orderEmailInput.value.trim();
                 const guestPhone = orderPhoneInput.value.trim();
@@ -192,7 +195,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         guestName,
                         guestEmail,
                         guestPhone,
-                        guestOrderPassword
+                        guestOrderPassword,
+                        paymentMethod: getSelectedPaymentMethod()
                     })
                 });
             }
@@ -203,9 +207,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sessionStorage.setItem('lastOrderNumber', data.orderNumber);
                 sessionStorage.setItem('lastOrderTotalPrice', data.totalPrice);
                 window.location.href = '/order-complete-page';
-            } else {
-                alert(data.message || '주문에 실패했습니다.');
+                return;
             }
+
+            alert(data.message || '주문에 실패했습니다.');
         } catch (error) {
             console.error('주문 요청 실패:', error);
             alert('서버와 통신 중 오류가 발생했습니다.');

@@ -1,0 +1,65 @@
+.admin-settlements-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.admin-settlements-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.admin-settlements-filters input {
+    min-width: 320px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.admin-settlements-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.admin-settlements-table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+}
+
+.admin-settlements-table th,
+.admin-settlements-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid #eef1f4;
+    text-align: left;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.admin-settlements-table th {
+    background: #fafbfc;
+    color: #4b5563;
+    font-weight: 700;
+}
+
+.admin-settlement-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eef6ff;
+    color: #1e5aa8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.table-empty {
+    padding: 28px 18px !important;
+    text-align: center !important;
+}

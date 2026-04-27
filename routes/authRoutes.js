@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
@@ -33,7 +33,7 @@ module.exports = (db, bcrypt) => {
 
         db.query(checkSql, (checkErr, results) => {
             if (checkErr) {
-                console.error('profile_image 컬럼 확인 오류:', checkErr);
+                console.error('profile_image 而щ읆 ?뺤씤 ?ㅻ쪟:', checkErr);
                 return;
             }
 
@@ -43,7 +43,7 @@ module.exports = (db, bcrypt) => {
 
             db.query('ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL', (alterErr) => {
                 if (alterErr) {
-                    console.error('profile_image 컬럼 추가 오류:', alterErr);
+                    console.error('profile_image 而щ읆 異붽? ?ㅻ쪟:', alterErr);
                 }
             });
         });
@@ -67,7 +67,7 @@ module.exports = (db, bcrypt) => {
                 return;
             }
 
-            cb(new Error('이미지 파일만 업로드할 수 있습니다.'));
+            cb(new Error('?대?吏 ?뚯씪留??낅줈?쒗븷 ???덉뒿?덈떎.'));
         }
     });
 
@@ -79,19 +79,19 @@ module.exports = (db, bcrypt) => {
         const name = req.body.name?.trim() || null;
         const phone = req.body.phone?.trim() || null;
 
-        console.log('회원가입 요청값:', { username, nickname, email, name, phone });
+        console.log('?뚯썝媛???붿껌媛?', { username, nickname, email, name, phone });
 
         if (!username || !password || !nickname || !email) {
             return res.json({
                 success: false,
-                message: '아이디, 비밀번호, 닉네임, 이메일을 입력해주세요.'
+                message: '?꾩씠?? 鍮꾨?踰덊샇, ?됰꽕?? ?대찓?쇱쓣 ?낅젰?댁＜?몄슂.'
             });
         }
 
         if (!isValidAccountPassword(password)) {
             return res.json({
                 success: false,
-                message: '비밀번호는 영문과 숫자를 포함해 8자 이상 입력해주세요.'
+                message: '鍮꾨?踰덊샇???곷Ц怨??レ옄瑜??ы븿??8???댁긽 ?낅젰?댁＜?몄슂.'
             });
         }
 
@@ -99,7 +99,7 @@ module.exports = (db, bcrypt) => {
         if (!emailRegex.test(email)) {
             return res.json({
                 success: false,
-                message: '올바른 이메일 형식을 입력해주세요.'
+                message: '?щ컮瑜??대찓???뺤떇???낅젰?댁＜?몄슂.'
             });
         }
 
@@ -109,49 +109,49 @@ module.exports = (db, bcrypt) => {
 
         db.query(checkUsernameSql, [username], (usernameErr, usernameResults) => {
             if (usernameErr) {
-                console.error('아이디 중복 확인 오류:', usernameErr);
+                console.error('?꾩씠??以묐났 ?뺤씤 ?ㅻ쪟:', usernameErr);
                 return res.json({
                     success: false,
-                    message: '서버 오류'
+                    message: '?쒕쾭 ?ㅻ쪟'
                 });
             }
 
             if (usernameResults.length > 0) {
                 return res.json({
                     success: false,
-                    message: '이미 존재하는 아이디입니다.'
+                    message: '?대? 議댁옱?섎뒗 ?꾩씠?붿엯?덈떎.'
                 });
             }
 
             db.query(checkNicknameSql, [nickname], (nicknameErr, nicknameResults) => {
                 if (nicknameErr) {
-                    console.error('닉네임 중복 확인 오류:', nicknameErr);
+                    console.error('?됰꽕??以묐났 ?뺤씤 ?ㅻ쪟:', nicknameErr);
                     return res.json({
                         success: false,
-                        message: '서버 오류'
+                        message: '?쒕쾭 ?ㅻ쪟'
                     });
                 }
 
                 if (nicknameResults.length > 0) {
                     return res.json({
                         success: false,
-                        message: '이미 사용 중인 닉네임입니다.'
+                        message: '?대? ?ъ슜 以묒씤 ?됰꽕?꾩엯?덈떎.'
                     });
                 }
 
                 db.query(checkEmailSql, [email], async (emailErr, emailResults) => {
                     if (emailErr) {
-                        console.error('이메일 중복 확인 오류:', emailErr);
+                        console.error('?대찓??以묐났 ?뺤씤 ?ㅻ쪟:', emailErr);
                         return res.json({
                             success: false,
-                            message: '서버 오류'
+                            message: '?쒕쾭 ?ㅻ쪟'
                         });
                     }
 
                     if (emailResults.length > 0) {
                         return res.json({
                             success: false,
-                            message: '이미 사용 중인 이메일입니다.'
+                            message: '?대? ?ъ슜 以묒씤 ?대찓?쇱엯?덈떎.'
                         });
                     }
 
@@ -186,24 +186,24 @@ module.exports = (db, bcrypt) => {
                             ],
                             (insertErr) => {
                                 if (insertErr) {
-                                    console.error('회원가입 오류:', insertErr);
+                                    console.error('?뚯썝媛???ㅻ쪟:', insertErr);
                                     return res.json({
                                         success: false,
-                                        message: '회원가입에 실패했습니다.'
+                                        message: '?뚯썝媛?낆뿉 ?ㅽ뙣?덉뒿?덈떎.'
                                     });
                                 }
 
                                 return res.json({
                                     success: true,
-                                    message: '회원가입이 완료되었습니다.'
+                                    message: '?뚯썝媛?낆씠 ?꾨즺?섏뿀?듬땲??'
                                 });
                             }
                         );
                     } catch (error) {
-                        console.error('비밀번호 해시 오류:', error);
+                        console.error('鍮꾨?踰덊샇 ?댁떆 ?ㅻ쪟:', error);
                         return res.json({
                             success: false,
-                            message: '해시 처리에 실패했습니다.'
+                            message: '?댁떆 泥섎━???ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
                 });
@@ -217,7 +217,7 @@ module.exports = (db, bcrypt) => {
         if (!nickname) {
             return res.json({
                 success: false,
-                message: '닉네임을 입력해주세요.'
+                message: '?됰꽕?꾩쓣 ?낅젰?댁＜?몄슂.'
             });
         }
 
@@ -225,23 +225,23 @@ module.exports = (db, bcrypt) => {
 
         db.query(sql, [nickname], (err, results) => {
             if (err) {
-                console.error('닉네임 중복 확인 오류:', err);
+                console.error('?됰꽕??以묐났 ?뺤씤 ?ㅻ쪟:', err);
                 return res.json({
                     success: false,
-                    message: '닉네임 확인에 실패했습니다.'
+                    message: '?됰꽕???뺤씤???ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (results.length > 0) {
                 return res.json({
                     success: false,
-                    message: '이미 사용 중인 닉네임입니다.'
+                    message: '?대? ?ъ슜 以묒씤 ?됰꽕?꾩엯?덈떎.'
                 });
             }
 
             return res.json({
                 success: true,
-                message: '사용 가능한 닉네임입니다.'
+                message: '?ъ슜 媛?ν븳 ?됰꽕?꾩엯?덈떎.'
             });
         });
     });
@@ -250,7 +250,7 @@ module.exports = (db, bcrypt) => {
         if (!req.session.userId) {
             return res.json({
                 success: false,
-                message: '로그인이 필요합니다.'
+                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
             });
         }
 
@@ -259,7 +259,7 @@ module.exports = (db, bcrypt) => {
         if (!nickname) {
             return res.json({
                 success: false,
-                message: '닉네임을 입력해주세요.'
+                message: '?됰꽕?꾩쓣 ?낅젰?댁＜?몄슂.'
             });
         }
 
@@ -267,17 +267,17 @@ module.exports = (db, bcrypt) => {
 
         db.query(checkSql, [nickname, req.session.userId], (checkErr, checkResults) => {
             if (checkErr) {
-                console.error('닉네임 중복 확인 오류:', checkErr);
+                console.error('?됰꽕??以묐났 ?뺤씤 ?ㅻ쪟:', checkErr);
                 return res.json({
                     success: false,
-                    message: '닉네임 확인에 실패했습니다.'
+                    message: '?됰꽕???뺤씤???ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (checkResults.length > 0) {
                 return res.json({
                     success: false,
-                    message: '이미 사용 중인 닉네임입니다.'
+                    message: '?대? ?ъ슜 以묒씤 ?됰꽕?꾩엯?덈떎.'
                 });
             }
 
@@ -285,10 +285,10 @@ module.exports = (db, bcrypt) => {
 
             db.query(updateSql, [nickname, req.session.userId], (updateErr) => {
                 if (updateErr) {
-                    console.error('닉네임 변경 오류:', updateErr);
+                    console.error('?됰꽕??蹂寃??ㅻ쪟:', updateErr);
                     return res.json({
                         success: false,
-                        message: '닉네임 변경에 실패했습니다.'
+                        message: '?됰꽕??蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.'
                     });
                 }
 
@@ -296,7 +296,7 @@ module.exports = (db, bcrypt) => {
 
                 return res.json({
                     success: true,
-                    message: '닉네임이 변경되었습니다.',
+                    message: '?됰꽕?꾩씠 蹂寃쎈릺?덉뒿?덈떎.',
                     nickname
                 });
             });
@@ -307,7 +307,7 @@ module.exports = (db, bcrypt) => {
         if (!req.session.userId) {
             return res.json({
                 success: false,
-                message: '로그인이 필요합니다.'
+                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
             });
         }
 
@@ -319,7 +319,7 @@ module.exports = (db, bcrypt) => {
         if (!nickname || !email) {
             return res.json({
                 success: false,
-                message: '닉네임과 이메일은 필수입니다.'
+                message: '?됰꽕?꾧낵 ?대찓?쇱? ?꾩닔?낅땲??'
             });
         }
 
@@ -327,7 +327,7 @@ module.exports = (db, bcrypt) => {
         if (!emailRegex.test(email)) {
             return res.json({
                 success: false,
-                message: '올바른 이메일 형식을 입력해주세요.'
+                message: '?щ컮瑜??대찓???뺤떇???낅젰?댁＜?몄슂.'
             });
         }
 
@@ -336,33 +336,33 @@ module.exports = (db, bcrypt) => {
 
         db.query(checkNicknameSql, [nickname, req.session.userId], (nicknameErr, nicknameResults) => {
             if (nicknameErr) {
-                console.error('닉네임 중복 확인 오류:', nicknameErr);
+                console.error('?됰꽕??以묐났 ?뺤씤 ?ㅻ쪟:', nicknameErr);
                 return res.json({
                     success: false,
-                    message: '닉네임 확인에 실패했습니다.'
+                    message: '?됰꽕???뺤씤???ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (nicknameResults.length > 0) {
                 return res.json({
                     success: false,
-                    message: '이미 사용 중인 닉네임입니다.'
+                    message: '?대? ?ъ슜 以묒씤 ?됰꽕?꾩엯?덈떎.'
                 });
             }
 
             db.query(checkEmailSql, [email, req.session.userId], (emailErr, emailResults) => {
                 if (emailErr) {
-                    console.error('이메일 중복 확인 오류:', emailErr);
+                    console.error('?대찓??以묐났 ?뺤씤 ?ㅻ쪟:', emailErr);
                     return res.json({
                         success: false,
-                        message: '이메일 확인에 실패했습니다.'
+                        message: '?대찓???뺤씤???ㅽ뙣?덉뒿?덈떎.'
                     });
                 }
 
                 if (emailResults.length > 0) {
                     return res.json({
                         success: false,
-                        message: '이미 사용 중인 이메일입니다.'
+                        message: '?대? ?ъ슜 以묒씤 ?대찓?쇱엯?덈떎.'
                     });
                 }
 
@@ -374,10 +374,10 @@ module.exports = (db, bcrypt) => {
 
                 db.query(updateSql, [nickname, email, name, phone, req.session.userId], (updateErr) => {
                     if (updateErr) {
-                        console.error('회원 정보 변경 오류:', updateErr);
+                        console.error('?뚯썝 ?뺣낫 蹂寃??ㅻ쪟:', updateErr);
                         return res.json({
                             success: false,
-                            message: '회원 정보 변경에 실패했습니다.'
+                            message: '?뚯썝 ?뺣낫 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
 
@@ -388,7 +388,7 @@ module.exports = (db, bcrypt) => {
 
                     return res.json({
                         success: true,
-                        message: '회원 정보가 변경되었습니다.',
+                        message: '?뚯썝 ?뺣낫媛 蹂寃쎈릺?덉뒿?덈떎.',
                         nickname,
                         email,
                         name,
@@ -402,7 +402,7 @@ module.exports = (db, bcrypt) => {
         if (!req.session.userId) {
             return res.json({
                 success: false,
-                message: '로그인이 필요합니다.'
+                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
             });
         }
 
@@ -412,14 +412,14 @@ module.exports = (db, bcrypt) => {
         if (!currentPassword || !newPassword) {
             return res.json({
                 success: false,
-                message: '현재 비밀번호와 새 비밀번호를 입력해주세요.'
+                message: '?꾩옱 鍮꾨?踰덊샇? ??鍮꾨?踰덊샇瑜??낅젰?댁＜?몄슂.'
             });
         }
 
         if (!isValidAccountPassword(newPassword)) {
             return res.json({
                 success: false,
-                message: '새 비밀번호는 4자 이상 입력해주세요.'
+                message: '새 비밀번호는 영문과 숫자를 포함해 8자 이상 입력해주세요.'
             });
         }
 
@@ -427,17 +427,17 @@ module.exports = (db, bcrypt) => {
 
         db.query(sql, [req.session.userId], async (err, results) => {
             if (err) {
-                console.error('회원 비밀번호 조회 오류:', err);
+                console.error('?뚯썝 鍮꾨?踰덊샇 議고쉶 ?ㅻ쪟:', err);
                 return res.json({
                     success: false,
-                    message: '회원 정보를 확인하지 못했습니다.'
+                    message: '?뚯썝 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?듬땲??'
                 });
             }
 
             if (results.length === 0) {
                 return res.json({
                     success: false,
-                    message: '회원을 찾을 수 없습니다.'
+                    message: '?뚯썝??李얠쓣 ???놁뒿?덈떎.'
                 });
             }
 
@@ -449,7 +449,7 @@ module.exports = (db, bcrypt) => {
                 if (!isMatch) {
                     return res.json({
                         success: false,
-                        message: '현재 비밀번호가 올바르지 않습니다.'
+                        message: '?꾩옱 鍮꾨?踰덊샇媛 ?щ컮瑜댁? ?딆뒿?덈떎.'
                     });
                 }
 
@@ -459,23 +459,23 @@ module.exports = (db, bcrypt) => {
 
                 db.query(updateSql, [hashedPassword, req.session.userId], (updateErr) => {
                     if (updateErr) {
-                        console.error('비밀번호 변경 오류:', updateErr);
+                        console.error('鍮꾨?踰덊샇 蹂寃??ㅻ쪟:', updateErr);
                         return res.json({
                             success: false,
-                            message: '비밀번호 변경에 실패했습니다.'
+                            message: '鍮꾨?踰덊샇 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
 
                     return res.json({
                         success: true,
-                        message: '비밀번호가 변경되었습니다.'
+                        message: '鍮꾨?踰덊샇媛 蹂寃쎈릺?덉뒿?덈떎.'
                     });
                 });
             } catch (error) {
-                console.error('비밀번호 처리 오류:', error);
+                console.error('鍮꾨?踰덊샇 泥섎━ ?ㅻ쪟:', error);
                 return res.json({
                     success: false,
-                    message: '비밀번호 처리 중 오류가 발생했습니다.'
+                    message: '鍮꾨?踰덊샇 泥섎━ 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
                 });
             }
         });
@@ -485,7 +485,7 @@ module.exports = (db, bcrypt) => {
         if (!req.session.userId) {
             return res.json({
                 success: false,
-                message: '로그인이 필요합니다.'
+                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
             });
         }
 
@@ -493,14 +493,14 @@ module.exports = (db, bcrypt) => {
             if (uploadErr) {
                 return res.json({
                     success: false,
-                    message: uploadErr.message || '프로필 이미지 업로드에 실패했습니다.'
+                    message: uploadErr.message || '?꾨줈???대?吏 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (!req.file) {
                 return res.json({
                     success: false,
-                    message: '업로드할 이미지를 선택해주세요.'
+                    message: '?낅줈?쒗븷 ?대?吏瑜??좏깮?댁＜?몄슂.'
                 });
             }
 
@@ -509,10 +509,10 @@ module.exports = (db, bcrypt) => {
 
             db.query(updateSql, [profileImagePath, req.session.userId], (updateErr) => {
                 if (updateErr) {
-                    console.error('프로필 이미지 변경 오류:', updateErr);
+                    console.error('?꾨줈???대?吏 蹂寃??ㅻ쪟:', updateErr);
                     return res.json({
                         success: false,
-                        message: '프로필 이미지 저장에 실패했습니다.'
+                        message: '?꾨줈???대?吏 ??μ뿉 ?ㅽ뙣?덉뒿?덈떎.'
                     });
                 }
 
@@ -520,7 +520,7 @@ module.exports = (db, bcrypt) => {
 
                 return res.json({
                     success: true,
-                    message: '프로필 이미지가 변경되었습니다.',
+                    message: '?꾨줈???대?吏媛 蹂寃쎈릺?덉뒿?덈떎.',
                     profileImage: profileImagePath
                 });
             });
@@ -547,7 +547,7 @@ module.exports = (db, bcrypt) => {
                 console.error('로그인 오류:', err);
                 return res.json({
                     success: false,
-                    message: '서버 오류'
+                    message: '서버 오류가 발생했습니다.'
                 });
             }
 
@@ -563,7 +563,7 @@ module.exports = (db, bcrypt) => {
             if (Number(user.is_active) === 0) {
                 return res.json({
                     success: false,
-                    message: '해당 아이디는 활동이 중지된 계정입니다.'
+                    message: '해당 아이디는 사용이 중지된 계정입니다.'
                 });
             }
 
@@ -601,7 +601,7 @@ module.exports = (db, bcrypt) => {
                 console.error('비밀번호 비교 오류:', error);
                 return res.json({
                     success: false,
-                    message: '로그인 처리 실패'
+                    message: '로그인 처리에 실패했습니다.'
                 });
             }
         });
@@ -632,7 +632,7 @@ module.exports = (db, bcrypt) => {
             if (err) {
                 return res.json({
                     success: false,
-                    message: '로그아웃 실패'
+                    message: '濡쒓렇?꾩썐 ?ㅽ뙣'
                 });
             }
 
@@ -640,7 +640,7 @@ module.exports = (db, bcrypt) => {
 
             return res.json({
                 success: true,
-                message: '로그아웃 완료'
+                message: '濡쒓렇?꾩썐 ?꾨즺'
             });
         });
     });

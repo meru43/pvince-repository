@@ -14,7 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userRole = document.getElementById('header-user-role');
 
     const sellerMenuLink = document.getElementById('header-menu-seller');
+    const salesMenuLink = document.getElementById('header-menu-sales');
     const adminMenuLink = document.getElementById('header-menu-admin');
+    const adminSettlementMenuLink = document.getElementById('header-menu-admin-settlement');
     const logoutButton = document.getElementById('header-menu-logout');
     const userMenuLinks = document.querySelectorAll('.header-user-link[href]');
 
@@ -51,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function setMenuOpen(isOpen) {
         if (!userMenu || !userTrigger || !userPanel) return;
-
         userTrigger.setAttribute('aria-expanded', String(isOpen));
         userPanel.hidden = !isOpen;
     }
@@ -114,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const data = await response.json();
 
-        // 기본 상태
         show(authLink);
         show(orderCheckLink);
         hide(cartLink);
@@ -122,7 +122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         hide(adminLink);
         hide(userMenu);
         hide(sellerMenuLink);
+        hide(salesMenuLink);
         hide(adminMenuLink);
+        hide(adminSettlementMenuLink);
 
         if (!data.loggedIn) {
             if (authLink) {
@@ -137,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 로그인 상태
         const displayName = getDisplayName(data);
         const profileSrc = getProfileSrc(data);
 
@@ -154,11 +155,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data.role === 'seller' || data.role === 'admin') {
             show(sellerUploadLink);
             show(sellerMenuLink);
+            show(salesMenuLink);
         }
 
         if (data.role === 'admin') {
             show(adminLink);
             show(adminMenuLink);
+            show(adminSettlementMenuLink);
         }
 
         bindUserMenuEvents();

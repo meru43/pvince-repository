@@ -359,6 +359,10 @@
     color: #666;
 }
 
+.password-message.is-error {
+    color: #d93025;
+}
+
 .mypage-pagination {
     display: flex;
     justify-content: center;

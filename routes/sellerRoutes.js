@@ -100,6 +100,39 @@ module.exports = (db) => {
 
     ensureProductFilesJsonColumn();
 
+    function ensureOrderPaymentMethodColumn() {
+        const checkSql = `
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'orders'
+              AND COLUMN_NAME = 'payment_method'
+            LIMIT 1
+        `;
+
+        db.query(checkSql, (checkErr, checkResults) => {
+            if (checkErr) {
+                console.error('orders.payment_method column check error:', checkErr);
+                return;
+            }
+
+            if (checkResults.length > 0) {
+                return;
+            }
+
+            db.query(
+                `ALTER TABLE orders ADD COLUMN payment_method VARCHAR(30) NOT NULL DEFAULT 'card' AFTER status`,
+                (alterErr) => {
+                    if (alterErr) {
+                        console.error('orders.payment_method column add error:', alterErr);
+                    }
+                }
+            );
+        });
+    }
+
+    ensureOrderPaymentMethodColumn();
+
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
             if (file.fieldname === 'thumbnail') {
@@ -128,6 +161,10 @@ module.exports = (db) => {
     // 상품 관리 페이지
     router.get('/seller-products-page', requireSellerOrAdmin, (req, res) => {
         res.render('seller-products');
+    });
+
+    router.get('/seller-sales-page', requireSellerOrAdmin, (req, res) => {
+        res.render('seller-sales');
     });
 
     // 상품 등록 API
@@ -319,6 +356,84 @@ module.exports = (db) => {
             return res.json({
                 success: true,
                 products: results
+            });
+        });
+    });
+
+    router.get('/api/seller/sales', requireSellerOrAdminApi, (req, res) => {
+        const isAdmin = req.session.role === 'admin';
+        const q = (req.query.q || '').trim();
+
+        let sql = `
+            SELECT
+                order_items.id AS order_item_id,
+                orders.order_number,
+                orders.created_at,
+                orders.payment_method,
+                order_items.price,
+                products.id AS product_id,
+                products.title AS product_title,
+                products.created_by AS seller_id,
+                COALESCE(seller.nickname, seller.username) AS seller_name,
+                CASE
+                    WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '비회원')
+                    ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('회원 #', orders.user_id))
+                END AS buyer_name
+            FROM order_items
+            JOIN orders ON order_items.order_id = orders.id
+            JOIN products ON order_items.product_id = products.id
+            LEFT JOIN users AS seller ON products.created_by = seller.id
+            LEFT JOIN users AS buyer ON orders.user_id = buyer.id
+            WHERE 1 = 1
+        `;
+
+        const params = [];
+
+        if (!isAdmin) {
+            sql += ` AND products.created_by = ?`;
+            params.push(req.session.userId);
+        }
+
+        if (q) {
+            sql += `
+                AND (
+                    products.title LIKE ?
+                    OR orders.order_number LIKE ?
+                    OR COALESCE(seller.nickname, seller.username) LIKE ?
+                    OR CASE
+                        WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '비회원')
+                        ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('회원 #', orders.user_id))
+                      END LIKE ?
+                    OR COALESCE(orders.payment_method, '') LIKE ?
+                )
+            `;
+            const likeValue = `%${q}%`;
+            params.push(likeValue, likeValue, likeValue, likeValue, likeValue);
+        }
+
+        sql += ` ORDER BY orders.created_at DESC, order_items.id DESC`;
+
+        db.query(sql, params, (err, results) => {
+            if (err) {
+                console.error('seller sales list error:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: '판매 내역을 불러오지 못했습니다.'
+                });
+            }
+
+            const sales = results.map((sale) => ({
+                ...sale,
+                payment_method_label: sale.payment_method === 'bank'
+                    ? '계좌이체'
+                    : sale.payment_method === 'simple'
+                        ? '간편결제'
+                        : '신용카드'
+            }));
+
+            return res.json({
+                success: true,
+                sales
             });
         });
     });

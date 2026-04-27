@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const passwordInput = document.getElementById('login-password');
     const errorText = document.getElementById('login-error');
 
-    // 이미 로그인 상태면 마이페이지로 이동
     try {
         const meResponse = await fetch('/me', {
             method: 'GET',
@@ -21,8 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('로그인 상태 확인 실패:', error);
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
@@ -51,9 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (data.success) {
                 window.location.href = '/mypage-page';
-            } else {
-                errorText.textContent = data.message || '로그인에 실패했습니다.';
+                return;
             }
+
+            errorText.textContent = data.message || '로그인에 실패했습니다.';
         } catch (error) {
             console.error('로그인 요청 실패:', error);
             errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';

@@ -3,6 +3,53 @@ const bcrypt = require('bcryptjs');
 
 module.exports = (db, path) => {
     const router = express.Router();
+    const PAYMENT_METHOD_LABELS = {
+        card: '신용카드',
+        bank: '계좌이체',
+        simple: '간편결제'
+    };
+
+    function normalizePaymentMethod(value) {
+        if (!value) {
+            return 'card';
+        }
+
+        const nextValue = String(value).trim();
+        return PAYMENT_METHOD_LABELS[nextValue] ? nextValue : 'card';
+    }
+
+    function ensurePaymentMethodColumn() {
+        const checkSql = `
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'orders'
+              AND COLUMN_NAME = 'payment_method'
+            LIMIT 1
+        `;
+
+        db.query(checkSql, (checkErr, checkResults) => {
+            if (checkErr) {
+                console.error('payment_method column check error:', checkErr);
+                return;
+            }
+
+            if (checkResults.length > 0) {
+                return;
+            }
+
+            db.query(
+                `ALTER TABLE orders ADD COLUMN payment_method VARCHAR(30) NOT NULL DEFAULT 'card' AFTER status`,
+                (alterErr) => {
+                    if (alterErr) {
+                        console.error('payment_method column add error:', alterErr);
+                    }
+                }
+            );
+        });
+    }
+
+    ensurePaymentMethodColumn();
 
     function getOrderPrice(product) {
         if (Number(product.is_free) === 1) {
@@ -122,6 +169,7 @@ module.exports = (db, path) => {
 
         const userId = req.session.userId;
         const orderNumber = `ORD-${Date.now()}`;
+        const paymentMethod = normalizePaymentMethod(req.body.paymentMethod);
 
         const cartSql = `
             SELECT
@@ -153,11 +201,11 @@ module.exports = (db, path) => {
             const totalPrice = cartItems.reduce((sum, item) => sum + getOrderPrice(item), 0);
 
             const orderSql = `
-                INSERT INTO orders (user_id, order_number, total_price, status)
-                VALUES (?, ?, ?, 'paid')
+                INSERT INTO orders (user_id, order_number, total_price, status, payment_method)
+                VALUES (?, ?, ?, 'paid', ?)
             `;
 
-            db.query(orderSql, [userId, orderNumber, totalPrice], (orderErr, orderResult) => {
+            db.query(orderSql, [userId, orderNumber, totalPrice, paymentMethod], (orderErr, orderResult) => {
                 if (orderErr) {
                     console.error('주문 생성 오류:', orderErr);
                     return res.json({
@@ -241,6 +289,7 @@ module.exports = (db, path) => {
 
         const userId = req.session.userId;
         const { productId } = req.body;
+        const paymentMethod = normalizePaymentMethod(req.body.paymentMethod);
 
         if (!productId) {
             return res.json({
@@ -283,11 +332,11 @@ module.exports = (db, path) => {
             const totalPrice = getOrderPrice(product);
 
             const orderSql = `
-                INSERT INTO orders (user_id, order_number, total_price, status)
-                VALUES (?, ?, ?, 'paid')
+                INSERT INTO orders (user_id, order_number, total_price, status, payment_method)
+                VALUES (?, ?, ?, 'paid', ?)
             `;
 
-            db.query(orderSql, [userId, orderNumber, totalPrice], (orderErr, orderResult) => {
+            db.query(orderSql, [userId, orderNumber, totalPrice, paymentMethod], (orderErr, orderResult) => {
                 if (orderErr) {
                     console.error('회원 단일상품 주문 생성 오류:', orderErr);
                     return res.json({
@@ -345,8 +394,10 @@ module.exports = (db, path) => {
             guestName,
             guestEmail,
             guestPhone,
-            guestOrderPassword
+            guestOrderPassword,
+            paymentMethod: rawPaymentMethod
         } = req.body;
+        const paymentMethod = normalizePaymentMethod(rawPaymentMethod);
 
         if (!productId) {
             return res.json({
@@ -398,12 +449,13 @@ module.exports = (db, path) => {
                         order_number,
                         total_price,
                         status,
+                        payment_method,
                         guest_name,
                         guest_email,
                         guest_phone,
                         guest_order_password
                     )
-                    VALUES (?, ?, ?, 'paid', ?, ?, ?, ?)
+                    VALUES (?, ?, ?, 'paid', ?, ?, ?, ?, ?)
                 `;
 
                 db.query(
@@ -412,6 +464,7 @@ module.exports = (db, path) => {
                         null,
                         orderNumber,
                         totalPrice,
+                        paymentMethod,
                         guestName,
                         guestEmail,
                         guestPhone,
@@ -713,12 +766,47 @@ module.exports = (db, path) => {
     router.get('/download/:productId', (req, res) => {
         const productId = req.params.productId;
         const fileIndex = Number(req.query.file || 0);
+        const isAdmin = req.session.role === 'admin';
 
         if (!req.session.userId) {
             return res.json({
                 success: false,
                 message: '로그인이 필요합니다.'
             });
+        }
+
+        if (isAdmin) {
+            const productSql = 'SELECT * FROM products WHERE id = ?';
+
+            db.query(productSql, [productId], (err, productResults) => {
+                if (err) {
+                    console.error('?곹뭹 議고쉶 ?ㅻ쪟:', err);
+                    return res.json({
+                        success: false,
+                        message: '?곹뭹 議고쉶 ?ㅽ뙣'
+                    });
+                }
+
+                if (productResults.length === 0) {
+                    return res.json({
+                        success: false,
+                        message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
+                    });
+                }
+
+                const product = productResults[0];
+                const logSql = 'INSERT INTO download_logs (user_id, product_id) VALUES (?, ?)';
+
+                db.query(logSql, [req.session.userId, productId], (logErr) => {
+                    if (logErr) {
+                        console.error('?ㅼ슫濡쒕뱶 濡쒓렇 ????ㅻ쪟:', logErr);
+                    }
+
+                    return sendProductFile(res, product, fileIndex);
+                });
+            });
+
+            return;
         }
 
         const purchaseSql = `

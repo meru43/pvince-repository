@@ -24,33 +24,99 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (data.success) {
                 alert(data.message);
-            } else {
-                alert(data.message || '장바구니 담기에 실패했습니다.');
+                return;
             }
+
+            alert(data.message || '장바구니 담기에 실패했습니다.');
         } catch (error) {
             console.error('장바구니 담기 실패:', error);
             alert('서버와 통신 중 오류가 발생했습니다.');
         }
     }
 
+    function getDisplayPrice(product) {
+        if (Number(product.is_free) === 1) {
+            return '무료';
+        }
+
+        if (product.sale_price) {
+            return `${Number(product.sale_price).toLocaleString()}원`;
+        }
+
+        return `${Number(product.price || 0).toLocaleString()}원`;
+    }
+
+    function parseProductFiles(product) {
+        if (product?.product_files_json) {
+            try {
+                const parsedFiles = JSON.parse(product.product_files_json);
+
+                if (Array.isArray(parsedFiles)) {
+                    return parsedFiles.filter((file) => file?.name && file?.path);
+                }
+            } catch (error) {
+                console.error('상품 파일 목록 파싱 실패:', error);
+            }
+        }
+
+        if (product?.file_name && product?.file_path) {
+            return [{
+                name: product.file_name,
+                path: product.file_path
+            }];
+        }
+
+        return [];
+    }
+
     function renderProduct(product) {
         const keywordHtml = (product.keywordList || [])
-            .map(keyword => `<span class="keyword-tag">${keyword}</span>`)
+            .map((keyword) => `<span class="keyword-tag">${keyword}</span>`)
             .join('');
 
-        const displayPrice = product.is_free
-            ? '무료'
-            : product.sale_price
-                ? `${Number(product.sale_price).toLocaleString()}원`
-                : `${Number(product.price).toLocaleString()}원`;
-
-        const originalPriceHtml = (!product.is_free && product.sale_price && Number(product.price) > Number(product.sale_price))
+        const displayPrice = getDisplayPrice(product);
+        const originalPriceHtml = (
+            Number(product.is_free) !== 1
+            && product.sale_price
+            && Number(product.price) > Number(product.sale_price)
+        )
             ? `<p class="detail-original-price">${Number(product.price).toLocaleString()}원</p>`
             : '';
 
         const thumbnailSrc = product.thumbnail_path
             ? product.thumbnail_path
             : `https://via.placeholder.com/800x520?text=Product+${product.id}`;
+
+        const ownerTagHtml = product.is_owner
+            ? '<span class="detail-owner-tag">본인 상품</span>'
+            : '';
+
+        const adminDownloadHtml = product.is_admin
+            ? `
+                <div class="detail-admin-download">
+                    <button type="button" class="btn btn-primary" id="admin-download-toggle">다운로드</button>
+                    <div class="detail-download-list" id="detail-download-list" hidden>
+                        ${parseProductFiles(product).map((file, index) => `
+                            <a href="/download/${product.id}?file=${index}" class="detail-download-item">${file.name}</a>
+                        `).join('')}
+                    </div>
+                </div>
+            `
+            : '';
+
+        const actionHtml = product.is_owner
+            ? `
+                <div class="detail-owner-notice">
+                    <strong>본인 상품</strong>
+                    <p>직접 업로드한 상품이라 장바구니 담기와 바로 구매는 사용할 수 없습니다.</p>
+                </div>
+            `
+            : product.is_admin
+                ? adminDownloadHtml
+                : `
+                    <button type="button" class="btn btn-outline" id="add-cart-btn">장바구니 담기</button>
+                    <button type="button" class="btn btn-primary" id="purchase-btn">바로 구매</button>
+                `;
 
         detailBox.innerHTML = `
             <div class="detail-image">
@@ -59,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <div class="detail-content">
                 <p class="detail-category">상품 상세</p>
+                ${ownerTagHtml}
                 <h2 class="detail-title">${product.title}</h2>
                 ${originalPriceHtml}
                 <p class="detail-price">${displayPrice}</p>
@@ -73,10 +140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <li><strong>가격</strong> <span>${displayPrice}</span></li>
                 </ul>
 
-
                 <div class="detail-actions">
-                    <button type="button" class="btn btn-outline" id="add-cart-btn">장바구니 담기</button>
-                    <button type="button" class="btn btn-primary" id="purchase-btn">바로 구매</button>
+                    ${actionHtml}
                 </div>
             </div>
         `;
@@ -91,16 +156,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         descriptionBox.style.display = 'block';
 
-        const addCartBtn = document.getElementById('add-cart-btn');
-        if (addCartBtn) {
-            addCartBtn.addEventListener('click', () => {
-                addToCart(product);
+        if (product.is_admin) {
+            const downloadToggle = document.getElementById('admin-download-toggle');
+            const downloadList = document.getElementById('detail-download-list');
+
+            downloadToggle?.addEventListener('click', () => {
+                if (!downloadList) {
+                    return;
+                }
+
+                downloadList.hidden = !downloadList.hidden;
             });
+
+            return;
         }
 
-        const purchaseBtn = document.getElementById('purchase-btn');
-        if (purchaseBtn) {
-            purchaseBtn.addEventListener('click', () => {
+        if (!product.is_owner) {
+            const addCartBtn = document.getElementById('add-cart-btn');
+            const purchaseBtn = document.getElementById('purchase-btn');
+
+            addCartBtn?.addEventListener('click', () => {
+                addToCart(product);
+            });
+
+            purchaseBtn?.addEventListener('click', () => {
                 window.location.href = `/order-page/${product.id}`;
             });
         }
@@ -116,11 +195,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data.success) {
             renderProduct(data.product);
-        } else {
-            detailBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
+            return;
         }
+
+        detailBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
     } catch (error) {
         console.error('상품 상세 불러오기 실패:', error);
-        detailBox.innerHTML = `<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>`;
+        detailBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
     }
 });

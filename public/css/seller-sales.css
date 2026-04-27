@@ -1,0 +1,202 @@
+.seller-sales-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.seller-sales-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.seller-sales-filters input {
+    min-width: 320px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.seller-sales-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.seller-sales-table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+}
+
+.seller-sales-table th,
+.seller-sales-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid #eef1f4;
+    text-align: left;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.seller-sales-table th {
+    background: #fafbfc;
+    color: #4b5563;
+    font-weight: 700;
+}
+
+.seller-sales-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.seller-sales-product-link {
+    color: #111827;
+    font-weight: 600;
+}
+
+.seller-sales-product-link:hover {
+    text-decoration: underline;
+}
+
+.table-empty {
+    padding: 28px 18px !important;
+    text-align: center !important;
+}
+
+.settlement-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 14px;
+    margin-bottom: 24px;
+    align-items: stretch;
+}
+
+.settlement-card {
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.settlement-card.highlight {
+    background: #f8fbff;
+    border-color: #dbe6f3;
+}
+
+.settlement-label {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.settlement-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.settlement-note {
+    font-size: 12px;
+    color: #7b8794;
+}
+
+.settlement-request-btn {
+    align-self: stretch;
+    height: auto;
+    min-width: 140px;
+    border-radius: 18px;
+}
+
+.settlement-request-btn:disabled {
+    border-color: #d1d5db;
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.settlement-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.settlement-status.is-requested {
+    background: #eef6ff;
+    color: #1e5aa8;
+}
+
+.settlement-status.is-pending {
+    background: #fff4e5;
+    color: #b26000;
+}
+
+.seller-sales-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.sales-page-btn,
+.sales-page-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid #d7dce2;
+    background: #fff;
+    color: #222;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sales-page-btn {
+    cursor: pointer;
+}
+
+.sales-page-btn:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.sales-page-number.active {
+    border-color: #222;
+    background: #222;
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .settlement-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-sales-top {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .seller-sales-filters {
+        width: 100%;
+    }
+
+    .seller-sales-filters input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #seller-sales-export-btn {
+        width: 100%;
+    }
+}

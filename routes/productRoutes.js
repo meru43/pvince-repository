@@ -41,6 +41,8 @@ module.exports = (db) => {
     // 상품 상세 API
     router.get('/api/products/:id', (req, res) => {
         const productId = req.params.id;
+        const currentUserId = Number(req.session.userId || 0);
+        const currentUserRole = String(req.session.role || '');
 
         const sql = `
             SELECT
@@ -70,6 +72,9 @@ module.exports = (db) => {
             }
 
             const product = results[0];
+            product.is_owner = currentUserId > 0 && Number(product.created_by) === currentUserId;
+            product.is_admin = currentUserRole === 'admin';
+            product.can_purchase = !product.is_owner;
 
             product.keywordList = product.keywords
                 ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
