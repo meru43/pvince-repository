@@ -75,4 +75,10 @@ router.get('/register-page', (req, res) => {
     res.render('register');
 });
 
+router.get('/ppt-lab-page', (req, res) => {
+    res.render('ppt-lab', {
+        userRole: req.session.role || null
+    });
+});
+
 module.exports = router;

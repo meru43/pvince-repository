@@ -244,6 +244,20 @@
     gap: 12px;
 }
 
+@media (max-width: 1200px) {
+    .detail-head,
+    .detail-content-box,
+    .answer-box,
+    .admin-answer-form-box,
+    .admin-edit-box {
+        padding: 24px;
+    }
+
+    .detail-title {
+        font-size: 30px;
+    }
+}
+
 @media (max-width: 768px) {
     .admin-edit-box {
         padding: 22px 18px;
@@ -281,5 +295,31 @@
 
     .detail-actions .btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .detail-head,
+    .detail-content-box,
+    .answer-box,
+    .admin-answer-form-box,
+    .admin-edit-box {
+        padding: 18px 16px;
+        border-radius: 16px;
+    }
+
+    .detail-title {
+        font-size: 24px;
+    }
+
+    .detail-meta {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .answer-title,
+    .answer-form-title,
+    .admin-edit-title {
+        font-size: 20px;
     }
 }

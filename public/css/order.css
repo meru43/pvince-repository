@@ -157,7 +157,18 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .order-product {
+        grid-template-columns: 200px 1fr;
+    }
+}
+
 @media (max-width: 768px) {
+    .order-box,
+    .order-summary {
+        padding: 22px 18px;
+    }
+
     .order-product {
         grid-template-columns: 1fr;
     }
@@ -172,5 +183,29 @@
 
     .form-group.full {
         grid-column: auto;
+    }
+}
+
+@media (max-width: 375px) {
+    .order-box-title,
+    .summary-title {
+        font-size: 20px;
+    }
+
+    .order-product-title,
+    .order-product-price {
+        font-size: 20px;
+    }
+
+    .payment-options {
+        gap: 10px;
+    }
+
+    .payment-option {
+        width: 100%;
+        justify-content: flex-start;
+        min-height: 44px;
+        padding: 0 14px;
+        font-size: 14px;
     }
 }

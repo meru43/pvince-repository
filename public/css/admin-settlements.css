@@ -63,3 +63,35 @@
     padding: 28px 18px !important;
     text-align: center !important;
 }
+
+@media (max-width: 1200px) {
+    .admin-settlements-top {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 1024px) {
+    .admin-settlements-filters {
+        width: 100%;
+    }
+
+    .admin-settlements-filters input {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-settlements-filters .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .admin-settlements-table th,
+    .admin-settlements-table td {
+        padding: 14px 16px;
+        font-size: 13px;
+    }
+}

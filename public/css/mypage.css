@@ -661,6 +661,16 @@ body.modal-open {
     }
 }
 
+@media (max-width: 1200px) {
+    .purchase-item {
+        grid-template-columns: 200px 1fr 150px;
+    }
+
+    .mypage-box {
+        padding: 24px;
+    }
+}
+
 @media (max-width: 768px) {
     .mypage-box {
         padding: 22px 18px;
@@ -735,5 +745,63 @@ body.modal-open {
 
     .invoice-section:first-of-type .invoice-value {
         max-width: 62%;
+    }
+}
+
+@media (max-width: 375px) {
+    .profile-card,
+    .mypage-box {
+        padding: 18px 16px;
+        border-radius: 16px;
+    }
+
+    .profile-name {
+        font-size: 24px;
+    }
+
+    .box-title {
+        font-size: 22px;
+    }
+
+    .purchase-list .product-card-wrap {
+        padding: 14px;
+    }
+
+    .purchase-title {
+        font-size: 18px;
+    }
+
+    .purchase-price {
+        font-size: 20px;
+    }
+
+    .product-download-area,
+    .nickname-edit-row,
+    .mypage-pagination {
+        gap: 8px;
+    }
+
+    .download-modal-dialog {
+        width: calc(100vw - 24px);
+        padding: 18px 16px;
+    }
+
+    .invoice-sheet {
+        padding: 18px 16px;
+    }
+
+    .invoice-store-name {
+        font-size: 22px;
+    }
+
+    .invoice-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invoice-value,
+    .invoice-section:first-of-type .invoice-value {
+        max-width: 100%;
+        text-align: left;
     }
 }

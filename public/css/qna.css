@@ -215,3 +215,37 @@
         white-space: normal;
     }
 }
+
+@media (max-width: 375px) {
+    .board-search {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .board-search button,
+    .write-btn {
+        width: 100%;
+    }
+
+    .board-row {
+        padding: 14px 16px;
+    }
+
+    .notice-badge,
+    .status-badge {
+        min-width: 0;
+    }
+
+    .page-number-group,
+    .pagination {
+        gap: 6px;
+    }
+
+    .page-btn,
+    .page-nav-btn {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        font-size: 13px;
+    }
+}

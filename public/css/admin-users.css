@@ -371,7 +371,30 @@
     color: #666;
 }
 
+@media (max-width: 1200px) {
+    .admin-users-head,
+    .admin-user-row {
+        grid-template-columns: auto 110px 110px 180px 80px 130px 110px 110px 240px;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .admin-users-search input {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
+    .admin-users-search {
+        flex-direction: column;
+    }
+
+    .admin-users-search .btn {
+        width: 100%;
+    }
+
     .admin-users-head {
         display: none;
     }
@@ -394,5 +417,33 @@
 
     .admin-pagination {
         flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 375px) {
+    .admin-user-row {
+        padding: 16px;
+    }
+
+    .role-switch {
+        width: 100%;
+        max-width: 150px;
+    }
+
+    .admin-pagination,
+    .admin-pagination-numbers {
+        gap: 6px;
+    }
+
+    .admin-pagination-btn {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 12px;
+        font-size: 13px;
+    }
+
+    .admin-password-modal-dialog {
+        width: calc(100% - 24px);
+        padding: 18px 16px;
     }
 }

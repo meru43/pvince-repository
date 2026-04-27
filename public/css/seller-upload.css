@@ -162,6 +162,18 @@
     gap: 12px;
 }
 
+@media (max-width: 1200px) {
+    .seller-upload-box {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 1024px) {
+    .thumbnail-preview-card {
+        width: 112px;
+    }
+}
+
 @media (max-width: 768px) {
     .seller-upload-box {
         padding: 24px;
@@ -170,5 +182,28 @@
 
     .product-file-preview-item {
         min-width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .seller-upload-box {
+        padding: 18px 16px;
+        border-radius: 18px;
+    }
+
+    .seller-upload-actions {
+        flex-direction: column;
+    }
+
+    .seller-upload-actions .btn {
+        width: 100%;
+    }
+
+    .thumbnail-preview-card {
+        width: 100%;
+    }
+
+    .thumbnail-preview-image {
+        height: 160px;
     }
 }

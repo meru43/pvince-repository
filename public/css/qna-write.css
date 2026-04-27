@@ -93,6 +93,13 @@
     min-width: 120px;
 }
 
+@media (max-width: 1200px) {
+    .write-box {
+        max-width: 1000px;
+        padding: 30px;
+    }
+}
+
 @media (max-width: 768px) {
     .write-box {
         padding: 24px 18px;
@@ -108,5 +115,24 @@
 
     .write-actions .btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .write-box {
+        padding: 18px 16px;
+        border-radius: 18px;
+    }
+
+    .write-title {
+        font-size: 26px;
+    }
+
+    .write-desc {
+        font-size: 14px;
+    }
+
+    .form-group textarea {
+        min-height: 220px;
     }
 }

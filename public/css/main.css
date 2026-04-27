@@ -185,6 +185,17 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .hero-title {
+        font-size: 42px;
+    }
+
+    .section-title,
+    .info-banner h3 {
+        font-size: 28px;
+    }
+}
+
 @media (max-width: 768px) {
     .hero {
         padding-top: 28px;
@@ -224,5 +235,38 @@
 
     .info-banner-actions .btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .hero {
+        padding-top: 20px;
+    }
+
+    .hero-title {
+        font-size: 28px;
+    }
+
+    .hero-desc,
+    .info-banner p {
+        font-size: 14px;
+    }
+
+    .section-title,
+    .info-banner h3 {
+        font-size: 22px;
+    }
+
+    .home-product-info,
+    .info-banner {
+        padding: 18px 16px;
+    }
+
+    .home-product-title {
+        font-size: 18px;
+    }
+
+    .home-product-price {
+        font-size: 20px;
     }
 }

@@ -58,6 +58,8 @@ module.exports = (db) => {
 
     const thumbnailDir = path.join(__dirname, '..', 'public', 'uploads', 'thumbnails');
     const productFileDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
+    const pptTemplateDir = path.join(__dirname, '..', 'public', 'uploads', 'ppt-templates');
+    const pptPreviewDir = path.join(__dirname, '..', 'public', 'uploads', 'ppt-previews');
 
     if (!fs.existsSync(thumbnailDir)) {
         fs.mkdirSync(thumbnailDir, { recursive: true });
@@ -65,6 +67,14 @@ module.exports = (db) => {
 
     if (!fs.existsSync(productFileDir)) {
         fs.mkdirSync(productFileDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(pptTemplateDir)) {
+        fs.mkdirSync(pptTemplateDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(pptPreviewDir)) {
+        fs.mkdirSync(pptPreviewDir, { recursive: true });
     }
 
     function ensureProductFilesJsonColumn() {
@@ -132,6 +142,35 @@ module.exports = (db) => {
     }
 
     ensureOrderPaymentMethodColumn();
+
+    function ensurePptTemplatesTable() {
+        const sql = `
+            CREATE TABLE IF NOT EXISTS ppt_templates (
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                category VARCHAR(120) NULL,
+                description TEXT NULL,
+                keywords TEXT NULL,
+                ppt_file_name VARCHAR(255) NOT NULL,
+                ppt_file_path VARCHAR(255) NOT NULL,
+                preview_image_path VARCHAR(255) NULL,
+                field_schema_json LONGTEXT NULL,
+                created_by INT NOT NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_ppt_templates_created_by (created_by),
+                INDEX idx_ppt_templates_created_at (created_at)
+            )
+        `;
+
+        db.query(sql, (err) => {
+            if (err) {
+                console.error('ppt_templates table ensure error:', err);
+            }
+        });
+    }
+
+    ensurePptTemplatesTable();
 
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {

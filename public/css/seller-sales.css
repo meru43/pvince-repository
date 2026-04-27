@@ -388,6 +388,33 @@ body.modal-open {
     line-height: 1.7;
 }
 
+@media (max-width: 1200px) {
+    .settlement-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .settlement-request-btn {
+        grid-column: 1 / -1;
+        min-height: 56px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .seller-sales-top {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .seller-sales-filters {
+        width: 100%;
+    }
+
+    .seller-sales-filters input {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .settlement-summary {
         grid-template-columns: 1fr;
@@ -442,5 +469,39 @@ body.modal-open {
 
     .invoice-section:first-of-type .invoice-value {
         max-width: 62%;
+    }
+}
+
+@media (max-width: 375px) {
+    .seller-sales-pagination {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .sales-page-btn,
+    .sales-page-number {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 12px;
+        font-size: 13px;
+    }
+
+    .settlement-card {
+        padding: 16px;
+    }
+
+    .settlement-value {
+        font-size: 22px;
+    }
+
+    .invoice-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .invoice-value,
+    .invoice-section:first-of-type .invoice-value {
+        max-width: 100%;
+        text-align: left;
     }
 }

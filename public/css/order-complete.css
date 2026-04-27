@@ -70,6 +70,12 @@
     flex-wrap: wrap;
 }
 
+@media (max-width: 1200px) {
+    .complete-box {
+        padding: 42px 28px;
+    }
+}
+
 @media (max-width: 768px) {
     .complete-box {
         padding: 36px 20px;
@@ -90,5 +96,26 @@
 
     .complete-actions .btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 375px) {
+    .complete-box {
+        padding: 24px 16px;
+        border-radius: 18px;
+    }
+
+    .complete-icon {
+        width: 72px;
+        height: 72px;
+        font-size: 30px;
+    }
+
+    .complete-title {
+        font-size: 24px;
+    }
+
+    .complete-desc {
+        font-size: 14px;
     }
 }

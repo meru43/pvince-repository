@@ -86,6 +86,7 @@ const qnaRoutes = require('./routes/qnaRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const settlementRoutes = require('./routes/settlementRoutes');
+const pptLabRoutes = require('./routes/pptLabRoutes');
 
 app.use(mainRoutes);
 app.use(authRoutes(db, bcrypt));
@@ -96,6 +97,7 @@ app.use(qnaRoutes(db));
 app.use(adminRoutes(db));
 app.use(sellerRoutes(db));
 app.use(settlementRoutes(db));
+app.use(pptLabRoutes(db));
 
 /* =========================
    서버 실행

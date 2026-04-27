@@ -140,6 +140,13 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .login-box,
+    .login-side-card {
+        padding: 30px;
+    }
+}
+
 @media (max-width: 768px) {
 
     .login-box,
@@ -157,5 +164,26 @@
 
     .login-links {
         flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 375px) {
+    .login-box,
+    .login-side-card {
+        padding: 20px 16px;
+        border-radius: 18px;
+    }
+
+    .login-title {
+        font-size: 28px;
+    }
+
+    .login-side-card h3 {
+        font-size: 24px;
+    }
+
+    .login-links {
+        gap: 10px 14px;
+        font-size: 13px;
     }
 }

@@ -155,6 +155,13 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .register-box,
+    .register-side-card {
+        padding: 30px;
+    }
+}
+
 @media (max-width: 768px) {
 
     .register-box,
@@ -168,5 +175,29 @@
 
     .register-side-card h3 {
         font-size: 28px;
+    }
+}
+
+@media (max-width: 375px) {
+    .register-box,
+    .register-side-card {
+        padding: 20px 16px;
+        border-radius: 18px;
+    }
+
+    .register-title {
+        font-size: 28px;
+    }
+
+    .register-side-card h3 {
+        font-size: 24px;
+    }
+
+    .nickname-check-row {
+        flex-direction: column;
+    }
+
+    .nickname-check-row .btn {
+        width: 100%;
     }
 }

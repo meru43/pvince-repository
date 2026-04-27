@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PPT 매칭 실험실</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/ppt-lab.css" />
+</head>
+
+<body data-user-role="<%= userRole || '' %>">
+    <%- include('partials/header') %>
+
+    <main class="container page">
+        <section class="page-title-wrap">
+            <h2 class="page-title">PPT 매칭 실험실</h2>
+            <p class="page-desc">판매자가 올린 PPT 템플릿을 플랫폼이 분석하고, 구매 유저가 만들고 싶은 내용을 입력하면 AI가 가장 잘 맞는 템플릿을 추천하는 실험 페이지입니다.</p>
+        </section>
+
+        <section class="ppt-lab-layout">
+            <aside class="ppt-lab-panel seller-panel" id="ppt-seller-panel" hidden>
+                <div class="panel-head">
+                    <p class="panel-label">SELLER UPLOAD</p>
+                    <h3 class="panel-title">PPT 템플릿 등록</h3>
+                </div>
+
+                <form id="ppt-template-form" class="ppt-form">
+                    <div class="form-group">
+                        <label for="ppt-title">템플릿 이름</label>
+                        <input type="text" id="ppt-title" name="title" placeholder="예: 브랜드 상품 소개형" />
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ppt-category">카테고리</label>
+                            <input type="text" id="ppt-category" name="category" placeholder="예: 상품소개 / 제안서 / 회사소개" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ppt-keywords">키워드</label>
+                            <input type="text" id="ppt-keywords" name="keywords" placeholder="예: 미니멀, 뷰티, 심플" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ppt-description">템플릿 설명</label>
+                        <textarea id="ppt-description" name="description" rows="4" placeholder="이 템플릿이 어떤 목적에 적합한지 적어주세요."></textarea>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ppt-file">PPT 파일</label>
+                            <input type="file" id="ppt-file" name="pptFile" accept=".ppt,.pptx" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ppt-preview">미리보기 이미지</label>
+                            <input type="file" id="ppt-preview" name="previewImage" accept="image/*" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ppt-fields">입력 필드 힌트 (선택)</label>
+                        <textarea id="ppt-fields" name="fieldSchemaText" rows="6" placeholder="product_name|상품명|text|상품명을 입력하세요&#10;brand_story|브랜드 소개|textarea|브랜드 소개를 적어주세요&#10;hero_image|대표 이미지|image|이미지 설명"></textarea>
+                        <p class="form-help">필수는 아닙니다. 적어두면 AI가 템플릿 구조를 파악할 때 참고합니다.</p>
+                    </div>
+
+                    <p class="form-message" id="ppt-template-message"></p>
+                    <button type="submit" class="btn btn-primary">템플릿 저장</button>
+                </form>
+            </aside>
+
+            <section class="ppt-lab-content">
+                <section class="ppt-match-box">
+                    <div class="panel-head">
+                        <p class="panel-label">BUYER REQUEST</p>
+                        <h3 class="panel-title">만들고 싶은 PPT 내용 입력</h3>
+                    </div>
+
+                    <form id="ppt-request-form" class="ppt-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="request-use-case">사용 목적</label>
+                                <input type="text" id="request-use-case" name="useCase" placeholder="예: 신제품 소개 발표, 온라인 상세페이지용 PPT" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="request-audience">대상</label>
+                                <input type="text" id="request-audience" name="audience" placeholder="예: 투자자, 일반 소비자, 바이어" />
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="request-brand-name">브랜드명</label>
+                                <input type="text" id="request-brand-name" name="brandName" placeholder="예: PVINCE" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="request-product-name">상품명</label>
+                                <input type="text" id="request-product-name" name="productName" placeholder="예: 비타 세럼" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="request-key-message">핵심 메시지</label>
+                            <input type="text" id="request-key-message" name="keyMessage" placeholder="예: 민감성 피부도 부담 없는 진정 세럼" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="request-detail-text">상세 설명</label>
+                            <textarea id="request-detail-text" name="detailText" rows="5" placeholder="유저가 실제로 만들고 싶은 PPT의 본문 내용을 자유롭게 적어주세요."></textarea>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="request-style-keywords">원하는 스타일 키워드</label>
+                                <input type="text" id="request-style-keywords" name="styleKeywords" placeholder="예: 프리미엄, 깔끔함, 감성, 밝은 톤" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="request-sections">꼭 필요한 섹션</label>
+                                <input type="text" id="request-sections" name="requiredSections" placeholder="예: 브랜드 소개, 성분, 후기, 가격" />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">AI로 템플릿 추천받기</button>
+                    </form>
+                </section>
+
+                <section class="ppt-template-browser" id="ppt-template-browser" hidden>
+                    <div class="ppt-toolbar">
+                        <div class="ppt-search">
+                            <input type="text" id="ppt-template-search" placeholder="템플릿 이름, 설명, 키워드 검색" />
+                            <button type="button" class="btn btn-outline" id="ppt-template-search-btn">검색</button>
+                        </div>
+                        <p class="ppt-count" id="ppt-template-count">총 0개 템플릿</p>
+                    </div>
+
+                    <div class="ppt-template-grid" id="ppt-template-grid">
+                        <p class="empty-message">템플릿을 불러오는 중입니다.</p>
+                    </div>
+                </section>
+
+                <section class="ppt-match-box" id="ppt-match-box" hidden>
+                    <div class="panel-head">
+                        <p class="panel-label">AI MATCH RESULT</p>
+                        <h3 class="panel-title" id="ppt-match-title">추천 결과</h3>
+                    </div>
+
+                    <div class="ppt-match-layout">
+                        <div class="ppt-match-form-wrap">
+                            <p class="ppt-match-desc" id="ppt-match-desc">AI가 추천한 템플릿과 매칭 계획을 확인할 수 있습니다.</p>
+                            <div id="ppt-match-plan" class="ppt-match-plan">
+                                <p class="empty-message">아직 추천 결과가 없습니다.</p>
+                            </div>
+                        </div>
+
+                        <div class="ppt-preview-box">
+                            <p class="preview-label">MATCH PREVIEW</p>
+                            <div id="ppt-preview-result" class="ppt-preview-result">
+                                <p class="empty-message">AI 추천을 실행하면 결과가 여기에 표시됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </section>
+    </main>
+
+    <%- include('partials/footer') %>
+    <script src="/js/ppt-lab.js"></script>
+    <script src="/js/common.js"></script>
+</body>
+
+</html>
