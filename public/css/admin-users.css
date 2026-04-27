@@ -49,6 +49,36 @@
     display: block;
 }
 
+.admin-user-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.admin-user-username-text {
+    font-weight: 600;
+}
+
+.auth-provider-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.auth-provider-tag.google {
+    background: #eef4ff;
+    color: #2563eb;
+    border: 1px solid #cfe0ff;
+}
+
 .col-role,
 .col-user-status,
 .col-action {

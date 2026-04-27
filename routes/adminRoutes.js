@@ -49,7 +49,9 @@ module.exports = (db) => {
                 phone,
                 role,
                 profile_image,
-                is_active
+                is_active,
+                google_id,
+                google_email
             FROM users
             WHERE 1 = 1
         `;

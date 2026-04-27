@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             : DEFAULT_PROFILE_IMAGE;
     }
 
+    function isGoogleUser(user) {
+        return Boolean(
+            (user.google_id && String(user.google_id).trim() !== '')
+            || (user.google_email && String(user.google_email).trim() !== '')
+        );
+    }
+
     function getStatusText(user) {
         return Number(user.is_active) === 1 ? '활동중' : '활동중지';
     }
@@ -126,7 +133,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         >
                     </span>
 
-                    <span class="col-username">${displayValue(user.username)}</span>
+                    <span class="col-username">
+                        <span class="admin-user-identity">
+                            <span class="admin-user-username-text">${displayValue(user.username)}</span>
+                            ${isGoogleUser(user) ? '<span class="auth-provider-tag google">Google</span>' : ''}
+                        </span>
+                    </span>
                     <span class="col-nickname">${displayValue(user.nickname)}</span>
                     <span class="col-email">${displayValue(user.email)}</span>
                     <span class="col-name">${displayValue(user.name)}</span>

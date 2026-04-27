@@ -1,4 +1,5 @@
 ﻿const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
@@ -7,6 +8,9 @@ module.exports = (db, bcrypt) => {
     const router = express.Router();
     const DEFAULT_PROFILE_IMAGE = '/images/normal user.jpg';
     const profileUploadDir = path.join(__dirname, '..', 'public', 'uploads', 'profiles');
+    const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
     fs.mkdirSync(profileUploadDir, { recursive: true });
 
@@ -20,6 +24,222 @@ module.exports = (db, bcrypt) => {
 
     function isValidAccountPassword(password) {
         return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(String(password || ''));
+    }
+
+    function getGoogleConfig(req) {
+        const clientId = process.env.GOOGLE_CLIENT_ID || '';
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+        const callbackUrl = process.env.GOOGLE_CALLBACK_URL
+            || `${req.protocol}://${req.get('host')}/auth/google/callback`;
+
+        return {
+            clientId,
+            clientSecret,
+            callbackUrl,
+            configured: Boolean(clientId && clientSecret)
+        };
+    }
+
+    function ensureGoogleColumns() {
+        const columns = [
+            { name: 'google_id', sql: `ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL AFTER profile_image` },
+            { name: 'google_email', sql: `ALTER TABLE users ADD COLUMN google_email VARCHAR(255) NULL AFTER google_id` }
+        ];
+
+        columns.forEach((column) => {
+            const checkSql = `
+                SELECT COUNT(*) AS count
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'users'
+                  AND COLUMN_NAME = ?
+            `;
+
+            db.query(checkSql, [column.name], (checkErr, results) => {
+                if (checkErr) {
+                    console.error(`${column.name} column check error:`, checkErr);
+                    return;
+                }
+
+                if (results?.[0]?.count > 0) {
+                    return;
+                }
+
+                db.query(column.sql, (alterErr) => {
+                    if (alterErr) {
+                        console.error(`${column.name} column add error:`, alterErr);
+                    }
+                });
+            });
+        });
+    }
+
+    function setSessionUser(req, user) {
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.nickname = user.nickname;
+        req.session.role = user.role;
+        req.session.profileImage = getProfileImagePath(user);
+        req.session.email = user.email || '';
+        req.session.name = user.name || '';
+        req.session.phone = user.phone || '';
+    }
+
+    function buildUniqueValue(baseValue, existsSql, fallbackPrefix) {
+        return new Promise((resolve, reject) => {
+            const normalizedBase = String(baseValue || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                || `${fallbackPrefix}_${Date.now()}`;
+
+            const tryCandidate = (index) => {
+                const candidate = index === 0 ? normalizedBase : `${normalizedBase}_${index}`;
+
+                db.query(existsSql, [candidate], (err, results) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!results.length) {
+                        resolve(candidate);
+                        return;
+                    }
+
+                    tryCandidate(index + 1);
+                });
+            };
+
+            tryCandidate(0);
+        });
+    }
+
+    async function createOrLinkGoogleUser(profile) {
+        const googleId = String(profile.sub || '').trim();
+        const googleEmail = String(profile.email || '').trim().toLowerCase();
+        const displayName = String(profile.name || '').trim();
+        const profileImage = String(profile.picture || '').trim() || DEFAULT_PROFILE_IMAGE;
+
+        if (!googleId || !googleEmail) {
+            throw new Error('Google profile is missing required fields.');
+        }
+
+        const findSql = `
+            SELECT *
+            FROM users
+            WHERE google_id = ? OR email = ?
+            ORDER BY CASE WHEN google_id = ? THEN 0 ELSE 1 END
+            LIMIT 1
+        `;
+
+        const existingUser = await new Promise((resolve, reject) => {
+            db.query(findSql, [googleId, googleEmail, googleId], (err, results) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                resolve(results[0] || null);
+            });
+        });
+
+        if (existingUser) {
+            if (Number(existingUser.is_active) === 0) {
+                throw new Error('This account is inactive.');
+            }
+
+            const updateSql = `
+                UPDATE users
+                SET
+                    google_id = ?,
+                    google_email = ?,
+                    profile_image = COALESCE(NULLIF(profile_image, ''), ?)
+                WHERE id = ?
+            `;
+
+            await new Promise((resolve, reject) => {
+                db.query(updateSql, [googleId, googleEmail, profileImage, existingUser.id], (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    resolve();
+                });
+            });
+
+            return {
+                ...existingUser,
+                google_id: googleId,
+                google_email: googleEmail,
+                profile_image: existingUser.profile_image || profileImage
+            };
+        }
+
+        const emailPrefix = googleEmail.split('@')[0] || 'google_user';
+        const nicknameBase = displayName || emailPrefix;
+        const username = await buildUniqueValue(emailPrefix, 'SELECT id FROM users WHERE username = ? LIMIT 1', 'google_user');
+        const nickname = await buildUniqueValue(nicknameBase, 'SELECT id FROM users WHERE nickname = ? LIMIT 1', 'google_user');
+        const randomPassword = crypto.randomBytes(24).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        const insertSql = `
+            INSERT INTO users (
+                username,
+                password,
+                nickname,
+                email,
+                name,
+                phone,
+                role,
+                profile_image,
+                google_id,
+                google_email
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const insertResult = await new Promise((resolve, reject) => {
+            db.query(
+                insertSql,
+                [
+                    username,
+                    hashedPassword,
+                    nickname,
+                    googleEmail,
+                    displayName || null,
+                    null,
+                    'member',
+                    profileImage,
+                    googleId,
+                    googleEmail
+                ],
+                (err, result) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    resolve(result);
+                }
+            );
+        });
+
+        return {
+            id: insertResult.insertId,
+            username,
+            nickname,
+            email: googleEmail,
+            name: displayName || '',
+            phone: '',
+            role: 'member',
+            profile_image: profileImage,
+            google_id: googleId,
+            google_email: googleEmail
+        };
     }
 
     function ensureProfileImageColumn() {
@@ -50,6 +270,7 @@ module.exports = (db, bcrypt) => {
     }
 
     ensureProfileImageColumn();
+    ensureGoogleColumns();
 
     const profileStorage = multer.diskStorage({
         destination: (_req, _file, cb) => cb(null, profileUploadDir),
@@ -525,6 +746,85 @@ module.exports = (db, bcrypt) => {
                 });
             });
         });
+    });
+
+    router.get('/auth/google', (req, res) => {
+        const googleConfig = getGoogleConfig(req);
+
+        if (!googleConfig.configured) {
+            return res.status(500).send('Google login is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.');
+        }
+
+        const state = crypto.randomBytes(24).toString('hex');
+        req.session.googleOAuthState = state;
+
+        const params = new URLSearchParams({
+            client_id: googleConfig.clientId,
+            redirect_uri: googleConfig.callbackUrl,
+            response_type: 'code',
+            scope: 'openid email profile',
+            state,
+            prompt: 'select_account'
+        });
+
+        return res.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
+    });
+
+    router.get('/auth/google/callback', async (req, res) => {
+        const { code, state } = req.query;
+        const savedState = req.session.googleOAuthState;
+        delete req.session.googleOAuthState;
+
+        if (!code || !state || state !== savedState) {
+            return res.redirect('/login-page');
+        }
+
+        const googleConfig = getGoogleConfig(req);
+
+        if (!googleConfig.configured) {
+            return res.redirect('/login-page');
+        }
+
+        try {
+            const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    code: String(code),
+                    client_id: googleConfig.clientId,
+                    client_secret: googleConfig.clientSecret,
+                    redirect_uri: googleConfig.callbackUrl,
+                    grant_type: 'authorization_code'
+                })
+            });
+
+            if (!tokenResponse.ok) {
+                throw new Error(`Google token exchange failed with ${tokenResponse.status}`);
+            }
+
+            const tokenData = await tokenResponse.json();
+            const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${tokenData.access_token}`
+                }
+            });
+
+            if (!userInfoResponse.ok) {
+                throw new Error(`Google user info request failed with ${userInfoResponse.status}`);
+            }
+
+            const profile = await userInfoResponse.json();
+            const user = await createOrLinkGoogleUser(profile);
+            setSessionUser(req, user);
+
+            return res.redirect('/mypage-page');
+        } catch (error) {
+            console.error('Google OAuth callback error:', error);
+            return res.redirect('/login-page');
+        }
     });
 
     router.post('/login', (req, res) => {

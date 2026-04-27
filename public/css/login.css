@@ -70,6 +70,39 @@
     color: #666;
 }
 
+.auth-divider {
+    position: relative;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.auth-divider span {
+    position: relative;
+    display: inline-block;
+    padding: 0 12px;
+    background: #fff;
+    color: #777;
+    font-size: 13px;
+}
+
+.social-auth-btn {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.google-auth-btn {
+    border-color: #d0d7e2;
+}
+
 .login-side {
     display: flex;
 }
