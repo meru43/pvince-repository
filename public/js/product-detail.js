@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
 
+    let mainSwiper = null;
+    let thumbSwiper = null;
+
     async function addToCart(product) {
         try {
             const response = await fetch('/api/cart', {
@@ -50,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (product?.product_files_json) {
             try {
                 const parsedFiles = JSON.parse(product.product_files_json);
-
                 if (Array.isArray(parsedFiles)) {
                     return parsedFiles.filter((file) => file?.name && file?.path);
                 }
@@ -69,11 +71,85 @@ document.addEventListener('DOMContentLoaded', async () => {
         return [];
     }
 
+    function parseThumbnailGallery(product) {
+        if (product?.thumbnail_gallery_json) {
+            try {
+                const parsed = JSON.parse(product.thumbnail_gallery_json);
+                if (Array.isArray(parsed) && parsed.length) {
+                    return parsed
+                        .filter((item) => item?.path)
+                        .map((item) => ({
+                            path: item.path,
+                            name: item.name || product.title,
+                            isRepresentative: Boolean(item.isRepresentative)
+                        }));
+                }
+            } catch (error) {
+                console.error('썸네일 갤러리 파싱 실패:', error);
+            }
+        }
+
+        if (product?.thumbnail_path) {
+            return [{
+                path: product.thumbnail_path,
+                name: product.title || '상품 이미지',
+                isRepresentative: true
+            }];
+        }
+
+        return [{
+            path: `https://via.placeholder.com/800x520?text=Product+${product.id}`,
+            name: product.title || '상품 이미지',
+            isRepresentative: true
+        }];
+    }
+
+    function initializeSwipers() {
+        if (thumbSwiper) {
+            thumbSwiper.destroy(true, true);
+            thumbSwiper = null;
+        }
+
+        if (mainSwiper) {
+            mainSwiper.destroy(true, true);
+            mainSwiper = null;
+        }
+
+        if (typeof Swiper === 'undefined') {
+            return;
+        }
+
+        thumbSwiper = new Swiper('.detail-thumb-swiper', {
+            spaceBetween: 10,
+            slidesPerView: 'auto',
+            freeMode: true,
+            watchSlidesProgress: true,
+            mousewheel: {
+                forceToAxis: true
+            }
+        });
+
+        mainSwiper = new Swiper('.detail-main-swiper', {
+            slidesPerView: 1,
+            spaceBetween: 12,
+            grabCursor: true,
+            navigation: {
+                nextEl: '.detail-swiper-next',
+                prevEl: '.detail-swiper-prev'
+            },
+            thumbs: {
+                swiper: thumbSwiper
+            }
+        });
+    }
+
     function renderProduct(product) {
+        const detailDescription = product.display_description || product.ai_summary_text || product.description || '';
         const keywordHtml = (product.keywordList || [])
             .map((keyword) => `<span class="keyword-tag">${keyword}</span>`)
             .join('');
 
+        const galleryImages = parseThumbnailGallery(product);
         const displayPrice = getDisplayPrice(product);
         const originalPriceHtml = (
             Number(product.is_free) !== 1
@@ -82,10 +158,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         )
             ? `<p class="detail-original-price">${Number(product.price).toLocaleString()}원</p>`
             : '';
-
-        const thumbnailSrc = product.thumbnail_path
-            ? product.thumbnail_path
-            : `https://via.placeholder.com/800x520?text=Product+${product.id}`;
 
         const ownerTagHtml = product.is_owner
             ? '<span class="detail-owner-tag">본인 상품</span>'
@@ -119,8 +191,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
 
         detailBox.innerHTML = `
-            <div class="detail-image">
-                <img src="${thumbnailSrc}" alt="${product.title}">
+            <div class="detail-gallery">
+                <div class="detail-main-slider-wrap">
+                    <div class="swiper detail-main-swiper">
+                        <div class="swiper-wrapper">
+                            ${galleryImages.map((image) => `
+                                <div class="swiper-slide">
+                                    <div class="detail-image">
+                                        <img src="${image.path}" alt="${image.name}">
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button type="button" class="detail-swiper-nav detail-swiper-prev" aria-label="이전 이미지">&lt;</button>
+                    <button type="button" class="detail-swiper-nav detail-swiper-next" aria-label="다음 이미지">&gt;</button>
+                </div>
+
+                <div class="swiper detail-thumb-swiper">
+                    <div class="swiper-wrapper">
+                        ${galleryImages.map((image) => `
+                            <div class="swiper-slide">
+                                <button type="button" class="detail-gallery-thumb">
+                                    <img src="${image.path}" alt="${image.name}">
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
             </div>
 
             <div class="detail-content">
@@ -131,12 +229,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <p class="detail-price">${displayPrice}</p>
 
                 <div class="detail-summary">
-                    <p>${product.description || '상품 설명이 없습니다.'}</p>
+                    <p>${detailDescription || '상품 설명이 없습니다.'}</p>
                 </div>
 
                 <ul class="detail-meta">
                     <li><strong>상품 번호</strong> <span>${product.id}</span></li>
-                    <li><strong>업로더</strong> <span>${product.uploader_name || '미지정'}</span></li>
+                    <li><strong>업로더</strong> <span>${product.uploader_name || '미정'}</span></li>
                     <li><strong>가격</strong> <span>${displayPrice}</span></li>
                 </ul>
 
@@ -147,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         descriptionContent.innerHTML = `
-            <p>${product.description || '상품 설명이 없습니다.'}</p>
+            <p>${detailDescription || '상품 설명이 없습니다.'}</p>
         `;
 
         if (keywordsBox) {
@@ -155,16 +253,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         descriptionBox.style.display = 'block';
+        initializeSwipers();
 
         if (product.is_admin) {
             const downloadToggle = document.getElementById('admin-download-toggle');
             const downloadList = document.getElementById('detail-download-list');
 
             downloadToggle?.addEventListener('click', () => {
-                if (!downloadList) {
-                    return;
-                }
-
+                if (!downloadList) return;
                 downloadList.hidden = !downloadList.hidden;
             });
 
@@ -175,10 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const addCartBtn = document.getElementById('add-cart-btn');
             const purchaseBtn = document.getElementById('purchase-btn');
 
-            addCartBtn?.addEventListener('click', () => {
-                addToCart(product);
-            });
-
+            addCartBtn?.addEventListener('click', () => addToCart(product));
             purchaseBtn?.addEventListener('click', () => {
                 window.location.href = `/order-page/${product.id}`;
             });

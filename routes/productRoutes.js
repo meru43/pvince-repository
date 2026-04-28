@@ -75,6 +75,7 @@ module.exports = (db) => {
             product.is_owner = currentUserId > 0 && Number(product.created_by) === currentUserId;
             product.is_admin = currentUserRole === 'admin';
             product.can_purchase = !product.is_owner;
+            product.display_description = product.ai_summary_text || product.description || '';
 
             product.keywordList = product.keywords
                 ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
@@ -108,11 +109,12 @@ module.exports = (db) => {
             LEFT JOIN users ON products.created_by = users.id
             WHERE products.title LIKE ?
                OR products.description LIKE ?
+               OR COALESCE(products.ai_summary_text, '') LIKE ?
                OR products.keywords LIKE ?
             ORDER BY products.id DESC
         `;
 
-        db.query(sql, [likeValue, likeValue, likeValue], (err, results) => {
+        db.query(sql, [likeValue, likeValue, likeValue, likeValue], (err, results) => {
             if (err) {
                 console.error('상품 검색 오류:', err);
                 return res.json({

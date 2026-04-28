@@ -1,34 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const userRole = document.body.dataset.userRole || '';
-    const canUploadTemplate = userRole === 'seller' || userRole === 'admin';
+    const form = document.getElementById('ppt-match-form');
+    const messageEl = document.getElementById('ppt-match-message');
+    const submitBtn = document.getElementById('ppt-match-submit');
+    const resultCount = document.getElementById('ppt-result-count');
+    const resultList = document.getElementById('ppt-result-list');
+    const selectedColorChip = document.getElementById('ppt-selected-color-chip');
+    const selectedColorText = document.getElementById('ppt-selected-color-text');
+    const paletteInputs = Array.from(document.querySelectorAll('input[name="preferredColor"]'));
 
-    const sellerPanel = document.getElementById('ppt-seller-panel');
-    const templateForm = document.getElementById('ppt-template-form');
-    const templateMessage = document.getElementById('ppt-template-message');
-
-    const requestForm = document.getElementById('ppt-request-form');
-    const searchInput = document.getElementById('ppt-template-search');
-    const searchBtn = document.getElementById('ppt-template-search-btn');
-    const templateCount = document.getElementById('ppt-template-count');
-    const templateGrid = document.getElementById('ppt-template-grid');
-    const templateBrowser = document.getElementById('ppt-template-browser');
-
-    const matchBox = document.getElementById('ppt-match-box');
-    const matchTitle = document.getElementById('ppt-match-title');
-    const matchDesc = document.getElementById('ppt-match-desc');
-    const matchPlan = document.getElementById('ppt-match-plan');
-    const previewResult = document.getElementById('ppt-preview-result');
-
-    let templates = [];
-    let highlightedTemplateId = null;
-
-    if (sellerPanel) {
-        sellerPanel.hidden = !canUploadTemplate;
-    }
-
-    if (templateBrowser) {
-        templateBrowser.hidden = !canUploadTemplate;
-    }
+    const colorCache = new Map();
+    let products = [];
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -39,381 +20,423 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#39;');
     }
 
-    function formatDate(value) {
-        if (!value) return '-';
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleDateString('ko-KR');
+    function tokenize(value) {
+        return String(value || '')
+            .toLowerCase()
+            .split(/[\s,./#|()[\]-]+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 2);
     }
 
-    function getFieldTypeLabel(type) {
-        if (type === 'textarea') return '긴 텍스트';
-        if (type === 'number') return '숫자';
-        if (type === 'image') return '이미지';
-        return '텍스트';
-    }
-
-    function setTemplateMessage(message = '', isError = false) {
-        if (!templateMessage) return;
-        templateMessage.textContent = message;
-        templateMessage.style.color = isError ? '#d93025' : '#6b7280';
-    }
-
-    function setMatchVisibility(visible) {
-        if (matchBox) {
-            matchBox.hidden = !visible;
+    function hexToRgb(hex) {
+        const normalized = String(hex || '').replace('#', '');
+        if (normalized.length !== 6) {
+            return { r: 0, g: 0, b: 0 };
         }
+
+        return {
+            r: parseInt(normalized.slice(0, 2), 16),
+            g: parseInt(normalized.slice(2, 4), 16),
+            b: parseInt(normalized.slice(4, 6), 16)
+        };
     }
 
-    function renderTemplates() {
-        if (!templateGrid || !templateCount) {
+    function rgbToHex({ r, g, b }) {
+        const toHex = (value) => Number(value || 0).toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+    }
+
+    function clampColorChannel(value) {
+        return Math.max(0, Math.min(255, Number(value || 0)));
+    }
+
+    function isNeutralColor({ r, g, b }) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        return (max - min) <= 28;
+    }
+
+    function getColorSaturation({ r, g, b }) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        return max - min;
+    }
+
+    function getColorBrightness({ r, g, b }) {
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+
+    function getDisplayPrice(product) {
+        if (Number(product.is_free) === 1) {
+            return '무료';
+        }
+
+        if (product.sale_price) {
+            return `${Number(product.sale_price).toLocaleString()}원`;
+        }
+
+        return `${Number(product.price || 0).toLocaleString()}원`;
+    }
+
+    function setMessage(message = '', isError = false) {
+        if (!messageEl) return;
+        messageEl.textContent = message;
+        messageEl.classList.toggle('is-error', Boolean(isError));
+        messageEl.classList.toggle('is-success', Boolean(message && !isError));
+    }
+
+    function setLoading(isLoading) {
+        if (!submitBtn) return;
+        submitBtn.disabled = isLoading;
+        submitBtn.textContent = isLoading ? '매칭 계산 중...' : '매칭 검색하기';
+    }
+
+    function getSelectedPaletteColor() {
+        return paletteInputs.find((input) => input.checked)?.value || '#6D2E9B';
+    }
+
+    function updateSelectedColorUi(color) {
+        const hex = String(color || '#000000').toUpperCase();
+        if (selectedColorChip) selectedColorChip.style.background = hex;
+        if (selectedColorText) selectedColorText.textContent = `선택 색상 ${hex}`;
+    }
+
+    function calculateTextMatch(product, request) {
+        const requestTokens = Array.from(new Set([
+            ...tokenize(request.usePlace),
+            ...tokenize(request.usePurpose),
+            ...tokenize(request.requestDetail)
+        ]));
+
+        if (!requestTokens.length) {
+            return {
+                score: 0,
+                matchedKeywords: []
+            };
+        }
+
+        const haystack = [
+            product.title,
+            product.description,
+            product.ai_summary_text,
+            product.keywords,
+            product.uploader_name
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+        const matchedKeywords = requestTokens.filter((token) => haystack.includes(token));
+        const score = matchedKeywords.length / requestTokens.length;
+
+        return {
+            score,
+            matchedKeywords
+        };
+    }
+
+    function calculateColorMatch(selectedColor, productColors) {
+        const selected = hexToRgb(selectedColor);
+        const palette = Array.isArray(productColors) && productColors.length
+            ? productColors
+            : [{ r: 0, g: 0, b: 0 }];
+
+        const maxDistance = Math.sqrt((255 ** 2) * 3);
+
+        const bestScore = palette.reduce((best, color) => {
+            const distance = Math.sqrt(
+                ((selected.r - color.r) ** 2)
+                + ((selected.g - color.g) ** 2)
+                + ((selected.b - color.b) ** 2)
+            );
+
+            const score = Math.max(0, 1 - (distance / maxDistance));
+            return Math.max(best, score);
+        }, 0);
+
+        return bestScore;
+    }
+
+    function buildReasonText(textMatch, colorMatch) {
+        const reasons = [];
+
+        if (textMatch.matchedKeywords.length) {
+            reasons.push(`내용 일치 키워드: ${textMatch.matchedKeywords.slice(0, 5).join(', ')}`);
+        } else {
+            reasons.push('직접 일치하는 키워드는 적지만 설명 전체 맥락을 기준으로 비교했습니다.');
+        }
+
+        reasons.push(`색상 유사도 ${Math.round(colorMatch * 100)}% 반영`);
+        return reasons.join(' / ');
+    }
+
+    async function extractTopColors(imageUrl) {
+        if (!imageUrl) {
+            return [{ r: 0, g: 0, b: 0 }];
+        }
+
+        if (colorCache.has(imageUrl)) {
+            return colorCache.get(imageUrl);
+        }
+
+        const colors = await new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = 32;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                if (!ctx) {
+                    resolve([{ r: 0, g: 0, b: 0 }]);
+                    return;
+                }
+
+                ctx.drawImage(img, 0, 0, size, size);
+                const { data } = ctx.getImageData(0, 0, size, size);
+                const buckets = new Map();
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const alpha = data[i + 3];
+                    if (alpha < 30) continue;
+
+                    const r = clampColorChannel(Math.round(data[i] / 32) * 32);
+                    const g = clampColorChannel(Math.round(data[i + 1] / 32) * 32);
+                    const b = clampColorChannel(Math.round(data[i + 2] / 32) * 32);
+                    const key = `${r}-${g}-${b}`;
+                    const current = buckets.get(key) || { r, g, b, count: 0 };
+                    current.count += 1;
+                    buckets.set(key, current);
+                }
+
+                const rankedColors = Array.from(buckets.values())
+                    .map(({ r, g, b, count }) => ({
+                        r,
+                        g,
+                        b,
+                        count,
+                        saturation: getColorSaturation({ r, g, b }),
+                        brightness: getColorBrightness({ r, g, b }),
+                        neutral: isNeutralColor({ r, g, b })
+                    }))
+                    .sort((a, b) => b.count - a.count);
+
+                const vividColors = rankedColors
+                    .filter((color) => !color.neutral)
+                    .sort((a, b) => b.saturation - a.saturation || b.count - a.count);
+
+                const mainColors = rankedColors
+                    .filter((color) => !color.neutral)
+                    .sort((a, b) => b.count - a.count || b.saturation - a.saturation);
+
+                const neutralColors = rankedColors
+                    .filter((color) => color.neutral)
+                    .sort((a, b) => b.count - a.count || a.brightness - b.brightness);
+
+                const selectedColors = [];
+
+                function pushUnique(color) {
+                    if (!color) return;
+
+                    const alreadyIncluded = selectedColors.some((picked) =>
+                        picked.r === color.r && picked.g === color.g && picked.b === color.b
+                    );
+
+                    if (alreadyIncluded) return;
+
+                    selectedColors.push({
+                        r: color.r,
+                        g: color.g,
+                        b: color.b
+                    });
+                }
+
+                pushUnique(vividColors[0]);
+                pushUnique(mainColors[0]);
+                pushUnique(neutralColors[0]);
+
+                rankedColors.forEach((color) => {
+                    if (selectedColors.length >= 3) {
+                        return;
+                    }
+
+                    pushUnique(color);
+                });
+
+                resolve(selectedColors.length ? selectedColors.slice(0, 3) : [{ r: 0, g: 0, b: 0 }]);
+            };
+
+            img.onerror = () => resolve([{ r: 0, g: 0, b: 0 }]);
+            img.src = imageUrl;
+        });
+
+        colorCache.set(imageUrl, colors);
+        return colors;
+    }
+
+    async function loadProducts() {
+        const response = await fetch('/api/products', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || '상품 목록을 불러오지 못했습니다.');
+        }
+
+        products = (data.products || []).filter((product) => {
+            return Boolean(product.ai_summary_text && product.ai_slide_analysis_json);
+        });
+    }
+
+    async function buildMatches(request) {
+        const selectedColor = request.preferredColor || '#6D2E9B';
+
+        const enriched = await Promise.all(products.map(async (product) => {
+            const thumbnailSrc = product.thumbnail_path || '';
+            const topColors = await extractTopColors(thumbnailSrc);
+            const textMatch = calculateTextMatch(product, request);
+            const colorMatch = calculateColorMatch(selectedColor, topColors);
+            const overallScore = Math.round(((textMatch.score * 0.75) + (colorMatch * 0.25)) * 100);
+
+            return {
+                product,
+                overallScore,
+                textScore: Math.round(textMatch.score * 100),
+                colorScore: Math.round(colorMatch * 100),
+                matchedKeywords: textMatch.matchedKeywords,
+                topColorHexes: topColors.map((color) => rgbToHex(color)),
+                reason: buildReasonText(textMatch, colorMatch)
+            };
+        }));
+
+        return enriched
+            .sort((a, b) => b.overallScore - a.overallScore)
+            .filter((item) => item.overallScore > 0);
+    }
+
+    function renderMatches(matches) {
+        if (!resultList || !resultCount) return;
+
+        if (!matches.length) {
+            resultCount.textContent = '현재 조건과 비슷한 템플릿을 아직 찾지 못했습니다.';
+            resultList.innerHTML = `
+                <article class="ppt-empty-card">
+                    <strong>매칭 결과가 없습니다.</strong>
+                    <p>검색어를 조금 더 넓게 적거나 다른 색상을 골라 다시 시도해 보세요.</p>
+                    <a href="/products-page" class="btn btn-outline ppt-empty-link">상품리스트 바로가기</a>
+                </article>
+            `;
             return;
         }
 
-        templateCount.textContent = `총 ${templates.length}개 템플릿`;
+        resultCount.textContent = `총 ${matches.length}개의 템플릿을 찾았고, 매치율이 높은 순서대로 정렬했습니다.`;
 
-        if (!templates.length) {
-            templateGrid.innerHTML = '<p class="empty-message">등록된 PPT 템플릿이 없습니다.</p>';
-            return;
-        }
+        resultList.innerHTML = matches.map(({ product, overallScore, textScore, colorScore, matchedKeywords, topColorHexes, reason }) => `
+            <article class="ppt-result-item">
+                <a href="/products-page/${product.id}" class="ppt-result-thumb">
+                    <img src="${escapeHtml(product.thumbnail_path || 'https://via.placeholder.com/800x520?text=PPT')}" alt="${escapeHtml(product.title)}" />
+                </a>
 
-        templateGrid.innerHTML = templates.map((template) => `
-            <article class="ppt-template-card ${highlightedTemplateId === template.id ? 'is-selected' : ''}">
-                <div class="template-preview">
-                    ${template.previewImagePath
-                ? `<img src="${template.previewImagePath}" alt="${escapeHtml(template.title)}">`
-                : '<div class="template-preview-fallback">PPT PREVIEW</div>'
-            }
-                </div>
-
-                <div class="template-body">
-                    <div class="template-title-row">
-                        <h3 class="template-title">${escapeHtml(template.title)}</h3>
-                        <span class="template-category">${escapeHtml(template.category || '미분류')}</span>
+                <div class="ppt-result-body">
+                    <div class="ppt-result-top">
+                        <div>
+                            <p class="ppt-result-category">${escapeHtml(product.uploader_name || '판매자')}</p>
+                            <h4 class="ppt-result-title">${escapeHtml(product.title)}</h4>
+                        </div>
+                        <div class="ppt-match-rate">
+                            <span>매치율</span>
+                            <strong>${overallScore}%</strong>
+                        </div>
                     </div>
 
-                    <p class="template-desc">${escapeHtml(template.description || '템플릿 설명이 아직 없습니다.')}</p>
-                    <p class="template-meta">업로더: ${escapeHtml(template.creatorName)} · 등록일: ${escapeHtml(formatDate(template.createdAt))}</p>
-                    <p class="template-file">원본 파일: ${escapeHtml(template.pptFileName)}</p>
+                    <p class="ppt-result-summary">${escapeHtml(product.ai_summary_text || product.description || '아직 AI 요약이 없는 상품입니다.')}</p>
 
-                    <div class="template-fields">
-                        ${(template.aiAnalysis?.suggested_fields?.length ? template.aiAnalysis.suggested_fields : template.fields).slice(0, 5).map((field) => `
-                            <span class="template-field-pill">
-                                ${escapeHtml(field.label || field.key)} · ${escapeHtml(getFieldTypeLabel(field.type || 'text'))}
-                            </span>
-                        `).join('')}
+                    <div class="ppt-score-grid">
+                        <div class="ppt-score-card">
+                            <span>내용 매칭</span>
+                            <strong>${textScore}%</strong>
+                        </div>
+                        <div class="ppt-score-card">
+                            <span>색상 매칭</span>
+                            <strong>${colorScore}%</strong>
+                        </div>
+                        <div class="ppt-score-card color">
+                            <span>대표 색상</span>
+                            <strong class="ppt-color-palette">
+                                ${topColorHexes.map((hex) => `<i title="${escapeHtml(hex)}" style="background:${escapeHtml(hex)}"></i>`).join('')}
+                            </strong>
+                            <p class="ppt-color-labels">${topColorHexes.map((hex) => escapeHtml(hex)).join(' / ')}</p>
+                        </div>
                     </div>
 
-                    <div class="template-actions">
-                        <button type="button" class="btn btn-outline ppt-template-preview-btn" data-template-id="${template.id}">
-                            템플릿 보기
-                        </button>
-                        <button type="button" class="btn btn-primary ppt-template-analyze-btn" data-template-id="${template.id}">
-                            ${template.aiAnalysisStatus === 'done' ? 'AI 분석 다시하기' : 'AI 분석하기'}
-                        </button>
+                    <p class="ppt-result-reason">${escapeHtml(reason)}</p>
+
+                    <div class="ppt-result-keywords">
+                        ${(matchedKeywords.length
+                ? matchedKeywords.slice(0, 6).map((keyword) => `<span class="ppt-keyword-chip">${escapeHtml(keyword)}</span>`).join('')
+                : '<span class="ppt-keyword-chip muted">직접 일치 키워드 없음</span>')}
                     </div>
 
-                    <p class="template-meta">AI 분석 상태: ${template.aiAnalysisStatus === 'done' ? '완료' : template.aiAnalysisStatus === 'error' ? '실패' : '대기'}</p>
+                    <div class="ppt-result-actions">
+                        <span class="ppt-result-price">${escapeHtml(getDisplayPrice(product))}</span>
+                        <a href="/products-page/${product.id}" class="btn btn-outline">상품 보기</a>
+                    </div>
                 </div>
             </article>
         `).join('');
     }
 
-    function buildTemplatePreviewCard(template, recommendation = null) {
-        const suggestedFields = template.aiAnalysis?.suggested_fields?.length
-            ? template.aiAnalysis.suggested_fields
-            : template.fields;
-
-        const matchedInputsHtml = recommendation?.matched_inputs?.length
-            ? recommendation.matched_inputs.map((item) => `
-                <div class="result-info-row">
-                    <span>${escapeHtml(item.input_label)}</span>
-                    <strong>${escapeHtml(item.input_value || '-')}</strong>
-                </div>
-                <div class="result-info-row sub">
-                    <span>추천 연결</span>
-                    <strong>${escapeHtml(item.suggested_field_label || '-')}</strong>
-                </div>
-            `).join('')
-            : suggestedFields.map((field) => `
-                <div class="result-info-row">
-                    <span>${escapeHtml(field.label || field.key)}</span>
-                    <strong>${escapeHtml(getFieldTypeLabel(field.type || 'text'))}</strong>
-                </div>
-            `).join('');
-
-        return `
-            <article class="ppt-preview-card">
-                <div class="ppt-preview-thumb">
-                    ${template.previewImagePath
-                ? `<img src="${template.previewImagePath}" alt="${escapeHtml(template.title)}">`
-                : '<div class="template-preview-fallback">PPT 미리보기 없음</div>'
-            }
-                </div>
-
-                <div class="ppt-preview-summary">
-                    <h4>${escapeHtml(template.title)}</h4>
-                    <p class="template-meta">카테고리: ${escapeHtml(template.category || '미분류')}</p>
-                    <p class="template-file">원본 파일: ${escapeHtml(template.pptFileName)}</p>
-                    ${recommendation?.reason ? `<p class="template-desc">${escapeHtml(recommendation.reason)}</p>` : ''}
-                </div>
-
-                ${template.aiAnalysis ? `
-                    <div class="ppt-preview-summary analysis">
-                        <h4>AI 분석 요약</h4>
-                        <p class="template-meta">유형: ${escapeHtml(template.aiAnalysis.template_type || '-')}</p>
-                        <p class="template-desc">${escapeHtml(template.aiAnalysis.summary || '분석 요약이 없습니다.')}</p>
-                        <ul>
-                            ${(template.aiAnalysis.recommended_for || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('') || '<li>추천 사용 상황이 없습니다.</li>'}
-                        </ul>
-                    </div>
-                ` : ''}
-
-                <div class="result-info">
-                    ${matchedInputsHtml}
-                </div>
-            </article>
-        `;
-    }
-
-    function showTemplateOnly(template) {
-        if (templateBrowser) {
-            templateBrowser.hidden = false;
-        }
-
-        highlightedTemplateId = template.id;
-        renderTemplates();
-        setMatchVisibility(true);
-        matchTitle.textContent = `${template.title} 템플릿 보기`;
-        matchDesc.textContent = '판매자가 업로드한 템플릿과 현재 분석 상태를 확인하는 영역입니다.';
-        matchPlan.innerHTML = `
-            <div class="ppt-preview-summary">
-                <h4>현재 템플릿 정보</h4>
-                <p class="template-desc">${escapeHtml(template.description || '설명이 아직 없습니다.')}</p>
-                <ul>
-                    <li>AI 분석 상태: ${template.aiAnalysisStatus === 'done' ? '완료' : template.aiAnalysisStatus === 'error' ? '실패' : '대기'}</li>
-                    <li>추천 필드 수: ${template.aiAnalysis?.suggested_fields?.length || template.fields.length || 0}개</li>
-                    <li>업로더: ${escapeHtml(template.creatorName)}</li>
-                </ul>
-            </div>
-        `;
-        previewResult.innerHTML = buildTemplatePreviewCard(template);
-        matchBox?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function showRecommendation(recommendation) {
-        if (templateBrowser) {
-            templateBrowser.hidden = false;
-        }
-
-        const bestTemplate = templates.find((template) => template.id === recommendation.best_template_id) || null;
-        highlightedTemplateId = bestTemplate?.id || null;
-        renderTemplates();
-        setMatchVisibility(true);
-
-        matchTitle.textContent = bestTemplate
-            ? `AI 추천 결과 · ${bestTemplate.title}`
-            : 'AI 추천 결과';
-        matchDesc.textContent = recommendation.reason || '입력한 내용을 기준으로 가장 잘 맞는 템플릿을 추천했습니다.';
-
-        const recommendedItems = recommendation.recommended_templates?.length
-            ? recommendation.recommended_templates.map((item) => {
-                const template = templates.find((entry) => entry.id === item.id);
-                return `
-                    <li>
-                        <strong>${escapeHtml(template?.title || `템플릿 #${item.id}`)}</strong>
-                        <span> · 신뢰도 ${Math.round((item.confidence || 0) * 100)}%</span><br>
-                        ${escapeHtml(item.reason || '')}
-                    </li>
-                `;
-            }).join('')
-            : '<li>추천 후보가 없습니다.</li>';
-
-        const planItems = recommendation.template_use_plan?.length
-            ? recommendation.template_use_plan.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
-            : '<li>사용 계획 정보가 없습니다.</li>';
-
-        matchPlan.innerHTML = `
-            <div class="ppt-preview-summary">
-                <h4>추천 이유</h4>
-                <p class="template-desc">${escapeHtml(recommendation.reason || '추천 이유가 없습니다.')}</p>
-            </div>
-            <div class="ppt-preview-summary">
-                <h4>추천 템플릿 후보</h4>
-                <ul>${recommendedItems}</ul>
-            </div>
-            <div class="ppt-preview-summary">
-                <h4>예상 구성 계획</h4>
-                <ul>${planItems}</ul>
-            </div>
-        `;
-
-        previewResult.innerHTML = bestTemplate
-            ? buildTemplatePreviewCard(bestTemplate, recommendation)
-            : '<p class="empty-message">추천된 템플릿이 없습니다.</p>';
-
-        matchBox?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    async function loadTemplates() {
-        if (!templateGrid) return;
-
-        templateGrid.innerHTML = '<p class="empty-message">템플릿을 불러오는 중입니다.</p>';
-
-        try {
-            const params = new URLSearchParams({
-                q: searchInput?.value?.trim() || ''
-            });
-
-            const response = await fetch(`/api/ppt-templates?${params.toString()}`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                templateGrid.innerHTML = `<p class="empty-message">${data.message || '템플릿을 불러오지 못했습니다.'}</p>`;
-                return;
-            }
-
-            templates = data.templates || [];
-            renderTemplates();
-        } catch (error) {
-            console.error('ppt templates load error:', error);
-            templateGrid.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
-        }
-    }
-
-    templateForm?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const formData = new FormData(templateForm);
-        setTemplateMessage('');
-
-        try {
-            const response = await fetch('/api/ppt-templates', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                setTemplateMessage(data.message || '템플릿 저장에 실패했습니다.', true);
-                return;
-            }
-
-            setTemplateMessage(data.message || '템플릿이 저장되었습니다.');
-            templateForm.reset();
-            await loadTemplates();
-        } catch (error) {
-            console.error('ppt template save error:', error);
-            setTemplateMessage('서버와 통신 중 오류가 발생했습니다.', true);
-        }
-    });
-
-    requestForm?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const requestData = {};
-        new FormData(requestForm).forEach((value, key) => {
-            requestData[key] = value;
+    paletteInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            updateSelectedColorUi(getSelectedPaletteColor());
         });
-
-        try {
-            const response = await fetch('/api/ppt-templates/recommend', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify(requestData)
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                setMatchVisibility(true);
-                matchTitle.textContent = '추천 결과';
-                matchDesc.textContent = data.message || '추천 결과를 만들지 못했습니다.';
-                matchPlan.innerHTML = '<p class="empty-message">추천 결과가 없습니다.</p>';
-                previewResult.innerHTML = '<p class="empty-message">추천 결과가 없습니다.</p>';
-                return;
-            }
-
-            showRecommendation(data.recommendation);
-
-            if (data.fallback && data.message) {
-                alert(data.message);
-            }
-        } catch (error) {
-            console.error('ppt recommend error:', error);
-            setMatchVisibility(true);
-            matchTitle.textContent = '추천 결과';
-            matchDesc.textContent = '서버와 통신 중 오류가 발생했습니다.';
-            matchPlan.innerHTML = '<p class="empty-message">추천 결과를 불러오지 못했습니다.</p>';
-            previewResult.innerHTML = '<p class="empty-message">추천 결과를 불러오지 못했습니다.</p>';
-        }
     });
 
-    searchBtn?.addEventListener('click', async () => {
-        await loadTemplates();
-    });
+    form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-    searchInput?.addEventListener('keydown', async (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            await loadTemplates();
-        }
-    });
+        const formData = new FormData(form);
+        const request = {
+            usePlace: String(formData.get('usePlace') || '').trim(),
+            usePurpose: String(formData.get('usePurpose') || '').trim(),
+            requestDetail: String(formData.get('requestDetail') || '').trim(),
+            preferredColor: String(formData.get('preferredColor') || getSelectedPaletteColor())
+        };
 
-    templateGrid?.addEventListener('click', async (event) => {
-        const analyzeButton = event.target.closest('.ppt-template-analyze-btn');
-        if (analyzeButton) {
-            const templateId = Number(analyzeButton.dataset.templateId);
-            const template = templates.find((item) => item.id === templateId);
-            if (!template) return;
-
-            analyzeButton.disabled = true;
-            analyzeButton.textContent = '분석 중...';
-
-            try {
-                const response = await fetch(`/api/ppt-templates/${templateId}/analyze`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    alert(data.message || 'AI 분석에 실패했습니다.');
-                    return;
-                }
-
-                alert(data.message || 'AI 분석이 완료되었습니다.');
-                await loadTemplates();
-            } catch (error) {
-                console.error('ppt ai analyze error:', error);
-                alert('서버와 통신 중 오류가 발생했습니다.');
-            } finally {
-                analyzeButton.disabled = false;
-                analyzeButton.textContent = template.aiAnalysisStatus === 'done' ? 'AI 분석 다시하기' : 'AI 분석하기';
-            }
-
+        if (!request.usePlace && !request.usePurpose && !request.requestDetail) {
+            setMessage('사용처, 목적, 상세 설명 중 하나 이상은 입력해 주세요.', true);
             return;
         }
 
-        const previewButton = event.target.closest('.ppt-template-preview-btn');
-        if (!previewButton) return;
+        try {
+            setLoading(true);
+            setMessage('');
+            updateSelectedColorUi(request.preferredColor);
 
-        const templateId = Number(previewButton.dataset.templateId);
-        const template = templates.find((item) => item.id === templateId);
-        if (!template) return;
+            if (!products.length) {
+                await loadProducts();
+            }
 
-        showTemplateOnly(template);
+            const matches = await buildMatches(request);
+            renderMatches(matches);
+
+            if (matches.length) {
+                setMessage('매칭 검색이 완료되었습니다.');
+            } else {
+                setMessage('검색은 완료됐지만 현재 조건과 비슷한 상품이 없습니다.', true);
+            }
+        } catch (error) {
+            console.error('ppt match search error:', error);
+            setMessage(error.message || '매칭 검색 중 오류가 발생했습니다.', true);
+        } finally {
+            setLoading(false);
+        }
     });
 
-    loadTemplates();
+    updateSelectedColorUi(getSelectedPaletteColor());
 });

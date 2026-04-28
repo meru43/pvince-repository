@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const orderCheckLink = document.getElementById('order-check-link');
     const adminLink = document.getElementById('admin-link');
     const sellerUploadLink = document.getElementById('seller-upload-link');
+    const sellerUpload2Link = document.getElementById('seller-upload2-link');
 
     const userMenu = document.getElementById('header-user-menu');
     const userTrigger = document.getElementById('header-user-trigger');
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userRole = document.getElementById('header-user-role');
 
     const sellerMenuLink = document.getElementById('header-menu-seller');
+    const sellerUpload2MenuLink = document.getElementById('header-menu-seller-upload2');
     const salesMenuLink = document.getElementById('header-menu-sales');
     const adminMenuLink = document.getElementById('header-menu-admin');
     const adminSettlementMenuLink = document.getElementById('header-menu-admin-settlement');
@@ -124,8 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             show(orderCheckLink);
             hide(cartLink);
             hide(sellerUploadLink);
+            hide(sellerUpload2Link);
             hide(adminLink);
             hide(userMenu);
+            hide(sellerUpload2MenuLink);
             hide(sellerMenuLink);
             hide(salesMenuLink);
             hide(adminMenuLink);

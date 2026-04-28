@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const MAX_PRODUCT_FILES = 5;
     const MAX_THUMBNAILS = 10;
 
-    const form = document.getElementById('seller-upload-form');
+    const form = document.getElementById('seller-upload2-form');
     const errorText = document.getElementById('seller-upload-error');
+    const submitButton = document.getElementById('seller-upload2-submit');
 
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
@@ -17,11 +17,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const productFilePreviewList = document.getElementById('product-file-preview-list');
 
     let selectedThumbnails = [];
-    let selectedProductFiles = [];
     let representativeThumbnailIndex = 0;
+    let selectedProductFile = null;
 
     function setError(message = '') {
         errorText.textContent = message;
+    }
+
+    function setLoading(isLoading) {
+        if (!submitButton) return;
+        submitButton.disabled = isLoading;
+        submitButton.classList.toggle('is-loading', isLoading);
+        submitButton.textContent = isLoading ? 'AI 분석 및 등록 중...' : '상품등록2 + AI 분석';
     }
 
     function filterNumericInput(input) {
@@ -57,12 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dataTransfer = new DataTransfer();
         selectedThumbnails.forEach((file) => dataTransfer.items.add(file));
         thumbnailInput.files = dataTransfer.files;
-    }
-
-    function syncProductFileInput() {
-        const dataTransfer = new DataTransfer();
-        selectedProductFiles.forEach((file) => dataTransfer.items.add(file));
-        productFileInput.files = dataTransfer.files;
     }
 
     function renderThumbnailPreview() {
@@ -119,53 +120,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderThumbnailPreview();
             });
         });
-
-        thumbnailPreviewList.querySelectorAll('.thumbnail-preview-card').forEach((card) => {
-            const previewUrl = card.dataset.previewUrl;
-            if (previewUrl) {
-                card.addEventListener('remove', () => URL.revokeObjectURL(previewUrl), { once: true });
-            }
-        });
     }
 
     function renderProductFilePreview() {
-        if (!selectedProductFiles.length) {
+        if (!selectedProductFile) {
             productFilePreviewList.innerHTML = '';
             return;
         }
 
-        productFilePreviewList.innerHTML = selectedProductFiles.map((file, index) => `
+        productFilePreviewList.innerHTML = `
             <div class="product-file-preview-item">
                 <div class="product-file-preview-meta">
-                    <strong class="product-file-preview-name">${file.name}</strong>
-                    <span class="product-file-preview-size">${Math.max(1, Math.round(file.size / 1024))}KB</span>
+                    <strong class="product-file-preview-name">${selectedProductFile.name}</strong>
+                    <span class="product-file-preview-size">${Math.max(1, Math.round(selectedProductFile.size / 1024))}KB</span>
                 </div>
-                <button type="button" class="preview-remove-btn" data-index="${index}" aria-label="파일 제거">X</button>
+                <button type="button" class="preview-remove-btn" id="product-file-remove-btn" aria-label="파일 제거">X</button>
             </div>
-        `).join('');
+        `;
 
-        productFilePreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
-            button.addEventListener('click', () => {
-                const index = Number(button.dataset.index);
-                if (Number.isNaN(index)) return;
-
-                selectedProductFiles.splice(index, 1);
-                setError('');
-                syncProductFileInput();
-                renderProductFilePreview();
-            });
+        document.getElementById('product-file-remove-btn')?.addEventListener('click', () => {
+            selectedProductFile = null;
+            productFileInput.value = '';
+            setError('');
+            renderProductFilePreview();
         });
     }
 
-    function mergeFiles(existingFiles, nextFiles, maxCount) {
+    function mergeThumbnailFiles(nextFiles) {
         const existingKeys = new Set(
-            existingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
+            selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
         );
 
         nextFiles.forEach((file) => {
             const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-            if (!existingKeys.has(fileKey) && existingFiles.length < maxCount) {
-                existingFiles.push(file);
+            if (!existingKeys.has(fileKey) && selectedThumbnails.length < MAX_THUMBNAILS) {
+                selectedThumbnails.push(file);
                 existingKeys.add(fileKey);
             }
         });
@@ -181,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        mergeFiles(selectedThumbnails, incomingFiles, MAX_THUMBNAILS);
+        mergeThumbnailFiles(incomingFiles);
 
         const totalRequested = new Set(
             [...selectedThumbnails, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)
@@ -199,29 +188,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     productFileInput.addEventListener('change', () => {
-        const incomingFiles = Array.from(productFileInput.files || []);
-
-        if (!incomingFiles.length) {
-            setError('');
-            syncProductFileInput();
-            renderProductFilePreview();
-            return;
-        }
-
-        mergeFiles(selectedProductFiles, incomingFiles, MAX_PRODUCT_FILES);
-
-        const totalRequested = new Set(
-            [...selectedProductFiles, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        ).size;
-
-        if (totalRequested > MAX_PRODUCT_FILES) {
-            setError('판매상품 파일은 최대 5개까지 업로드할 수 있습니다.');
-        } else {
-            setError('');
-        }
-
-        productFileInput.value = '';
-        syncProductFileInput();
+        selectedProductFile = productFileInput.files?.[0] || null;
+        setError('');
         renderProductFilePreview();
     });
 
@@ -250,8 +218,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
         setError('');
 
         const title = titleInput.value.trim();
@@ -271,18 +239,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (!description) {
-            setError('상품 설명을 입력해 주세요.');
-            return;
-        }
-
         if (!selectedThumbnails.length) {
             setError('상품 이미지를 업로드해 주세요.');
             return;
         }
 
-        if (!selectedProductFiles.length) {
-            setError('판매상품 파일을 업로드해 주세요.');
+        if (!selectedProductFile) {
+            setError('분석할 PPT 또는 PPTX 파일을 업로드해 주세요.');
+            return;
+        }
+
+        const ext = selectedProductFile.name.split('.').pop()?.toLowerCase();
+        if (!['ppt', 'pptx'].includes(ext || '')) {
+            setError('상품등록2에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.');
             return;
         }
 
@@ -299,12 +268,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('thumbnail', file);
         });
 
-        selectedProductFiles.forEach((file) => {
-            formData.append('productFile', file);
-        });
+        formData.append('productFile', selectedProductFile);
 
         try {
-            const response = await fetch('/api/seller/products', {
+            setLoading(true);
+
+            const response = await fetch('/api/seller/products-ai', {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
@@ -313,15 +282,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (!data.success) {
-                setError(data.message || '상품 등록에 실패했습니다.');
+                setError(data.message || '상품등록2에 실패했습니다.');
                 return;
             }
 
-            alert(data.message);
+            alert(`${data.message}\n분석된 슬라이드 수: ${data.slideCount || 0}`);
             window.location.href = `/products-page/${data.productId}`;
         } catch (error) {
-            console.error('상품 등록 실패:', error);
+            console.error('상품등록2 실패:', error);
             setError('서버와 통신 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
         }
     });
 });

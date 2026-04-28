@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>상품 등록</title>
+    <title>상품 등록2</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/seller-upload.css" />
 </head>
@@ -14,12 +14,12 @@
 
     <main class="container page">
         <section class="page-title-wrap">
-            <h2 class="page-title">상품 등록</h2>
-            <p class="page-desc">셀러와 관리자만 상품을 등록할 수 있습니다.</p>
+            <h2 class="page-title">상품 등록2</h2>
+            <p class="page-desc">PPT 업로드와 AI 페이지 분석을 한 번에 진행하고, 전체 요약을 상품 설명에 반영합니다.</p>
         </section>
 
         <section class="seller-upload-box">
-            <form id="seller-upload-form" class="seller-upload-form" enctype="multipart/form-data">
+            <form id="seller-upload2-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
                     <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
@@ -28,7 +28,7 @@
                 <div class="form-group">
                     <label for="product-thumbnail">상품 이미지</label>
                     <input type="file" id="product-thumbnail" name="thumbnail" accept="image/*" multiple />
-                    <small>최대 10장까지 업로드할 수 있고, 대표 이미지를 하나 선택할 수 있습니다.</small>
+                    <small>최대 10장까지 업로드할 수 있고, 상품리스트에 보여줄 대표 이미지를 선택할 수 있습니다.</small>
                     <div class="thumbnail-preview-list" id="thumbnail-preview-list"></div>
                 </div>
 
@@ -50,34 +50,35 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="product-description">설명</label>
-                    <textarea id="product-description" name="description" placeholder="상품 설명을 입력해 주세요."></textarea>
+                    <label for="product-description">AI 분석 참고 메모</label>
+                    <textarea id="product-description" name="description" placeholder="이 PPT가 어떤 용도인지, 어떤 분위기로 판매하고 싶은지 적어 주세요."></textarea>
+                    <small>여기에 적은 내용은 AI가 전체 요약을 만들 때 참고합니다.</small>
                 </div>
 
                 <div class="form-group">
                     <label for="product-keywords">키워드</label>
-                    <input type="text" id="product-keywords" name="keywords" placeholder="예: 비즈니스, 포트폴리오, 템플릿" />
+                    <input type="text" id="product-keywords" name="keywords" placeholder="예: 비즈니스, 미니멀, 제안서, 브랜드소개" />
                     <small>쉼표(,)로 구분해서 입력해 주세요.</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="product-file">판매상품 파일</label>
-                    <input type="file" id="product-file" name="productFile" multiple />
-                    <small>최대 5개까지 업로드할 수 있습니다.</small>
+                    <label for="product-file">PPT 상품 파일</label>
+                    <input type="file" id="product-file" name="productFile" accept=".ppt,.pptx" />
+                    <small>PPT 또는 PPTX 파일 1개만 업로드할 수 있습니다.</small>
                     <div class="product-file-preview-list" id="product-file-preview-list"></div>
                 </div>
 
                 <p class="seller-upload-error" id="seller-upload-error"></p>
 
                 <div class="seller-upload-actions">
-                    <button type="submit" class="btn btn-primary">상품 등록</button>
+                    <button type="submit" class="btn btn-primary" id="seller-upload2-submit">상품등록2 + AI 분석</button>
                 </div>
             </form>
         </section>
     </main>
 
     <script src="/js/common.js"></script>
-    <script src="/js/seller-upload.js"></script>
+    <script src="/js/seller-upload2.js"></script>
 </body>
 
 </html>

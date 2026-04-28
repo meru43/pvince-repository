@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { runPptAiPipeline } = require('../lib/ppt-ai-pipeline');
 
 module.exports = (db) => {
     const router = express.Router();
@@ -110,6 +111,55 @@ module.exports = (db) => {
 
     ensureProductFilesJsonColumn();
 
+    function ensureProductAiColumns() {
+        const columns = [
+            {
+                name: 'thumbnail_gallery_json',
+                sql: `ALTER TABLE products ADD COLUMN thumbnail_gallery_json LONGTEXT NULL AFTER thumbnail_path`
+            },
+            {
+                name: 'ai_slide_analysis_json',
+                sql: `ALTER TABLE products ADD COLUMN ai_slide_analysis_json LONGTEXT NULL AFTER thumbnail_gallery_json`
+            },
+            {
+                name: 'ai_summary_text',
+                sql: `ALTER TABLE products ADD COLUMN ai_summary_text LONGTEXT NULL AFTER ai_slide_analysis_json`
+            }
+        ];
+
+        columns.forEach((column) => {
+            db.query(
+                `
+                    SELECT COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'products'
+                      AND COLUMN_NAME = ?
+                    LIMIT 1
+                `,
+                [column.name],
+                (checkErr, checkResults) => {
+                    if (checkErr) {
+                        console.error(`${column.name} column check error:`, checkErr);
+                        return;
+                    }
+
+                    if (checkResults.length > 0) {
+                        return;
+                    }
+
+                    db.query(column.sql, (alterErr) => {
+                        if (alterErr) {
+                            console.error(`${column.name} column add error:`, alterErr);
+                        }
+                    });
+                }
+            );
+        });
+    }
+
+    ensureProductAiColumns();
+
     function ensureOrderPaymentMethodColumn() {
         const checkSql = `
             SELECT COLUMN_NAME
@@ -197,6 +247,10 @@ module.exports = (db) => {
         res.render('seller-upload');
     });
 
+    router.get('/seller-upload2-page', requireSellerOrAdmin, (req, res) => {
+        res.render('seller-upload2');
+    });
+
     // 상품 관리 페이지
     router.get('/seller-products-page', requireSellerOrAdmin, (req, res) => {
         res.render('seller-products');
@@ -211,7 +265,7 @@ module.exports = (db) => {
         '/api/seller/products',
         requireSellerOrAdminApi,
         upload.fields([
-            { name: 'thumbnail', maxCount: 1 },
+            { name: 'thumbnail', maxCount: 10 },
             { name: 'productFile', maxCount: 5 }
         ]),
         (req, res) => {
@@ -222,7 +276,9 @@ module.exports = (db) => {
             const description = req.body.description?.trim();
             const keywords = req.body.keywords?.trim();
 
-            const thumbnail = req.files?.thumbnail?.[0];
+            const thumbnails = req.files?.thumbnail || [];
+            const representativeThumbnailIndex = Math.max(0, Number(req.body.representativeThumbnailIndex || 0));
+            const thumbnail = thumbnails[representativeThumbnailIndex] || thumbnails[0];
             const productFiles = req.files?.productFile || [];
             const productFile = productFiles[0];
 
@@ -283,6 +339,13 @@ module.exports = (db) => {
                 }))
             );
             const thumbnailPath = `/uploads/thumbnails/${thumbnail.filename}`;
+            const thumbnailGalleryJson = JSON.stringify(
+                thumbnails.map((file, index) => ({
+                    path: `/uploads/thumbnails/${file.filename}`,
+                    name: normalizeUploadFileName(file.originalname),
+                    isRepresentative: index === representativeThumbnailIndex
+                }))
+            );
 
             const sql = `
                 INSERT INTO products (
@@ -295,10 +358,11 @@ module.exports = (db) => {
                     file_path,
                     product_files_json,
                     thumbnail_path,
+                    thumbnail_gallery_json,
                     keywords,
                     created_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -311,6 +375,7 @@ module.exports = (db) => {
                 filePath,
                 productFilesJson,
                 thumbnailPath,
+                thumbnailGalleryJson,
                 cleanedKeywords,
                 req.session.userId
             ];
@@ -330,6 +395,187 @@ module.exports = (db) => {
                     productId: result.insertId
                 });
             });
+        }
+    );
+
+    router.post(
+        '/api/seller/products-ai',
+        requireSellerOrAdminApi,
+        upload.fields([
+            { name: 'thumbnail', maxCount: 10 },
+            { name: 'productFile', maxCount: 1 }
+        ]),
+        async (req, res) => {
+            const title = req.body.title?.trim();
+            const price = req.body.price;
+            const salePrice = req.body.salePrice;
+            const isFree = req.body.isFree === '1' ? 1 : 0;
+            const sellerNote = req.body.description?.trim() || '';
+            const keywords = req.body.keywords?.trim() || '';
+
+            const thumbnails = req.files?.thumbnail || [];
+            const representativeThumbnailIndex = Math.max(0, Number(req.body.representativeThumbnailIndex || 0));
+            const thumbnail = thumbnails[representativeThumbnailIndex] || thumbnails[0];
+            const productFile = req.files?.productFile?.[0];
+
+            if (!title) {
+                return res.json({
+                    success: false,
+                    message: '상품명을 입력해 주세요.'
+                });
+            }
+
+            if (!isFree && (!price || Number(price) < 0)) {
+                return res.json({
+                    success: false,
+                    message: '올바른 판매가를 입력해 주세요.'
+                });
+            }
+
+            if (!thumbnail) {
+                return res.json({
+                    success: false,
+                    message: '상품 썸네일을 업로드해 주세요.'
+                });
+            }
+
+            if (thumbnails.length > 10) {
+                return res.json({
+                    success: false,
+                    message: '상품 이미지는 최대 10장까지 업로드할 수 있습니다.'
+                });
+            }
+
+            if (thumbnails.length > 10) {
+                return res.json({
+                    success: false,
+                    message: '상품 이미지는 최대 10장까지 업로드할 수 있습니다.'
+                });
+            }
+
+            if (!productFile) {
+                return res.json({
+                    success: false,
+                    message: '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.'
+                });
+            }
+
+            const fileExt = path.extname(productFile.originalname || '').toLowerCase();
+            if (!['.ppt', '.pptx'].includes(fileExt)) {
+                return res.json({
+                    success: false,
+                    message: '상품등록2에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                });
+            }
+
+            try {
+                const cleanedKeywords = keywords
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                    .join(',');
+
+                const fileName = normalizeUploadFileName(productFile.originalname);
+                const filePath = `/uploads/products/${productFile.filename}`;
+                const productFilesJson = JSON.stringify([
+                    {
+                        name: fileName,
+                        path: filePath
+                    }
+                ]);
+                const thumbnailPath = `/uploads/thumbnails/${thumbnail.filename}`;
+                const thumbnailGalleryJson = JSON.stringify(
+                    thumbnails.map((file, index) => ({
+                        path: `/uploads/thumbnails/${file.filename}`,
+                        name: normalizeUploadFileName(file.originalname),
+                        isRepresentative: index === representativeThumbnailIndex
+                    }))
+                );
+                const referenceImages = thumbnails.map((file, index) => ({
+                    absolutePath: file.path,
+                    publicPath: `/uploads/thumbnails/${file.filename}`,
+                    label: index === representativeThumbnailIndex
+                        ? `대표 상품 이미지 ${index + 1}`
+                        : `상품 이미지 ${index + 1}`
+                }));
+
+                const analysisResult = await runPptAiPipeline({
+                    sourcePptPath: productFile.path,
+                    sourceFileName: fileName,
+                    outputKey: path.basename(productFile.filename, path.extname(productFile.filename)),
+                    publicDir: path.join(__dirname, '..', 'public'),
+                    outputNamespace: 'ppt-product-analysis',
+                    context: {
+                        title,
+                        keywords: cleanedKeywords,
+                        sellerNote
+                    },
+                    referenceImages
+                });
+
+                const summaryText = analysisResult.summary?.summary?.trim() || sellerNote || `${title} PPT 템플릿입니다.`;
+
+                const sql = `
+                    INSERT INTO products (
+                        title,
+                        price,
+                        sale_price,
+                        is_free,
+                        description,
+                        file_name,
+                        file_path,
+                        product_files_json,
+                        thumbnail_path,
+                        thumbnail_gallery_json,
+                        ai_slide_analysis_json,
+                        ai_summary_text,
+                        keywords,
+                        created_by
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+
+                const values = [
+                    title,
+                    isFree ? 0 : Number(price),
+                    isFree ? 0 : (salePrice ? Number(salePrice) : null),
+                    isFree,
+                    sellerNote,
+                    fileName,
+                    filePath,
+                    productFilesJson,
+                    thumbnailPath,
+                    thumbnailGalleryJson,
+                    JSON.stringify(analysisResult.slides || []),
+                    summaryText,
+                    cleanedKeywords,
+                    req.session.userId
+                ];
+
+                db.query(sql, values, (err, result) => {
+                    if (err) {
+                        console.error('AI 상품 등록 오류:', err);
+                        return res.json({
+                            success: false,
+                            message: '상품등록2 저장에 실패했습니다.'
+                        });
+                    }
+
+                    return res.json({
+                        success: true,
+                        message: '상품등록2와 AI 분석이 완료되었습니다.',
+                        productId: result.insertId,
+                        aiSummary: summaryText,
+                        slideCount: analysisResult.slideCount || 0
+                    });
+                });
+            } catch (error) {
+                console.error('AI 상품 분석 오류:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: `PPT 분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
+                });
+            }
         }
     );
 
