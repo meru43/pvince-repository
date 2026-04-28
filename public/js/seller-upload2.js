@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedThumbnails = [];
     let representativeThumbnailIndex = 0;
     let selectedProductFile = null;
+    const descriptionEditor = window.createProductJoditEditor
+        ? window.createProductJoditEditor(descriptionInput)
+        : null;
 
     function setError(message = '') {
         errorText.textContent = message;
@@ -212,7 +215,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isFree = isFreeInput.checked;
         const usePlace = usePlaceInput.value.trim();
         const usePurpose = usePurposeInput.value.trim();
-        const description = descriptionInput.value.trim();
+        const description = String(
+            window.normalizeProductEditorHtml
+                ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+                : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+        ).trim();
         const keywords = keywordsInput.value.trim();
 
         if (!title) {

@@ -64,7 +64,106 @@ module.exports = (db) => {
             return '';
         }
 
-        return rawHtml
+        function sanitizeInlineStyle(styleValue, allowedProperties) {
+            return String(styleValue || '')
+                .split(';')
+                .map((rule) => rule.trim())
+                .filter(Boolean)
+                .map((rule) => {
+                    const separatorIndex = rule.indexOf(':');
+                    if (separatorIndex === -1) {
+                        return null;
+                    }
+
+                    const property = rule.slice(0, separatorIndex).trim().toLowerCase();
+                    const value = rule.slice(separatorIndex + 1).trim();
+
+                    if (!allowedProperties.includes(property)) {
+                        return null;
+                    }
+
+                    if (/javascript:|expression\s*\(|url\s*\(/i.test(value)) {
+                        return null;
+                    }
+
+                    return `${property}: ${value}`;
+                })
+                .filter(Boolean)
+                .join('; ');
+        }
+
+        const protectedImgStyles = [];
+        const protectedGenericStyles = [];
+
+        const htmlWithProtectedImgStyles = rawHtml.replace(
+            /<img\b([^>]*?)\sstyle=(["'])(.*?)\2([^>]*)>/gi,
+            (match, before, quote, styleValue, after) => {
+                const safeStyle = sanitizeInlineStyle(styleValue, [
+                    'width',
+                    'height',
+                    'max-width',
+                    'display',
+                    'margin',
+                    'margin-left',
+                    'margin-right',
+                    'float'
+                ]);
+
+                if (!safeStyle) {
+                    return `<img${before}${after}>`;
+                }
+
+                const token = `__EDITOR_IMG_STYLE_${protectedImgStyles.length}__`;
+                protectedImgStyles.push(safeStyle);
+                return `<img${before} data-editor-safe-style="${token}"${after}>`;
+            }
+        );
+
+        const htmlWithProtectedStyles = htmlWithProtectedImgStyles.replace(
+            /<(?!img\b)([a-z0-9]+)\b([^>]*?)\sstyle=(["'])(.*?)\3([^>]*)>/gi,
+            (match, tagName, before, quote, styleValue, after) => {
+                const safeStyle = sanitizeInlineStyle(styleValue, [
+                    'text-align',
+                    'color',
+                    'background-color',
+                    'font-size',
+                    'font-family',
+                    'font-weight',
+                    'font-style',
+                    'text-decoration',
+                    'padding-left',
+                    'margin-left',
+                    'margin-right',
+                    'margin',
+                    'line-height',
+                    'width',
+                    'height',
+                    'vertical-align',
+                    'border-collapse',
+                    'border',
+                    'border-top',
+                    'border-right',
+                    'border-bottom',
+                    'border-left'
+                ]);
+
+                if (!safeStyle) {
+                    return `<${tagName}${before}${after}>`;
+                }
+
+                const token = `__EDITOR_GENERIC_STYLE_${protectedGenericStyles.length}__`;
+                protectedGenericStyles.push(safeStyle);
+                return `<${tagName}${before} data-editor-safe-style="${token}"${after}>`;
+            }
+        );
+
+        const sanitizedHtml = htmlWithProtectedStyles
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style="[^"]*text-align\s*:\s*center;?[^"]*"([^>]*)>/gi, '<$1$2 class="editor-align-center"$3>')
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style='[^']*text-align\s*:\s*center;?[^']*'([^>]*)>/gi, '<$1$2 class="editor-align-center"$3>')
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style="[^"]*text-align\s*:\s*right;?[^"]*"([^>]*)>/gi, '<$1$2 class="editor-align-right"$3>')
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style='[^']*text-align\s*:\s*right;?[^']*'([^>]*)>/gi, '<$1$2 class="editor-align-right"$3>')
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style="[^"]*text-align\s*:\s*justify;?[^"]*"([^>]*)>/gi, '<$1$2 class="editor-align-justify"$3>')
+            .replace(/<(p|div|h1|h2|h3|h4|h5|h6|blockquote|ul|ol|li)([^>]*?)style='[^']*text-align\s*:\s*justify;?[^']*'([^>]*)>/gi, '<$1$2 class="editor-align-justify"$3>')
             .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
             .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
             .replace(/<(iframe|object|embed|form|input|button|meta|link)[^>]*?>[\s\S]*?<\/\1>/gi, '')
@@ -77,6 +176,22 @@ module.exports = (db) => {
             .replace(/javascript:/gi, '')
             .replace(/data:text\/html/gi, '')
             .trim();
+
+        return sanitizedHtml
+            .replace(
+                /\sdata-editor-safe-style="(__EDITOR_IMG_STYLE_(\d+)__)"/g,
+                (match, token, indexText) => {
+                    const styleValue = protectedImgStyles[Number(indexText)] || '';
+                    return styleValue ? ` style="${styleValue}"` : '';
+                }
+            )
+            .replace(
+                /\sdata-editor-safe-style="(__EDITOR_GENERIC_STYLE_(\d+)__)"/g,
+                (match, token, indexText) => {
+                    const styleValue = protectedGenericStyles[Number(indexText)] || '';
+                    return styleValue ? ` style="${styleValue}"` : '';
+                }
+            );
     }
 
     function toPlainText(html) {
@@ -210,6 +325,41 @@ module.exports = (db) => {
 
     ensureProductAiColumns();
 
+    function ensureProductDescriptionMediumText() {
+        db.query(
+            `
+                SELECT DATA_TYPE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'products'
+                  AND COLUMN_NAME = 'description'
+                LIMIT 1
+            `,
+            (checkErr, checkResults) => {
+                if (checkErr) {
+                    console.error('products.description column check error:', checkErr);
+                    return;
+                }
+
+                const dataType = String(checkResults[0]?.DATA_TYPE || '').toLowerCase();
+                if (dataType === 'mediumtext' || dataType === 'longtext') {
+                    return;
+                }
+
+                db.query(
+                    `ALTER TABLE products MODIFY COLUMN description MEDIUMTEXT NULL`,
+                    (alterErr) => {
+                        if (alterErr) {
+                            console.error('products.description MEDIUMTEXT alter error:', alterErr);
+                        }
+                    }
+                );
+            }
+        );
+    }
+
+    ensureProductDescriptionMediumText();
+
     function ensureOrderPaymentMethodColumn() {
         const checkSql = `
             SELECT COLUMN_NAME
@@ -292,7 +442,12 @@ module.exports = (db) => {
         }
     });
 
-    const upload = multer({ storage });
+    const upload = multer({
+        storage,
+        limits: {
+            fieldSize: 20 * 1024 * 1024
+        }
+    });
 
     // 상품 등록 페이지
     router.get('/seller-upload-page', requireSellerOrAdmin, (req, res) => {

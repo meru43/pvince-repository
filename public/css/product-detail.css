@@ -261,6 +261,18 @@
     margin: 0 0 16px;
 }
 
+.detail-description-body .editor-align-center {
+    text-align: center;
+}
+
+.detail-description-body .editor-align-right {
+    text-align: right;
+}
+
+.detail-description-body .editor-align-justify {
+    text-align: justify;
+}
+
 .detail-description-body ul,
 .detail-description-body ol {
     padding-left: 20px;
@@ -284,6 +296,25 @@
 
 .detail-description-body strong {
     color: #111827;
+}
+
+.detail-description-body table {
+    width: 100%;
+    margin: 0 0 20px;
+    border-collapse: collapse;
+}
+
+.detail-description-body table th,
+.detail-description-body table td {
+    border: 1px solid #e1e1e1;
+    padding: 10px 12px;
+    vertical-align: top;
+}
+
+.detail-description-body table th {
+    background: #f8f8f8;
+    color: #333;
+    font-weight: 700;
 }
 
 .detail-description-body img {

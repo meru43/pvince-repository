@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedThumbnails = [];
     let selectedProductFiles = [];
     let representativeThumbnailIndex = 0;
+    const descriptionEditor = window.createProductJoditEditor
+        ? window.createProductJoditEditor(descriptionInput)
+        : null;
 
     function setError(message = '') {
         errorText.textContent = message;
@@ -221,7 +224,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const price = priceInput.value.trim();
         const salePrice = salePriceInput.value.trim();
         const isFree = isFreeInput.checked;
-        const description = descriptionInput.value.trim();
+        const description = String(
+            window.normalizeProductEditorHtml
+                ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+                : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+        ).trim();
         const keywords = keywordsInput.value.trim();
 
         if (!title) {

@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>상품 등록</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/seller-upload.css" />
 </head>
@@ -22,7 +23,7 @@
             <form id="seller-upload-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
-                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
+                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요" />
                 </div>
 
                 <div class="form-group">
@@ -34,12 +35,12 @@
 
                 <div class="form-group">
                     <label for="product-price">판매가</label>
-                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요." />
+                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요" />
                 </div>
 
                 <div class="form-group">
                     <label for="product-sale-price">할인가</label>
-                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요." />
+                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요" />
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -51,7 +52,7 @@
 
                 <div class="form-group">
                     <label for="product-description">상세 설명</label>
-                    <textarea id="product-description" name="description" placeholder="상품 상세 설명을 입력해 주세요."></textarea>
+                    <textarea id="product-description" name="description" placeholder="상품 상세 설명을 입력해 주세요"></textarea>
                 </div>
 
                 <div class="form-group">
@@ -77,6 +78,8 @@
     </main>
 
     <script src="/js/common.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.js"></script>
+    <script src="/js/jodit-product-editor.js"></script>
     <script src="/js/seller-upload.js"></script>
 </body>
 

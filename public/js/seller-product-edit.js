@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const productActiveStatus = document.getElementById('product-active-status');
     const productStopMemo = document.getElementById('product-stop-memo');
     const productStopMemoGroup = document.getElementById('product-stop-memo-group');
+    const descriptionEditor = window.createProductJoditEditor
+        ? window.createProductJoditEditor(descriptionInput)
+        : null;
 
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
@@ -67,7 +70,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceInput.value = product.price ?? '';
         salePriceInput.value = product.sale_price ?? '';
         isFreeInput.checked = Number(product.is_free) === 1;
-        descriptionInput.value = product.description || '';
+        if (descriptionEditor) {
+            descriptionEditor.value = product.description || '';
+        } else {
+            descriptionInput.value = product.description || '';
+        }
         keywordsInput.value = product.keywords || '';
 
         if (product.thumbnail_path) {
@@ -98,7 +105,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const price = priceInput.value.trim();
         const salePrice = salePriceInput.value.trim();
         const isFree = isFreeInput.checked;
-        const description = descriptionInput.value.trim();
+        const description = String(
+            window.normalizeProductEditorHtml
+                ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+                : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+        ).trim();
         const keywords = keywordsInput.value.trim();
 
         if (!title) {

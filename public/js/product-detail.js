@@ -26,7 +26,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function normalizeDescriptionHtml(html) {
-        const plainText = htmlToPlainText(html || '');
+        const rawHtml = String(html || '').trim();
+        if (!rawHtml) {
+            return '<p>상품 설명이 없습니다.</p>';
+        }
+
+        const hasHtmlTag = /<\/?[a-z][\s\S]*>/i.test(rawHtml);
+        if (hasHtmlTag) {
+            return rawHtml;
+        }
+
+        const plainText = htmlToPlainText(rawHtml);
         if (!plainText) {
             return '<p>상품 설명이 없습니다.</p>';
         }

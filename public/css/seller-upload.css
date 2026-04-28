@@ -57,6 +57,26 @@
     line-height: 1.7;
 }
 
+.form-group .jodit-container {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.form-group .jodit-container:not(.jodit_inline) {
+    background: #fff;
+}
+
+.form-group .jodit-workplace {
+    min-height: 420px;
+}
+
+.form-group .jodit-wysiwyg,
+.form-group .jodit-wysiwyg_iframe {
+    font-size: 15px;
+    line-height: 1.8;
+}
+
 .rich-editor-shell {
     position: relative;
     border: 1px solid #ddd;
