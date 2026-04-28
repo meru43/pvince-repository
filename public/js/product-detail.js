@@ -10,6 +10,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     let mainSwiper = null;
     let thumbSwiper = null;
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function htmlToPlainText(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html || '';
+        return (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function normalizeDescriptionHtml(html) {
+        const plainText = htmlToPlainText(html || '');
+        if (!plainText) {
+            return '<p>상품 설명이 없습니다.</p>';
+        }
+
+        return plainText
+            .split(/\n+/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => `<p>${escapeHtml(line)}</p>`)
+            .join('');
+    }
+
     async function addToCart(product) {
         try {
             const response = await fetch('/api/cart', {
@@ -144,9 +173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderProduct(product) {
-        const detailDescription = product.display_description || product.ai_summary_text || product.description || '';
+        const summaryText = product.ai_summary_text || htmlToPlainText(product.description || '') || '';
+        const descriptionHtml = normalizeDescriptionHtml(product.description || product.ai_summary_text || '');
         const keywordHtml = (product.keywordList || [])
-            .map((keyword) => `<span class="keyword-tag">${keyword}</span>`)
+            .map((keyword) => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`)
             .join('');
 
         const galleryImages = parseThumbnailGallery(product);
@@ -169,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button type="button" class="btn btn-primary" id="admin-download-toggle">다운로드</button>
                     <div class="detail-download-list" id="detail-download-list" hidden>
                         ${parseProductFiles(product).map((file, index) => `
-                            <a href="/download/${product.id}?file=${index}" class="detail-download-item">${file.name}</a>
+                            <a href="/download/${product.id}?file=${index}" class="detail-download-item">${escapeHtml(file.name)}</a>
                         `).join('')}
                     </div>
                 </div>
@@ -180,7 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? `
                 <div class="detail-owner-notice">
                     <strong>본인 상품</strong>
-                    <p>직접 업로드한 상품이라 장바구니 담기와 바로 구매는 사용할 수 없습니다.</p>
+                    <p>직접 업로드한 상품이라 장바구니 담기와 바로 구매를 사용할 수 없습니다.</p>
                 </div>
             `
             : product.is_admin
@@ -198,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${galleryImages.map((image) => `
                                 <div class="swiper-slide">
                                     <div class="detail-image">
-                                        <img src="${image.path}" alt="${image.name}">
+                                        <img src="${image.path}" alt="${escapeHtml(image.name)}">
                                     </div>
                                 </div>
                             `).join('')}
@@ -213,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ${galleryImages.map((image) => `
                             <div class="swiper-slide">
                                 <button type="button" class="detail-gallery-thumb">
-                                    <img src="${image.path}" alt="${image.name}">
+                                    <img src="${image.path}" alt="${escapeHtml(image.name)}">
                                 </button>
                             </div>
                         `).join('')}
@@ -224,17 +254,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="detail-content">
                 <p class="detail-category">상품 상세</p>
                 ${ownerTagHtml}
-                <h2 class="detail-title">${product.title}</h2>
+                <h2 class="detail-title">${escapeHtml(product.title)}</h2>
                 ${originalPriceHtml}
                 <p class="detail-price">${displayPrice}</p>
 
                 <div class="detail-summary">
-                    <p>${detailDescription || '상품 설명이 없습니다.'}</p>
+                    <p>${escapeHtml(summaryText || '상품 설명이 없습니다.')}</p>
                 </div>
 
                 <ul class="detail-meta">
                     <li><strong>상품 번호</strong> <span>${product.id}</span></li>
-                    <li><strong>업로더</strong> <span>${product.uploader_name || '미정'}</span></li>
+                    <li><strong>업로더</strong> <span>${escapeHtml(product.uploader_name || '미정')}</span></li>
                     <li><strong>가격</strong> <span>${displayPrice}</span></li>
                 </ul>
 
@@ -244,9 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
-        descriptionContent.innerHTML = `
-            <p>${detailDescription || '상품 설명이 없습니다.'}</p>
-        `;
+        descriptionContent.innerHTML = `<div class="detail-description-body">${descriptionHtml}</div>`;
 
         if (keywordsBox) {
             keywordsBox.innerHTML = keywordHtml;
@@ -291,7 +319,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        detailBox.innerHTML = `<p class="empty-message">${data.message || '상품 정보를 불러오지 못했습니다.'}</p>`;
+        detailBox.innerHTML = `<p class="empty-message">${escapeHtml(data.message || '상품 정보를 불러오지 못했습니다.')}</p>`;
     } catch (error) {
         console.error('상품 상세 불러오기 실패:', error);
         detailBox.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';

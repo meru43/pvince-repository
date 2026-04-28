@@ -24,6 +24,7 @@
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
     border: 1px solid #ddd;
     border-radius: 12px;
@@ -37,10 +38,155 @@
     height: 50px;
 }
 
+.form-group select {
+    min-height: 50px;
+    appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #666 50%),
+        linear-gradient(135deg, #666 50%, transparent 50%);
+    background-position:
+        calc(100% - 22px) calc(50% - 2px),
+        calc(100% - 16px) calc(50% - 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
 .form-group textarea {
     min-height: 180px;
     resize: vertical;
     line-height: 1.7;
+}
+
+.rich-editor-shell {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.rich-editor-shell .ql-toolbar.ql-snow {
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 10px 12px;
+}
+
+.rich-editor-shell .ql-container.ql-snow {
+    border: none;
+    min-height: 220px;
+    font-family: inherit;
+    font-size: 15px;
+}
+
+.rich-editor-shell .ql-editor {
+    min-height: 220px;
+    line-height: 1.8;
+    color: #111827;
+}
+
+.rich-editor-shell .ql-editor img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+}
+
+.rich-editor-shell .ql-editor img.editor-image-align-left {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.rich-editor-shell .ql-editor img.editor-image-align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rich-editor-shell .ql-editor img.editor-image-align-right {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.rich-editor-shell .ql-editor.ql-blank::before {
+    color: #9ca3af;
+    font-style: normal;
+}
+
+.editor-image-toolbar {
+    position: absolute;
+    top: 62px;
+    right: 12px;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid rgba(17, 24, 39, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.editor-image-toolbar.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.editor-image-toolbar-status {
+    margin-right: 4px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.editor-image-resize-handle {
+    position: absolute;
+    z-index: 32;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 999px;
+    background: #2563eb;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    cursor: nwse-resize;
+}
+
+.editor-image-resize-handle.is-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.editor-image-toolbar button {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #111827;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.editor-image-toolbar button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.editor-image-toolbar button.danger {
+    color: #b42318;
+    border-color: #f1b4ad;
+}
+
+.rich-editor-shell .ql-editor img.is-selected-editor-image {
+    outline: 3px solid rgba(37, 99, 235, 0.35);
 }
 
 .form-group small {
@@ -209,6 +355,13 @@
         border-radius: 20px;
     }
 
+    .editor-image-toolbar {
+        top: 58px;
+        left: 12px;
+        right: 12px;
+        border-radius: 16px;
+    }
+
     .product-file-preview-item {
         min-width: 100%;
     }
@@ -226,6 +379,19 @@
 
     .seller-upload-actions .btn {
         width: 100%;
+    }
+
+    .editor-image-toolbar {
+        top: 54px;
+        left: 8px;
+        right: 8px;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .editor-image-toolbar-status {
+        width: 100%;
+        margin-right: 0;
     }
 
     .thumbnail-preview-card {

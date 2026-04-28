@@ -10,8 +10,8 @@ body {
 
 body {
     font-family: Arial, "Noto Sans KR", sans-serif;
-    background-color: #f7f7f8;
-    color: #222;
+    background-color: #f1f1f2;
+    color: #333;
     line-height: 1.5;
 }
 
@@ -42,7 +42,7 @@ ul {
 
 .site-header {
     background: #fff;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid #e1e1e1;
 }
 
 .header-inner {
@@ -55,6 +55,7 @@ ul {
 .logo a {
     font-size: 22px;
     font-weight: 700;
+    color: #333;
 }
 
 .nav {
@@ -65,11 +66,11 @@ ul {
 
 .nav a {
     font-size: 15px;
-    color: #555;
+    color: #333;
 }
 
 .nav a:hover {
-    color: #111;
+    color: #333;
 }
 
 .auth-link {

@@ -4,13 +4,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('seller-upload2-form');
     const errorText = document.getElementById('seller-upload-error');
     const submitButton = document.getElementById('seller-upload2-submit');
-
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
     const thumbnailPreviewList = document.getElementById('thumbnail-preview-list');
     const priceInput = document.getElementById('product-price');
     const salePriceInput = document.getElementById('product-sale-price');
     const isFreeInput = document.getElementById('product-is-free');
+    const usePlaceInput = document.getElementById('product-use-place');
+    const usePurposeInput = document.getElementById('product-use-purpose');
     const descriptionInput = document.getElementById('product-description');
     const keywordsInput = document.getElementById('product-keywords');
     const productFileInput = document.getElementById('product-file');
@@ -25,7 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setLoading(isLoading) {
-        if (!submitButton) return;
         submitButton.disabled = isLoading;
         submitButton.classList.toggle('is-loading', isLoading);
         submitButton.textContent = isLoading ? 'AI 분석 및 등록 중...' : '상품등록2 + AI 분석';
@@ -51,13 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceInput.disabled = false;
         salePriceInput.disabled = false;
 
-        if (priceInput.value === '0') {
-            priceInput.value = '';
-        }
-
-        if (salePriceInput.value === '0') {
-            salePriceInput.value = '';
-        }
+        if (priceInput.value === '0') priceInput.value = '';
+        if (salePriceInput.value === '0') salePriceInput.value = '';
     }
 
     function syncThumbnailInput() {
@@ -82,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const checked = index === representativeThumbnailIndex ? 'checked' : '';
 
             return `
-                <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}" data-preview-url="${previewUrl}">
+                <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}">
                     <button type="button" class="preview-remove-btn" data-remove-index="${index}" aria-label="이미지 제거">X</button>
                     <img src="${previewUrl}" alt="${file.name}" class="thumbnail-preview-image">
                     <label class="thumbnail-radio-label">
@@ -102,11 +97,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const removedWasRepresentative = representativeThumbnailIndex === index;
                 selectedThumbnails.splice(index, 1);
 
-                if (removedWasRepresentative) {
-                    representativeThumbnailIndex = 0;
-                } else if (representativeThumbnailIndex > index) {
-                    representativeThumbnailIndex -= 1;
-                }
+                if (removedWasRepresentative) representativeThumbnailIndex = 0;
+                else if (representativeThumbnailIndex > index) representativeThumbnailIndex -= 1;
 
                 setError('');
                 syncThumbnailInput();
@@ -147,22 +139,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function mergeThumbnailFiles(nextFiles) {
-        const existingKeys = new Set(
-            selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        );
+        const existingKeys = new Set(selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
 
         nextFiles.forEach((file) => {
-            const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-            if (!existingKeys.has(fileKey) && selectedThumbnails.length < MAX_THUMBNAILS) {
+            const key = `${file.name}-${file.size}-${file.lastModified}`;
+            if (!existingKeys.has(key) && selectedThumbnails.length < MAX_THUMBNAILS) {
                 selectedThumbnails.push(file);
-                existingKeys.add(fileKey);
+                existingKeys.add(key);
             }
         });
     }
 
     thumbnailInput.addEventListener('change', () => {
         const incomingFiles = Array.from(thumbnailInput.files || []);
-
         if (!incomingFiles.length) {
             setError('');
             syncThumbnailInput();
@@ -170,17 +159,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const requestedSize = new Set([
+            ...selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+            ...incomingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
+        ]).size;
+
         mergeThumbnailFiles(incomingFiles);
-
-        const totalRequested = new Set(
-            [...selectedThumbnails, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        ).size;
-
-        if (totalRequested > MAX_THUMBNAILS) {
-            setError('상품 이미지는 최대 10장까지 업로드할 수 있습니다.');
-        } else {
-            setError('');
-        }
+        setError(requestedSize > MAX_THUMBNAILS ? '상품 이미지는 최대 10장까지 업로드할 수 있습니다.' : '');
 
         thumbnailInput.value = '';
         syncThumbnailInput();
@@ -203,11 +188,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             method: 'GET',
             credentials: 'include'
         });
-
         const meData = await meResponse.json();
 
         if (!meData.loggedIn || (meData.role !== 'seller' && meData.role !== 'admin')) {
-            alert('셀러와 관리자만 접근할 수 있습니다.');
+            alert('셀러 또는 관리자만 접근할 수 있습니다.');
             window.location.href = '/';
             return;
         }
@@ -226,6 +210,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const price = priceInput.value.trim();
         const salePrice = salePriceInput.value.trim();
         const isFree = isFreeInput.checked;
+        const usePlace = usePlaceInput.value.trim();
+        const usePurpose = usePurposeInput.value.trim();
         const description = descriptionInput.value.trim();
         const keywords = keywordsInput.value.trim();
 
@@ -236,6 +222,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!isFree && !price) {
             setError('판매가를 입력해 주세요.');
+            return;
+        }
+
+        if (!usePlace) {
+            setError('PPT를 어디에 사용할지 선택해 주세요.');
+            return;
+        }
+
+        if (!usePurpose) {
+            setError('PPT의 목적을 선택해 주세요.');
+            return;
+        }
+
+        if (!description) {
+            setError('상세 설명을 입력해 주세요.');
             return;
         }
 
@@ -260,14 +261,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('price', isFree ? '0' : price);
         formData.append('salePrice', isFree ? '0' : salePrice);
         formData.append('isFree', isFree ? '1' : '0');
+        formData.append('usePlace', usePlace);
+        formData.append('usePurpose', usePurpose);
         formData.append('description', description);
         formData.append('keywords', keywords);
         formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
 
-        selectedThumbnails.forEach((file) => {
-            formData.append('thumbnail', file);
-        });
-
+        selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
         formData.append('productFile', selectedProductFile);
 
         try {

@@ -15,31 +15,31 @@
     <main class="container page">
         <section class="page-title-wrap">
             <h2 class="page-title">상품 등록2</h2>
-            <p class="page-desc">PPT 업로드와 AI 페이지 분석을 한 번에 진행하고, 전체 요약을 상품 설명에 반영합니다.</p>
+            <p class="page-desc">PPT 업로드와 AI 분석을 함께 진행하고, 전체 요약을 상품 설명에 반영합니다.</p>
         </section>
 
         <section class="seller-upload-box">
             <form id="seller-upload2-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
-                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
+                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요" />
                 </div>
 
                 <div class="form-group">
                     <label for="product-thumbnail">상품 이미지</label>
                     <input type="file" id="product-thumbnail" name="thumbnail" accept="image/*" multiple />
-                    <small>최대 10장까지 업로드할 수 있고, 상품리스트에 보여줄 대표 이미지를 선택할 수 있습니다.</small>
+                    <small>최대 10장까지 업로드할 수 있고, 상품리스트에 보일 대표 이미지를 선택할 수 있습니다.</small>
                     <div class="thumbnail-preview-list" id="thumbnail-preview-list"></div>
                 </div>
 
                 <div class="form-group">
                     <label for="product-price">판매가</label>
-                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요." />
+                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요" />
                 </div>
 
                 <div class="form-group">
                     <label for="product-sale-price">할인가</label>
-                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요." />
+                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요" />
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -50,9 +50,38 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="product-description">AI 분석 참고 메모</label>
-                    <textarea id="product-description" name="description" placeholder="이 PPT가 어떤 용도인지, 어떤 분위기로 판매하고 싶은지 적어 주세요."></textarea>
-                    <small>여기에 적은 내용은 AI가 전체 요약을 만들 때 참고합니다.</small>
+                    <label for="product-use-place">어디에 사용할 PPT인가요?</label>
+                    <select id="product-use-place" name="usePlace">
+                        <option value="">선택해 주세요</option>
+                        <option value="학교 과제">학교 과제</option>
+                        <option value="수업 발표">수업 발표</option>
+                        <option value="회사 보고">회사 보고</option>
+                        <option value="제안서 발표">제안서 발표</option>
+                        <option value="포트폴리오">포트폴리오</option>
+                        <option value="브랜드 소개">브랜드 소개</option>
+                        <option value="상품 소개">상품 소개</option>
+                        <option value="행사 발표">행사 발표</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-use-purpose">어떤 목적의 PPT인가요?</label>
+                    <select id="product-use-purpose" name="usePurpose">
+                        <option value="">선택해 주세요</option>
+                        <option value="정보 전달">정보 전달</option>
+                        <option value="설득 / 제안">설득 / 제안</option>
+                        <option value="성과 보고">성과 보고</option>
+                        <option value="브랜딩">브랜딩</option>
+                        <option value="상품 판매">상품 판매</option>
+                        <option value="투자 유치">투자 유치</option>
+                        <option value="교육 / 강의">교육 / 강의</option>
+                        <option value="포트폴리오 소개">포트폴리오 소개</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-description">상세 설명 / AI 참고 메모</label>
+                    <textarea id="product-description" name="description" placeholder="상세 설명과 AI 참고 메모를 입력해 주세요"></textarea>
                 </div>
 
                 <div class="form-group">

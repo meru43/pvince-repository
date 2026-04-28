@@ -57,8 +57,46 @@ module.exports = (db) => {
         return rawName;
     }
 
+    function sanitizeRichText(html) {
+        const rawHtml = String(html || '').trim();
+
+        if (!rawHtml) {
+            return '';
+        }
+
+        return rawHtml
+            .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+            .replace(/<(iframe|object|embed|form|input|button|meta|link)[^>]*?>[\s\S]*?<\/\1>/gi, '')
+            .replace(/<(iframe|object|embed|form|input|button|meta|link)[^>]*?\/?>/gi, '')
+            .replace(/\son\w+="[^"]*"/gi, '')
+            .replace(/\son\w+='[^']*'/gi, '')
+            .replace(/\son\w+=([^\s>]+)/gi, '')
+            .replace(/\sstyle="[^"]*"/gi, '')
+            .replace(/\sstyle='[^']*'/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/data:text\/html/gi, '')
+            .trim();
+    }
+
+    function toPlainText(html) {
+        return String(html || '')
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(p|div|li|h1|h2|h3|blockquote)>/gi, '\n')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'")
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
     const thumbnailDir = path.join(__dirname, '..', 'public', 'uploads', 'thumbnails');
     const productFileDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
+    const editorImageDir = path.join(__dirname, '..', 'public', 'uploads', 'editor');
     const pptTemplateDir = path.join(__dirname, '..', 'public', 'uploads', 'ppt-templates');
     const pptPreviewDir = path.join(__dirname, '..', 'public', 'uploads', 'ppt-previews');
 
@@ -68,6 +106,10 @@ module.exports = (db) => {
 
     if (!fs.existsSync(productFileDir)) {
         fs.mkdirSync(productFileDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(editorImageDir)) {
+        fs.mkdirSync(editorImageDir, { recursive: true });
     }
 
     if (!fs.existsSync(pptTemplateDir)) {
@@ -124,6 +166,14 @@ module.exports = (db) => {
             {
                 name: 'ai_summary_text',
                 sql: `ALTER TABLE products ADD COLUMN ai_summary_text LONGTEXT NULL AFTER ai_slide_analysis_json`
+            },
+            {
+                name: 'use_place',
+                sql: `ALTER TABLE products ADD COLUMN use_place VARCHAR(120) NULL AFTER ai_summary_text`
+            },
+            {
+                name: 'use_purpose',
+                sql: `ALTER TABLE products ADD COLUMN use_purpose VARCHAR(120) NULL AFTER use_place`
             }
         ];
 
@@ -228,6 +278,8 @@ module.exports = (db) => {
                 cb(null, thumbnailDir);
             } else if (file.fieldname === 'productFile') {
                 cb(null, productFileDir);
+            } else if (file.fieldname === 'editorImage') {
+                cb(null, editorImageDir);
             } else {
                 cb(new Error('알 수 없는 파일 필드입니다.'));
             }
@@ -252,6 +304,35 @@ module.exports = (db) => {
     });
 
     // 상품 관리 페이지
+    router.post(
+        '/api/editor/image-upload',
+        requireSellerOrAdminApi,
+        upload.single('editorImage'),
+        (req, res) => {
+            const file = req.file;
+
+            if (!file) {
+                return res.status(400).json({
+                    success: false,
+                    message: '업로드할 이미지를 선택해 주세요.'
+                });
+            }
+
+            if (!/^image\//i.test(file.mimetype || '')) {
+                return res.status(400).json({
+                    success: false,
+                    message: '에디터에는 이미지 파일만 업로드할 수 있습니다.'
+                });
+            }
+
+            return res.json({
+                success: true,
+                url: `/uploads/editor/${file.filename}`,
+                name: normalizeUploadFileName(file.originalname)
+            });
+        }
+    );
+
     router.get('/seller-products-page', requireSellerOrAdmin, (req, res) => {
         res.render('seller-products');
     });
@@ -273,7 +354,7 @@ module.exports = (db) => {
             const price = req.body.price;
             const salePrice = req.body.salePrice;
             const isFree = req.body.isFree === '1' ? 1 : 0;
-            const description = req.body.description?.trim();
+            const description = sanitizeRichText(req.body.description);
             const keywords = req.body.keywords?.trim();
 
             const thumbnails = req.files?.thumbnail || [];
@@ -296,7 +377,7 @@ module.exports = (db) => {
                 });
             }
 
-            if (!description) {
+            if (!toPlainText(description)) {
                 return res.json({
                     success: false,
                     message: '상품 설명을 입력해주세요.'
@@ -410,7 +491,10 @@ module.exports = (db) => {
             const price = req.body.price;
             const salePrice = req.body.salePrice;
             const isFree = req.body.isFree === '1' ? 1 : 0;
-            const sellerNote = req.body.description?.trim() || '';
+            const usePlace = req.body.usePlace?.trim() || '';
+            const usePurpose = req.body.usePurpose?.trim() || '';
+            const sellerNote = sanitizeRichText(req.body.description);
+            const sellerNotePlainText = toPlainText(sellerNote);
             const keywords = req.body.keywords?.trim() || '';
 
             const thumbnails = req.files?.thumbnail || [];
@@ -422,6 +506,20 @@ module.exports = (db) => {
                 return res.json({
                     success: false,
                     message: '상품명을 입력해 주세요.'
+                });
+            }
+
+            if (!usePlace) {
+                return res.json({
+                    success: false,
+                    message: 'PPT를 어디에 사용할지 선택해 주세요.'
+                });
+            }
+
+            if (!usePurpose) {
+                return res.json({
+                    success: false,
+                    message: 'PPT의 목적을 선택해 주세요.'
                 });
             }
 
@@ -508,12 +606,12 @@ module.exports = (db) => {
                     context: {
                         title,
                         keywords: cleanedKeywords,
-                        sellerNote
+                        sellerNote: sellerNotePlainText
                     },
                     referenceImages
                 });
 
-                const summaryText = analysisResult.summary?.summary?.trim() || sellerNote || `${title} PPT 템플릿입니다.`;
+                const summaryText = analysisResult.summary?.summary?.trim() || sellerNotePlainText || `${title} PPT 템플릿입니다.`;
 
                 const sql = `
                     INSERT INTO products (
@@ -529,10 +627,12 @@ module.exports = (db) => {
                         thumbnail_gallery_json,
                         ai_slide_analysis_json,
                         ai_summary_text,
+                        use_place,
+                        use_purpose,
                         keywords,
                         created_by
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 const values = [
@@ -548,6 +648,8 @@ module.exports = (db) => {
                     thumbnailGalleryJson,
                     JSON.stringify(analysisResult.slides || []),
                     summaryText,
+                    usePlace,
+                    usePurpose,
                     cleanedKeywords,
                     req.session.userId
                 ];
@@ -874,7 +976,7 @@ module.exports = (db) => {
             const price = req.body.price;
             const salePrice = req.body.salePrice;
             const isFree = req.body.isFree === '1' ? 1 : 0;
-            const description = req.body.description?.trim();
+            const description = sanitizeRichText(req.body.description);
             const keywords = req.body.keywords?.trim();
 
             const newThumbnail = req.files?.thumbnail?.[0];
@@ -887,7 +989,7 @@ module.exports = (db) => {
                 });
             }
 
-            if (!description) {
+            if (!toPlainText(description)) {
                 return res.status(400).json({
                     success: false,
                     message: '상품 설명을 입력해주세요.'

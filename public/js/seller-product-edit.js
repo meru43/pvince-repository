@@ -13,24 +13,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentThumbnailPreview = document.getElementById('current-thumbnail-preview');
     const currentProductFile = document.getElementById('current-product-file');
-
-    const pathParts = window.location.pathname.split('/');
-    const productId = pathParts[pathParts.length - 1];
-
     const productActiveStatus = document.getElementById('product-active-status');
     const productStopMemo = document.getElementById('product-stop-memo');
     const productStopMemoGroup = document.getElementById('product-stop-memo-group');
 
+    const pathParts = window.location.pathname.split('/');
+    const productId = pathParts[pathParts.length - 1];
+
+    function setError(message = '') {
+        errorText.textContent = message;
+    }
+
     function togglePriceInputs() {
         const isFree = isFreeInput.checked;
-
-        if (isFree) {
-            priceInput.disabled = true;
-            salePriceInput.disabled = true;
-        } else {
-            priceInput.disabled = false;
-            salePriceInput.disabled = false;
-        }
+        priceInput.disabled = isFree;
+        salePriceInput.disabled = isFree;
     }
 
     isFreeInput.addEventListener('change', togglePriceInputs);
@@ -44,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await response.json();
 
         if (!data.success) {
-            errorText.textContent = data.message || '상품 정보를 불러오지 못했습니다.';
+            setError(data.message || '상품 정보를 불러오지 못했습니다.');
             form.style.display = 'none';
             return;
         }
@@ -74,30 +71,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         keywordsInput.value = product.keywords || '';
 
         if (product.thumbnail_path) {
-            currentThumbnailPreview.innerHTML = `
-                <img src="${product.thumbnail_path}" alt="${product.title}" style="max-width: 240px; border-radius: 12px;" />
-            `;
+            currentThumbnailPreview.innerHTML = `<img src="${product.thumbnail_path}" alt="${product.title}" style="max-width: 240px;" />`;
         } else {
-            currentThumbnailPreview.innerHTML = `<p>등록된 썸네일이 없습니다.</p>`;
+            currentThumbnailPreview.innerHTML = '<p>등록된 썸네일이 없습니다.</p>';
         }
 
         if (product.file_name) {
             currentProductFile.innerHTML = `<p>${product.file_name}</p>`;
         } else {
-            currentProductFile.innerHTML = `<p>등록된 판매파일이 없습니다.</p>`;
+            currentProductFile.innerHTML = '<p>등록된 판매파일이 없습니다.</p>';
         }
 
         togglePriceInputs();
     } catch (error) {
-        console.error('상품 수정용 정보 조회 실패:', error);
-        errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        console.error('상품 수정 정보 조회 실패:', error);
+        setError('서버와 통신 중 오류가 발생했습니다.');
         form.style.display = 'none';
         return;
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorText.textContent = '';
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setError('');
 
         const title = titleInput.value.trim();
         const price = priceInput.value.trim();
@@ -107,17 +102,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const keywords = keywordsInput.value.trim();
 
         if (!title) {
-            errorText.textContent = '상품명을 입력해주세요.';
+            setError('상품명을 입력해 주세요.');
             return;
         }
 
         if (!isFree && !price) {
-            errorText.textContent = '판매가를 입력해주세요.';
+            setError('판매가를 입력해 주세요.');
             return;
         }
 
         if (!description) {
-            errorText.textContent = '상품 설명을 입력해주세요.';
+            setError('상품 설명을 입력해 주세요.');
             return;
         }
 
@@ -150,11 +145,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(data.message);
                 window.location.href = '/seller-products-page';
             } else {
-                errorText.textContent = data.message || '상품 수정에 실패했습니다.';
+                setError(data.message || '상품 수정에 실패했습니다.');
             }
         } catch (error) {
             console.error('상품 수정 실패:', error);
-            errorText.textContent = '서버와 통신 중 오류가 발생했습니다.';
+            setError('서버와 통신 중 오류가 발생했습니다.');
         }
     });
 });

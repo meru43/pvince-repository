@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const form = document.getElementById('seller-upload-form');
     const errorText = document.getElementById('seller-upload-error');
-
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
     const thumbnailPreviewList = document.getElementById('thumbnail-preview-list');
@@ -44,13 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceInput.disabled = false;
         salePriceInput.disabled = false;
 
-        if (priceInput.value === '0') {
-            priceInput.value = '';
-        }
-
-        if (salePriceInput.value === '0') {
-            salePriceInput.value = '';
-        }
+        if (priceInput.value === '0') priceInput.value = '';
+        if (salePriceInput.value === '0') salePriceInput.value = '';
     }
 
     function syncThumbnailInput() {
@@ -81,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const checked = index === representativeThumbnailIndex ? 'checked' : '';
 
             return `
-                <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}" data-preview-url="${previewUrl}">
+                <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}">
                     <button type="button" class="preview-remove-btn" data-remove-index="${index}" aria-label="이미지 제거">X</button>
                     <img src="${previewUrl}" alt="${file.name}" class="thumbnail-preview-image">
                     <label class="thumbnail-radio-label">
@@ -101,11 +95,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const removedWasRepresentative = representativeThumbnailIndex === index;
                 selectedThumbnails.splice(index, 1);
 
-                if (removedWasRepresentative) {
-                    representativeThumbnailIndex = 0;
-                } else if (representativeThumbnailIndex > index) {
-                    representativeThumbnailIndex -= 1;
-                }
+                if (removedWasRepresentative) representativeThumbnailIndex = 0;
+                else if (representativeThumbnailIndex > index) representativeThumbnailIndex -= 1;
 
                 setError('');
                 syncThumbnailInput();
@@ -118,13 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 representativeThumbnailIndex = Number(input.value) || 0;
                 renderThumbnailPreview();
             });
-        });
-
-        thumbnailPreviewList.querySelectorAll('.thumbnail-preview-card').forEach((card) => {
-            const previewUrl = card.dataset.previewUrl;
-            if (previewUrl) {
-                card.addEventListener('remove', () => URL.revokeObjectURL(previewUrl), { once: true });
-            }
         });
     }
 
@@ -158,9 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function mergeFiles(existingFiles, nextFiles, maxCount) {
-        const existingKeys = new Set(
-            existingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        );
+        const existingKeys = new Set(existingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
 
         nextFiles.forEach((file) => {
             const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
@@ -173,7 +155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     thumbnailInput.addEventListener('change', () => {
         const incomingFiles = Array.from(thumbnailInput.files || []);
-
         if (!incomingFiles.length) {
             setError('');
             syncThumbnailInput();
@@ -182,16 +163,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         mergeFiles(selectedThumbnails, incomingFiles, MAX_THUMBNAILS);
-
-        const totalRequested = new Set(
-            [...selectedThumbnails, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        ).size;
-
-        if (totalRequested > MAX_THUMBNAILS) {
-            setError('상품 이미지는 최대 10장까지 업로드할 수 있습니다.');
-        } else {
-            setError('');
-        }
+        const totalRequested = new Set([...selectedThumbnails, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+        setError(totalRequested > MAX_THUMBNAILS ? '상품 이미지는 최대 10장까지 업로드할 수 있습니다.' : '');
 
         thumbnailInput.value = '';
         syncThumbnailInput();
@@ -200,7 +173,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     productFileInput.addEventListener('change', () => {
         const incomingFiles = Array.from(productFileInput.files || []);
-
         if (!incomingFiles.length) {
             setError('');
             syncProductFileInput();
@@ -209,16 +181,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         mergeFiles(selectedProductFiles, incomingFiles, MAX_PRODUCT_FILES);
-
-        const totalRequested = new Set(
-            [...selectedProductFiles, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        ).size;
-
-        if (totalRequested > MAX_PRODUCT_FILES) {
-            setError('판매상품 파일은 최대 5개까지 업로드할 수 있습니다.');
-        } else {
-            setError('');
-        }
+        const totalRequested = new Set([...selectedProductFiles, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+        setError(totalRequested > MAX_PRODUCT_FILES ? '판매상품 파일은 최대 5개까지 업로드할 수 있습니다.' : '');
 
         productFileInput.value = '';
         syncProductFileInput();
@@ -235,11 +199,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             method: 'GET',
             credentials: 'include'
         });
-
         const meData = await meResponse.json();
 
         if (!meData.loggedIn || (meData.role !== 'seller' && meData.role !== 'admin')) {
-            alert('셀러와 관리자만 접근할 수 있습니다.');
+            alert('셀러 또는 관리자만 접근할 수 있습니다.');
             window.location.href = '/';
             return;
         }
@@ -250,8 +213,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
         setError('');
 
         const title = titleInput.value.trim();
@@ -295,13 +258,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('keywords', keywords);
         formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
 
-        selectedThumbnails.forEach((file) => {
-            formData.append('thumbnail', file);
-        });
-
-        selectedProductFiles.forEach((file) => {
-            formData.append('productFile', file);
-        });
+        selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
+        selectedProductFiles.forEach((file) => formData.append('productFile', file));
 
         try {
             const response = await fetch('/api/seller/products', {
