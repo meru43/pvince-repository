@@ -66,6 +66,27 @@ const dbConfig = {
   database: process.env.DB_NAME || process.env.MYSQLDATABASE
 };
 
+console.log('[DB ENV CHECK]', {
+  hasDbHost: Boolean(process.env.DB_HOST),
+  hasMysqlHost: Boolean(process.env.MYSQLHOST),
+  hasDbPort: Boolean(process.env.DB_PORT),
+  hasMysqlPort: Boolean(process.env.MYSQLPORT),
+  hasDbUser: Boolean(process.env.DB_USER),
+  hasMysqlUser: Boolean(process.env.MYSQLUSER),
+  hasDbPassword: Boolean(process.env.DB_PASSWORD),
+  hasMysqlPassword: Boolean(process.env.MYSQLPASSWORD),
+  hasDbName: Boolean(process.env.DB_NAME),
+  hasMysqlDatabase: Boolean(process.env.MYSQLDATABASE),
+  resolvedHost: dbConfig.host || null,
+  resolvedPort: dbConfig.port || null,
+  resolvedUser: dbConfig.user || null,
+  resolvedDatabase: dbConfig.database || null
+});
+
+if (!dbConfig.host || !dbConfig.port || !dbConfig.user || !dbConfig.password || !dbConfig.database) {
+  throw new Error('Database environment variables are missing. Check Railway service variables for DB_* or MYSQL* values.');
+}
+
 const db = mysql.createConnection(dbConfig);
 
 db.connect((err) => {
