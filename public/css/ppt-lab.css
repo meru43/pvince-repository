@@ -17,7 +17,7 @@
 .ppt-result-panel {
     padding: 28px;
     border: 1px solid #e5e7eb;
-    border-radius: 28px;
+    border-radius: 10px;
     background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
 }
 
@@ -70,7 +70,7 @@
 .ppt-form-group textarea {
     width: 100%;
     border: 1px solid #e1e1e1;
-    border-radius: 16px;
+    border-radius: 10px;
     padding: 14px 16px;
     font: inherit;
     color: #333;
@@ -202,7 +202,7 @@
     gap: 8px;
     padding: 24px;
     border: 1px dashed #d6dde6;
-    border-radius: 22px;
+    border-radius: 10px;
     background: #fbfdff;
 }
 
@@ -227,13 +227,13 @@
     gap: 20px;
     padding: 20px;
     border: 1px solid #e5e7eb;
-    border-radius: 26px;
+    border-radius: 10px;
     background: #fff;
 }
 
 .ppt-result-thumb {
     display: block;
-    border-radius: 20px;
+    border-radius: 10px;
     overflow: hidden;
     background: #f8fafc;
 }
@@ -276,7 +276,7 @@
     gap: 6px;
     min-width: 110px;
     padding: 14px 16px;
-    border-radius: 18px;
+    border-radius: 10px;
     background: #111827;
     color: #fff;
     text-align: center;
@@ -311,7 +311,7 @@
     gap: 8px;
     padding: 16px;
     border: 1px solid #e8edf4;
-    border-radius: 18px;
+    border-radius: 10px;
     background: #fbfdff;
 }
 
@@ -387,7 +387,7 @@
     .ppt-search-panel,
     .ppt-result-panel {
         padding: 24px;
-        border-radius: 24px;
+        border-radius: 10px;
     }
 
     .ppt-search-title {
@@ -409,7 +409,7 @@
     .ppt-result-panel,
     .ppt-result-item {
         padding: 18px;
-        border-radius: 20px;
+        border-radius: 10px;
     }
 
     .ppt-result-toolbar,
@@ -429,7 +429,7 @@
     .ppt-result-panel,
     .ppt-result-item {
         padding: 16px;
-        border-radius: 18px;
+        border-radius: 10px;
     }
 
     .ppt-search-title,

@@ -130,7 +130,7 @@ body:not(.header-auth-ready) #order-check-link {
     width: 260px;
     padding: 18px;
     border: 1px solid #e3e7ee;
-    border-radius: 20px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 18px 40px rgba(17, 24, 39, 0.14);
     backdrop-filter: blur(10px);
@@ -184,7 +184,7 @@ body:not(.header-auth-ready) #order-check-link {
     min-height: 42px;
     padding: 10px 12px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 5px;
     background: transparent;
     color: #27313d;
     font-size: 15px;
@@ -234,7 +234,7 @@ body:not(.header-auth-ready) #order-check-link {
     min-width: 120px;
     height: 44px;
     padding: 0 18px;
-    border-radius: 10px;
+    border-radius: 5px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;

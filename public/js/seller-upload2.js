@@ -326,14 +326,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function validateForAnalysis() {
         const title = titleInput.value.trim();
-        const usePlace = usePlaceInput.value.trim();
-        const usePurpose = usePurposeInput.value.trim();
-        const description = getNormalizedDescription();
 
         if (!title) return '상품명을 입력해 주세요.';
-        if (!usePlace) return 'PPT를 어디에 사용할지 선택해 주세요.';
-        if (!usePurpose) return 'PPT의 목적을 선택해 주세요.';
-        if (!description) return '상세 설명을 입력해 주세요.';
         if (!selectedThumbnails.length) return '상품 이미지를 업로드해 주세요.';
         if (!selectedProductFile) return '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.';
 

@@ -17,13 +17,13 @@
     min-width: 320px;
     padding: 10px 12px;
     border: 1px solid #ddd;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 .admin-settlements-table-wrap {
     overflow-x: auto;
     border: 1px solid #e5e7eb;
-    border-radius: 18px;
+    border-radius: 10px;
     background: #fff;
 }
 

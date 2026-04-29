@@ -17,7 +17,7 @@
     flex: 1;
     height: 48px;
     border: 1px solid #d8d8d8;
-    border-radius: 12px;
+    border-radius: 5px;
     padding: 0 14px;
     font-size: 15px;
     background: #fff;
@@ -157,7 +157,7 @@
     height: 42px;
     padding: 0 14px;
     border: 1px solid #ddd;
-    border-radius: 10px;
+    border-radius: 5px;
     background: #fff;
     font-size: 14px;
     color: #222;

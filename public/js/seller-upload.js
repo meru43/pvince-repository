@@ -287,11 +287,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (!description) {
-            setError('상품 설명을 입력해 주세요.');
-            return;
-        }
-
         if (!selectedThumbnails.length) {
             setError('상품 이미지를 업로드해 주세요.');
             return;

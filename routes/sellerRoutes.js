@@ -549,18 +549,6 @@ module.exports = (db) => {
                 return res.json({ success: false, message: '상품명을 입력해 주세요.' });
             }
 
-            if (!usePlace) {
-                return res.json({ success: false, message: 'PPT를 어디에 사용할지 선택해 주세요.' });
-            }
-
-            if (!usePurpose) {
-                return res.json({ success: false, message: 'PPT의 목적을 선택해 주세요.' });
-            }
-
-            if (!sellerNotePlainText) {
-                return res.json({ success: false, message: '상세 설명을 입력해 주세요.' });
-            }
-
             if (!thumbnails.length) {
                 return res.json({ success: false, message: '상품 이미지를 업로드해 주세요.' });
             }
@@ -664,13 +652,6 @@ module.exports = (db) => {
                 return res.json({
                     success: false,
                     message: '올바른 판매가를 입력해주세요.'
-                });
-            }
-
-            if (!toPlainText(description)) {
-                return res.json({
-                    success: false,
-                    message: '상품 설명을 입력해주세요.'
                 });
             }
 
@@ -798,20 +779,6 @@ module.exports = (db) => {
                 return res.json({
                     success: false,
                     message: '상품명을 입력해 주세요.'
-                });
-            }
-
-            if (!usePlace) {
-                return res.json({
-                    success: false,
-                    message: 'PPT를 어디에 사용할지 선택해 주세요.'
-                });
-            }
-
-            if (!usePurpose) {
-                return res.json({
-                    success: false,
-                    message: 'PPT의 목적을 선택해 주세요.'
                 });
             }
 
@@ -1284,13 +1251,6 @@ module.exports = (db) => {
                 return res.status(400).json({
                     success: false,
                     message: '상품명을 입력해주세요.'
-                });
-            }
-
-            if (!toPlainText(description)) {
-                return res.status(400).json({
-                    success: false,
-                    message: '상품 설명을 입력해주세요.'
                 });
             }
 

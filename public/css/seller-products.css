@@ -12,7 +12,7 @@
 
 .seller-product-card {
     border: 1px solid #e5e7eb;
-    border-radius: 16px;
+    border-radius: 10px;
     overflow: hidden;
     background: #fff;
 }
@@ -84,7 +84,7 @@
 .seller-products-filters select {
     padding: 10px 12px;
     border: 1px solid #ddd;
-    border-radius: 10px;
+    border-radius: 5px;
     min-width: 180px;
 }
 
@@ -126,7 +126,7 @@
     gap: 10px;
     padding: 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 14px;
+    border-radius: 5px;
     background: #fafafa;
 }
 
@@ -135,7 +135,7 @@
     min-height: 90px;
     padding: 12px 14px;
     border: 1px solid #ddd;
-    border-radius: 12px;
+    border-radius: 5px;
     resize: vertical;
     box-sizing: border-box;
     background: #fff;
@@ -149,7 +149,7 @@
 .admin-stop-memo-view {
     padding: 10px 12px;
     border: 1px solid #eee;
-    border-radius: 10px;
+    border-radius: 5px;
     background: #fafafa;
 }
 

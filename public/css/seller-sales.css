@@ -17,13 +17,13 @@
     min-width: 320px;
     padding: 10px 12px;
     border: 1px solid #ddd;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 .seller-sales-table-wrap {
     overflow-x: auto;
     border: 1px solid #e5e7eb;
-    border-radius: 18px;
+    border-radius: 10px;
     background: #fff;
 }
 
@@ -87,7 +87,7 @@
     gap: 8px;
     padding: 20px;
     border: 1px solid #e5e7eb;
-    border-radius: 18px;
+    border-radius: 10px;
     background: #fff;
 }
 
@@ -116,7 +116,7 @@
     align-self: stretch;
     height: auto;
     min-width: 140px;
-    border-radius: 18px;
+    border-radius: 10px;
 }
 
 .settlement-request-btn:disabled {
@@ -162,7 +162,7 @@
     min-width: 44px;
     height: 44px;
     padding: 0 16px;
-    border-radius: 10px;
+    border-radius: 5px;
     border: 1px solid #d7dce2;
     background: #fff;
     color: #222;
@@ -206,7 +206,7 @@ body.modal-open {
     width: min(560px, calc(100vw - 32px));
     padding: 24px;
     background: #fff;
-    border-radius: 24px;
+    border-radius: 10px;
     box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
 }
 
@@ -253,7 +253,7 @@ body.modal-open {
 .invoice-sheet {
     margin-top: 20px;
     border: 1px solid #e6ebf2;
-    border-radius: 24px;
+    border-radius: 10px;
     padding: 24px 22px;
     background: #fff;
     overflow-y: auto;
@@ -441,7 +441,7 @@ body.modal-open {
     .download-modal-dialog {
         margin-top: 20px;
         padding: 20px;
-        border-radius: 20px;
+        border-radius: 10px;
     }
 
     .invoice-modal-dialog {
@@ -451,7 +451,7 @@ body.modal-open {
     .invoice-sheet {
         max-height: calc(100vh - 170px);
         padding: 20px 18px;
-        border-radius: 20px;
+        border-radius: 10px;
     }
 
     .invoice-modal-actions {
