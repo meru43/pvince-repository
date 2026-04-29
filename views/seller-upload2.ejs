@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>상품 등록2</title>
+    <title>AI PPT등록</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/seller-upload.css" />
@@ -15,15 +15,15 @@
 
     <main class="container page">
         <section class="page-title-wrap">
-            <h2 class="page-title">상품 등록2</h2>
-            <p class="page-desc">PPT 업로드와 AI 분석을 함께 진행하고, 전체 요약을 상품 설명에 반영합니다.</p>
+            <h2 class="page-title">AI PPT등록</h2>
+            <p class="page-desc">먼저 PPT를 AI로 분석한 뒤, 결과를 확인하고 상품으로 등록합니다.</p>
         </section>
 
         <section class="seller-upload-box">
             <form id="seller-upload2-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
-                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요" />
+                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
                 </div>
 
                 <div class="form-group">
@@ -35,12 +35,12 @@
 
                 <div class="form-group">
                     <label for="product-price">판매가</label>
-                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요" />
+                    <input type="text" inputmode="numeric" id="product-price" name="price" placeholder="판매가를 입력해 주세요." />
                 </div>
 
                 <div class="form-group">
                     <label for="product-sale-price">할인가</label>
-                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요" />
+                    <input type="text" inputmode="numeric" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요." />
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -53,7 +53,7 @@
                 <div class="form-group">
                     <label for="product-use-place">어디에 사용할 PPT인가요?</label>
                     <select id="product-use-place" name="usePlace">
-                        <option value="">선택해 주세요</option>
+                        <option value="">선택해 주세요.</option>
                         <option value="학교 과제">학교 과제</option>
                         <option value="수업 발표">수업 발표</option>
                         <option value="회사 보고">회사 보고</option>
@@ -68,7 +68,7 @@
                 <div class="form-group">
                     <label for="product-use-purpose">어떤 목적의 PPT인가요?</label>
                     <select id="product-use-purpose" name="usePurpose">
-                        <option value="">선택해 주세요</option>
+                        <option value="">선택해 주세요.</option>
                         <option value="정보 전달">정보 전달</option>
                         <option value="설득 / 제안">설득 / 제안</option>
                         <option value="성과 보고">성과 보고</option>
@@ -82,12 +82,12 @@
 
                 <div class="form-group">
                     <label for="product-description">상세 설명 / AI 참고 메모</label>
-                    <textarea id="product-description" name="description" placeholder="상세 설명과 AI 참고 메모를 입력해 주세요"></textarea>
+                    <textarea id="product-description" name="description" placeholder="상세 설명과 AI 참고 메모를 입력해 주세요."></textarea>
                 </div>
 
                 <div class="form-group">
                     <label for="product-keywords">키워드</label>
-                    <input type="text" id="product-keywords" name="keywords" placeholder="예: 비즈니스, 미니멀, 제안서, 브랜드소개" />
+                    <input type="text" id="product-keywords" name="keywords" placeholder="예: 비즈니스, 창의적, 발표" />
                     <small>쉼표(,)로 구분해서 입력해 주세요.</small>
                 </div>
 
@@ -98,14 +98,43 @@
                     <div class="product-file-preview-list" id="product-file-preview-list"></div>
                 </div>
 
+                <div class="form-group excluded-pages-group">
+                    <label for="product-excluded-pages">분석 제외 페이지</label>
+                    <input type="text" id="product-excluded-pages" name="excludedPages" placeholder="예: 1, 3, 5-7" />
+                    <small>정확한 AI 분석을 위해 템플릿 내용과 관련 없는 주의사항이나 안내사항 페이지는 제외해 주세요. 예: 1, 3, 5-7</small>
+                </div>
+
+                <div class="analysis-result-box" id="analysis-result-box" style="display:none;">
+                    <div class="analysis-result-head">
+                        <strong>AI 분석 완료</strong>
+                        <span id="analysis-result-meta"></span>
+                    </div>
+                    <p class="analysis-result-summary" id="analysis-result-summary"></p>
+                </div>
+
+                <div class="analysis-loading-box" id="analysis-loading-box" style="display:none;" aria-live="polite">
+                    <div class="analysis-loading-spinner"></div>
+                    <p class="analysis-loading-title">AI가 PPT를 분석하고 있습니다.</p>
+                    <p class="analysis-loading-text">결과가 정리될 때까지 잠시만 기다려주세요.</p>
+                </div>
+
                 <p class="seller-upload-error" id="seller-upload-error"></p>
 
                 <div class="seller-upload-actions">
-                    <button type="submit" class="btn btn-primary" id="seller-upload2-submit">상품등록2 + AI 분석</button>
+                    <button type="button" class="btn btn-outline" id="seller-upload2-analyze">AI 분석하기</button>
+                    <button type="submit" class="btn btn-primary" id="seller-upload2-submit" disabled>상품 등록하기</button>
                 </div>
             </form>
         </section>
     </main>
+
+    <div class="page-loading-overlay" id="page-loading-overlay" aria-hidden="true">
+        <div class="page-loading-modal" role="status" aria-live="polite">
+            <div class="page-loading-spinner"></div>
+            <p class="page-loading-title" id="page-loading-title">PPT를 분석하는 중입니다.</p>
+            <p class="page-loading-text" id="page-loading-text">분석이 끝날 때까지 페이지를 나가지 말아주세요.</p>
+        </div>
+    </div>
 
     <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.js"></script>

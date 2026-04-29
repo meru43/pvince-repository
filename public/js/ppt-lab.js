@@ -142,9 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildReasonText(textMatch, colorMatch) {
         const reasons = [];
-        if (textMatch.matchedKeywords.length) {
-            reasons.push(`일치 키워드: ${textMatch.matchedKeywords.slice(0, 5).join(', ')}`);
-        } else {
+        if (!textMatch.matchedKeywords.length) {
             reasons.push('직접 일치한 키워드는 적지만 전체 맥락으로 비교했습니다.');
         }
         reasons.push(`색상 유사도 ${Math.round(colorMatch * 100)}% 반영`);
@@ -299,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         resultCount.textContent = `총 ${matches.length}개의 템플릿을 찾았고 매치율 높은 순으로 정렬했습니다.`;
-        resultList.innerHTML = matches.map(({ product, overallScore, textScore, colorScore, matchedKeywords, topColorHexes, reason }) => `
+        resultList.innerHTML = matches.map(({ product, overallScore, textScore, colorScore, topColorHexes, reason }) => `
             <article class="ppt-result-item">
                 <a href="/products-page/${product.id}" class="ppt-result-thumb">
                     <img src="${escapeHtml(product.thumbnail_path || 'https://via.placeholder.com/800x520?text=PPT')}" alt="${escapeHtml(product.title)}" />
@@ -337,12 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <p class="ppt-result-reason">${escapeHtml(reason)}</p>
-
-                    <div class="ppt-result-keywords">
-                        ${matchedKeywords.length
-                            ? matchedKeywords.slice(0, 6).map((keyword) => `<span class="ppt-keyword-chip">${escapeHtml(keyword)}</span>`).join('')
-                            : '<span class="ppt-keyword-chip muted">직접 일치 키워드는 적지만 전체 맥락으로 비교했습니다.</span>'}
-                    </div>
 
                     <div class="ppt-result-actions">
                         <span class="ppt-result-price">${escapeHtml(getDisplayPrice(product))}</span>

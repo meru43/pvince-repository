@@ -13,7 +13,7 @@
 
             <a href="/cart-page" id="cart-link" hidden>장바구니</a>
             <a href="/seller-upload-page" id="seller-upload-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품등록</a>
-            <a href="/seller-upload2-page" id="seller-upload2-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품등록2</a>
+            <a href="/seller-upload2-page" id="seller-upload2-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>AI PPT등록</a>
             <a href="/admin-users-page" id="admin-link" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>
 
             <div class="header-user-menu" id="header-user-menu" <%= currentUser.loggedIn ? '' : 'hidden' %>>
@@ -47,7 +47,7 @@
                     <div class="header-user-links">
                         <a href="/mypage-page" class="header-user-link" id="header-menu-mypage">마이페이지</a>
                         <a href="/cart-page" class="header-user-link" id="header-menu-cart">장바구니</a>
-                        <a href="/seller-upload2-page" class="header-user-link" id="header-menu-seller-upload2" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품등록2</a>
+                        <a href="/seller-upload2-page" class="header-user-link" id="header-menu-seller-upload2" <%= currentUser.canManageProducts ? '' : 'hidden' %>>AI PPT등록</a>
                         <a href="/seller-products-page" class="header-user-link" id="header-menu-seller" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품관리</a>
                         <a href="/seller-sales-page" class="header-user-link" id="header-menu-sales" <%= currentUser.canManageProducts ? '' : 'hidden' %>>판매관리</a>
                         <a href="/admin-users-page" class="header-user-link" id="header-menu-admin" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>

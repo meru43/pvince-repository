@@ -360,29 +360,6 @@
     line-height: 1.8;
 }
 
-.ppt-result-keywords {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.ppt-keyword-chip {
-    display: inline-flex;
-    align-items: center;
-    min-height: 32px;
-    padding: 0 12px;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #334155;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.ppt-keyword-chip.muted {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
 .ppt-result-actions {
     display: flex;
     justify-content: space-between;

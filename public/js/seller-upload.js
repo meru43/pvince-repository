@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const form = document.getElementById('seller-upload-form');
     const errorText = document.getElementById('seller-upload-error');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const loadingOverlay = document.getElementById('page-loading-overlay');
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
     const thumbnailPreviewList = document.getElementById('thumbnail-preview-list');
@@ -18,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedThumbnails = [];
     let selectedProductFiles = [];
     let representativeThumbnailIndex = 0;
+    let isSubmitting = false;
     const descriptionEditor = window.createProductJoditEditor
         ? window.createProductJoditEditor(descriptionInput)
         : null;
@@ -25,6 +28,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     function setError(message = '') {
         errorText.textContent = message;
     }
+
+    function setLoading(isLoading) {
+        isSubmitting = isLoading;
+
+        if (submitButton) {
+            submitButton.disabled = isLoading;
+            submitButton.classList.toggle('is-loading', isLoading);
+        }
+
+        if (loadingOverlay) {
+            loadingOverlay.classList.toggle('is-active', isLoading);
+            loadingOverlay.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
+        }
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isSubmitting) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    });
 
     function filterNumericInput(input) {
         input.addEventListener('input', () => {
@@ -46,8 +72,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceInput.disabled = false;
         salePriceInput.disabled = false;
 
-        if (priceInput.value === '0') priceInput.value = '';
-        if (salePriceInput.value === '0') salePriceInput.value = '';
+        if (priceInput.value === '0') {
+            priceInput.value = '';
+        }
+
+        if (salePriceInput.value === '0') {
+            salePriceInput.value = '';
+        }
     }
 
     function syncThumbnailInput() {
@@ -93,13 +124,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         thumbnailPreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
             button.addEventListener('click', () => {
                 const index = Number(button.dataset.removeIndex);
-                if (Number.isNaN(index)) return;
+                if (Number.isNaN(index)) {
+                    return;
+                }
 
                 const removedWasRepresentative = representativeThumbnailIndex === index;
                 selectedThumbnails.splice(index, 1);
 
-                if (removedWasRepresentative) representativeThumbnailIndex = 0;
-                else if (representativeThumbnailIndex > index) representativeThumbnailIndex -= 1;
+                if (removedWasRepresentative) {
+                    representativeThumbnailIndex = 0;
+                } else if (representativeThumbnailIndex > index) {
+                    representativeThumbnailIndex -= 1;
+                }
 
                 setError('');
                 syncThumbnailInput();
@@ -134,7 +170,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         productFilePreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
             button.addEventListener('click', () => {
                 const index = Number(button.dataset.index);
-                if (Number.isNaN(index)) return;
+                if (Number.isNaN(index)) {
+                    return;
+                }
 
                 selectedProductFiles.splice(index, 1);
                 setError('');
@@ -166,7 +204,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         mergeFiles(selectedThumbnails, incomingFiles, MAX_THUMBNAILS);
-        const totalRequested = new Set([...selectedThumbnails, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+        const totalRequested = new Set([
+            ...selectedThumbnails,
+            ...incomingFiles
+        ].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+
         setError(totalRequested > MAX_THUMBNAILS ? '상품 이미지는 최대 10장까지 업로드할 수 있습니다.' : '');
 
         thumbnailInput.value = '';
@@ -184,7 +226,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         mergeFiles(selectedProductFiles, incomingFiles, MAX_PRODUCT_FILES);
-        const totalRequested = new Set([...selectedProductFiles, ...incomingFiles].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+        const totalRequested = new Set([
+            ...selectedProductFiles,
+            ...incomingFiles
+        ].map((file) => `${file.name}-${file.size}-${file.lastModified}`)).size;
+
         setError(totalRequested > MAX_PRODUCT_FILES ? '판매상품 파일은 최대 5개까지 업로드할 수 있습니다.' : '');
 
         productFileInput.value = '';
@@ -269,6 +315,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectedProductFiles.forEach((file) => formData.append('productFile', file));
 
         try {
+            setLoading(true);
+
             const response = await fetch('/api/seller/products', {
                 method: 'POST',
                 credentials: 'include',
@@ -282,11 +330,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            setLoading(false);
             alert(data.message);
             window.location.href = `/products-page/${data.productId}`;
         } catch (error) {
             console.error('상품 등록 실패:', error);
             setError('서버와 통신 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
         }
     });
 });

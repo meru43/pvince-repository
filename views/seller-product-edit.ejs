@@ -23,7 +23,7 @@
             <form id="seller-product-edit-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
-                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요" />
+                    <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
                 </div>
 
                 <div class="form-group">
@@ -39,12 +39,12 @@
 
                 <div class="form-group">
                     <label for="product-price">판매가</label>
-                    <input type="number" id="product-price" name="price" placeholder="판매가를 입력해 주세요" min="0" />
+                    <input type="number" id="product-price" name="price" placeholder="판매가를 입력해 주세요." min="0" />
                 </div>
 
                 <div class="form-group">
                     <label for="product-sale-price">할인가</label>
-                    <input type="number" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요" min="0" />
+                    <input type="number" id="product-sale-price" name="salePrice" placeholder="할인가를 입력해 주세요." min="0" />
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -66,7 +66,21 @@
 
                 <div class="form-group">
                     <label for="product-description">상세 설명</label>
-                    <textarea id="product-description" name="description" placeholder="상품 상세 설명을 입력해 주세요"></textarea>
+                    <textarea id="product-description" name="description" placeholder="상품 상세 설명을 입력해 주세요."></textarea>
+                </div>
+
+                <div class="form-group checkbox-group" id="product-reanalyze-group" style="display:none;">
+                    <label for="product-ai-reanalyze">
+                        <input type="checkbox" id="product-ai-reanalyze" name="aiReanalyze" />
+                        AI 분석 다시 실행
+                    </label>
+                    <small>선택하지 않으면 이전에 분석한 AI 결과를 그대로 유지하고, 제목/설명/금액만 수정합니다.</small>
+                </div>
+
+                <div class="form-group excluded-pages-group" id="product-excluded-pages-group" style="display:none;">
+                    <label for="product-excluded-pages">분석 제외 페이지</label>
+                    <input type="text" id="product-excluded-pages" name="excludedPages" placeholder="예: 1, 3, 5-7" />
+                    <small>정확한 AI 분석을 위해 템플릿 내용과 관련 없는 주의사항이나 안내사항 페이지는 제외해 주세요. 예: 1, 3, 5-7</small>
                 </div>
 
                 <div class="form-group">
@@ -95,6 +109,14 @@
             </form>
         </section>
     </main>
+
+    <div class="page-loading-overlay" id="page-loading-overlay" aria-hidden="true">
+        <div class="page-loading-modal" role="status" aria-live="polite">
+            <div class="page-loading-spinner"></div>
+            <p class="page-loading-title" id="page-loading-title">상품 정보를 수정하는 중입니다.</p>
+            <p class="page-loading-text" id="page-loading-text">수정이 끝날 때까지 페이지를 나가지 말아주세요.</p>
+        </div>
+    </div>
 
     <%- include('partials/footer') %>
     <script src="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.js"></script>

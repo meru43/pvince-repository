@@ -3,7 +3,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const form = document.getElementById('seller-upload2-form');
     const errorText = document.getElementById('seller-upload-error');
+    const analyzeButton = document.getElementById('seller-upload2-analyze');
     const submitButton = document.getElementById('seller-upload2-submit');
+    const loadingOverlay = document.getElementById('page-loading-overlay');
+    const loadingTitle = document.getElementById('page-loading-title');
+    const loadingText = document.getElementById('page-loading-text');
+    const analysisResultBox = document.getElementById('analysis-result-box');
+    const analysisLoadingBox = document.getElementById('analysis-loading-box');
+    const analysisResultMeta = document.getElementById('analysis-result-meta');
+    const analysisResultSummary = document.getElementById('analysis-result-summary');
+
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
     const thumbnailPreviewList = document.getElementById('thumbnail-preview-list');
@@ -16,10 +25,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const keywordsInput = document.getElementById('product-keywords');
     const productFileInput = document.getElementById('product-file');
     const productFilePreviewList = document.getElementById('product-file-preview-list');
+    const excludedPagesInput = document.getElementById('product-excluded-pages');
 
     let selectedThumbnails = [];
     let representativeThumbnailIndex = 0;
     let selectedProductFile = null;
+    let isSubmitting = false;
+    let analyzedPayload = null;
+
     const descriptionEditor = window.createProductJoditEditor
         ? window.createProductJoditEditor(descriptionInput)
         : null;
@@ -28,11 +41,115 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorText.textContent = message;
     }
 
-    function setLoading(isLoading) {
-        submitButton.disabled = isLoading;
-        submitButton.classList.toggle('is-loading', isLoading);
-        submitButton.textContent = isLoading ? 'AI 분석 및 등록 중...' : '상품등록2 + AI 분석';
+    function setLoading(isLoading, phase = 'analyze') {
+        isSubmitting = isLoading;
+
+        if (analyzeButton) {
+            analyzeButton.disabled = isLoading;
+            analyzeButton.classList.toggle('is-loading', isLoading && phase === 'analyze');
+            analyzeButton.textContent = isLoading && phase === 'analyze'
+                ? 'AI 분석 중...'
+                : 'AI 분석하기';
+        }
+
+        if (submitButton) {
+            submitButton.disabled = isLoading || !analyzedPayload;
+            submitButton.classList.toggle('is-loading', isLoading && phase === 'register');
+            submitButton.textContent = isLoading && phase === 'register'
+                ? '상품 등록 중...'
+                : '상품 등록하기';
+        }
+
+        const usePageOverlay = phase === 'register';
+
+        if (loadingOverlay) {
+            loadingOverlay.classList.toggle('is-active', isLoading);
+            loadingOverlay.setAttribute('aria-hidden', isLoading && usePageOverlay ? 'false' : 'true');
+            if (!usePageOverlay) {
+                loadingOverlay.classList.remove('is-active');
+                loadingOverlay.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        if (loadingTitle) {
+            loadingTitle.textContent = phase === 'register'
+                ? '상품을 등록하는 중입니다.'
+                : 'PPT를 분석하는 중입니다.';
+        }
+
+        if (loadingText) {
+            loadingText.textContent = phase === 'register'
+                ? '등록이 끝날 때까지 페이지를 나가지 말아주세요.'
+                : '분석이 끝날 때까지 페이지를 나가지 말아주세요.';
+        }
+
+        if (analysisLoadingBox) {
+            analysisLoadingBox.style.display = isLoading && phase === 'analyze' ? 'block' : 'none';
+        }
     }
+
+    function clearAnalysisResult() {
+        analyzedPayload = null;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = '상품 등록하기';
+        }
+
+        if (analysisResultBox) {
+            analysisResultBox.style.display = 'none';
+        }
+
+        if (analysisResultMeta) {
+            analysisResultMeta.textContent = '';
+        }
+
+        if (analysisResultSummary) {
+            analysisResultSummary.textContent = '';
+        }
+
+        if (analysisLoadingBox) {
+            analysisLoadingBox.style.display = 'none';
+        }
+    }
+
+    function renderAnalysisResult(payload) {
+        analyzedPayload = payload;
+
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+
+        if (!analysisResultBox || !analysisResultMeta || !analysisResultSummary) {
+            return;
+        }
+
+        const totalSummary = payload.totalSlideCount ? `전체 ${payload.totalSlideCount}장` : '';
+        const analyzedSummary = payload.slideCount ? `분석 ${payload.slideCount}장` : '';
+        const excludedSummary = Array.isArray(payload.excludedPages) && payload.excludedPages.length
+            ? `제외 ${payload.excludedPages.join(', ')}`
+            : '';
+
+        analysisResultMeta.textContent = [totalSummary, analyzedSummary, excludedSummary]
+            .filter(Boolean)
+            .join(' · ');
+        analysisResultSummary.textContent = payload.summary?.summary
+            || payload.aiSummary
+            || 'AI 분석 요약이 없습니다.';
+        if (analysisLoadingBox) {
+            analysisLoadingBox.style.display = 'none';
+        }
+        analysisResultBox.style.display = 'block';
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isSubmitting) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    });
 
     function filterNumericInput(input) {
         input.addEventListener('input', () => {
@@ -54,14 +171,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceInput.disabled = false;
         salePriceInput.disabled = false;
 
-        if (priceInput.value === '0') priceInput.value = '';
-        if (salePriceInput.value === '0') salePriceInput.value = '';
+        if (priceInput.value === '0') {
+            priceInput.value = '';
+        }
+
+        if (salePriceInput.value === '0') {
+            salePriceInput.value = '';
+        }
     }
 
     function syncThumbnailInput() {
         const dataTransfer = new DataTransfer();
         selectedThumbnails.forEach((file) => dataTransfer.items.add(file));
         thumbnailInput.files = dataTransfer.files;
+    }
+
+    function markAnalysisDirty() {
+        if (!analyzedPayload) {
+            return;
+        }
+
+        clearAnalysisResult();
+        setError('입력 내용이 변경되어 AI 분석을 다시 실행해야 합니다.');
     }
 
     function renderThumbnailPreview() {
@@ -95,17 +226,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         thumbnailPreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
             button.addEventListener('click', () => {
                 const index = Number(button.dataset.removeIndex);
-                if (Number.isNaN(index)) return;
+                if (Number.isNaN(index)) {
+                    return;
+                }
 
                 const removedWasRepresentative = representativeThumbnailIndex === index;
                 selectedThumbnails.splice(index, 1);
 
-                if (removedWasRepresentative) representativeThumbnailIndex = 0;
-                else if (representativeThumbnailIndex > index) representativeThumbnailIndex -= 1;
+                if (removedWasRepresentative) {
+                    representativeThumbnailIndex = 0;
+                } else if (representativeThumbnailIndex > index) {
+                    representativeThumbnailIndex -= 1;
+                }
 
                 setError('');
                 syncThumbnailInput();
                 renderThumbnailPreview();
+                markAnalysisDirty();
             });
         });
 
@@ -113,6 +250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             input.addEventListener('change', () => {
                 representativeThumbnailIndex = Number(input.value) || 0;
                 renderThumbnailPreview();
+                markAnalysisDirty();
             });
         });
     }
@@ -138,11 +276,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             productFileInput.value = '';
             setError('');
             renderProductFilePreview();
+            markAnalysisDirty();
         });
     }
 
     function mergeThumbnailFiles(nextFiles) {
-        const existingKeys = new Set(selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+        const existingKeys = new Set(
+            selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
+        );
 
         nextFiles.forEach((file) => {
             const key = `${file.name}-${file.size}-${file.lastModified}`;
@@ -153,8 +294,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    function getNormalizedDescription() {
+        return String(
+            window.normalizeProductEditorHtml
+                ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+                : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
+        ).trim();
+    }
+
+    function buildBaseFormData() {
+        const formData = new FormData();
+        formData.append('title', titleInput.value.trim());
+        formData.append('price', isFreeInput.checked ? '0' : priceInput.value.trim());
+        formData.append('salePrice', isFreeInput.checked ? '0' : salePriceInput.value.trim());
+        formData.append('isFree', isFreeInput.checked ? '1' : '0');
+        formData.append('usePlace', usePlaceInput.value.trim());
+        formData.append('usePurpose', usePurposeInput.value.trim());
+        formData.append('description', getNormalizedDescription());
+        formData.append('keywords', keywordsInput.value.trim());
+        formData.append('excludedPages', excludedPagesInput.value.trim());
+        formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
+
+        selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
+
+        if (selectedProductFile) {
+            formData.append('productFile', selectedProductFile);
+        }
+
+        return formData;
+    }
+
+    function validateForAnalysis() {
+        const title = titleInput.value.trim();
+        const usePlace = usePlaceInput.value.trim();
+        const usePurpose = usePurposeInput.value.trim();
+        const description = getNormalizedDescription();
+
+        if (!title) return '상품명을 입력해 주세요.';
+        if (!usePlace) return 'PPT를 어디에 사용할지 선택해 주세요.';
+        if (!usePurpose) return 'PPT의 목적을 선택해 주세요.';
+        if (!description) return '상세 설명을 입력해 주세요.';
+        if (!selectedThumbnails.length) return '상품 이미지를 업로드해 주세요.';
+        if (!selectedProductFile) return '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.';
+
+        const ext = selectedProductFile.name.split('.').pop()?.toLowerCase();
+        if (!['ppt', 'pptx'].includes(ext || '')) {
+            return 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.';
+        }
+
+        return '';
+    }
+
     thumbnailInput.addEventListener('change', () => {
         const incomingFiles = Array.from(thumbnailInput.files || []);
+
         if (!incomingFiles.length) {
             setError('');
             syncThumbnailInput();
@@ -173,18 +366,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         thumbnailInput.value = '';
         syncThumbnailInput();
         renderThumbnailPreview();
+        markAnalysisDirty();
     });
 
     productFileInput.addEventListener('change', () => {
         selectedProductFile = productFileInput.files?.[0] || null;
         setError('');
         renderProductFilePreview();
+        markAnalysisDirty();
     });
 
     filterNumericInput(priceInput);
     filterNumericInput(salePriceInput);
     isFreeInput.addEventListener('change', togglePriceInputs);
     togglePriceInputs();
+
+    [
+        titleInput,
+        usePlaceInput,
+        usePurposeInput,
+        keywordsInput,
+        excludedPagesInput
+    ].forEach((input) => {
+        input?.addEventListener('input', markAnalysisDirty);
+        input?.addEventListener('change', markAnalysisDirty);
+    });
+
+    if (descriptionEditor) {
+        descriptionEditor.events.on('change', markAnalysisDirty);
+    } else {
+        descriptionInput?.addEventListener('input', markAnalysisDirty);
+    }
 
     try {
         const meResponse = await fetch('/me', {
@@ -205,80 +417,71 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    analyzeButton?.addEventListener('click', async () => {
+        setError('');
+
+        const validationError = validateForAnalysis();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
+        try {
+            setLoading(true, 'analyze');
+            if (analysisResultBox) {
+                analysisResultBox.style.display = 'none';
+            }
+
+            const response = await fetch('/api/seller/products-ai/analyze', {
+                method: 'POST',
+                credentials: 'include',
+                body: buildBaseFormData()
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                clearAnalysisResult();
+                setError(data.message || 'AI 분석에 실패했습니다.');
+                return;
+            }
+
+            renderAnalysisResult(data.analysisResult || data);
+            alert(data.message || 'AI 분석이 완료되었습니다.');
+        } catch (error) {
+            console.error('AI 분석 실패:', error);
+            clearAnalysisResult();
+            setError('서버와 통신 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    });
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setError('');
 
-        const title = titleInput.value.trim();
-        const price = priceInput.value.trim();
-        const salePrice = salePriceInput.value.trim();
-        const isFree = isFreeInput.checked;
-        const usePlace = usePlaceInput.value.trim();
-        const usePurpose = usePurposeInput.value.trim();
-        const description = String(
-            window.normalizeProductEditorHtml
-                ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
-                : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
-        ).trim();
-        const keywords = keywordsInput.value.trim();
-
-        if (!title) {
-            setError('상품명을 입력해 주세요.');
+        if (!analyzedPayload) {
+            setError('먼저 AI 분석을 완료해 주세요.');
             return;
         }
 
-        if (!isFree && !price) {
+        const validationError = validateForAnalysis();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
+        if (!isFreeInput.checked && !priceInput.value.trim()) {
             setError('판매가를 입력해 주세요.');
             return;
         }
 
-        if (!usePlace) {
-            setError('PPT를 어디에 사용할지 선택해 주세요.');
-            return;
-        }
-
-        if (!usePurpose) {
-            setError('PPT의 목적을 선택해 주세요.');
-            return;
-        }
-
-        if (!description) {
-            setError('상세 설명을 입력해 주세요.');
-            return;
-        }
-
-        if (!selectedThumbnails.length) {
-            setError('상품 이미지를 업로드해 주세요.');
-            return;
-        }
-
-        if (!selectedProductFile) {
-            setError('분석할 PPT 또는 PPTX 파일을 업로드해 주세요.');
-            return;
-        }
-
-        const ext = selectedProductFile.name.split('.').pop()?.toLowerCase();
-        if (!['ppt', 'pptx'].includes(ext || '')) {
-            setError('상품등록2에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('price', isFree ? '0' : price);
-        formData.append('salePrice', isFree ? '0' : salePrice);
-        formData.append('isFree', isFree ? '1' : '0');
-        formData.append('usePlace', usePlace);
-        formData.append('usePurpose', usePurpose);
-        formData.append('description', description);
-        formData.append('keywords', keywords);
-        formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
-
-        selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
-        formData.append('productFile', selectedProductFile);
+        const formData = buildBaseFormData();
+        formData.append('analysisPayload', JSON.stringify(analyzedPayload));
 
         try {
-            setLoading(true);
+            setLoading(true, 'register');
 
             const response = await fetch('/api/seller/products-ai', {
                 method: 'POST',
@@ -289,14 +492,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (!data.success) {
-                setError(data.message || '상품등록2에 실패했습니다.');
+                setError(data.message || 'AI PPT등록에 실패했습니다.');
                 return;
             }
 
-            alert(`${data.message}\n분석된 슬라이드 수: ${data.slideCount || 0}`);
+            setLoading(false);
+            alert(data.message);
             window.location.href = `/products-page/${data.productId}`;
         } catch (error) {
-            console.error('상품등록2 실패:', error);
+            console.error('AI PPT등록 실패:', error);
             setError('서버와 통신 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);

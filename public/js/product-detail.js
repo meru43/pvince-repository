@@ -185,6 +185,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderProduct(product) {
         const summaryText = product.ai_summary_text || htmlToPlainText(product.description || '') || '';
         const descriptionHtml = normalizeDescriptionHtml(product.description || product.ai_summary_text || '');
+        const aiSummaryHtml = product.ai_summary_text
+            ? `
+                <section class="detail-ai-summary-box">
+                    <p class="detail-ai-summary-label">AI 분석</p>
+                    <div class="detail-ai-summary-text">
+                        <p>${escapeHtml(product.ai_summary_text)}</p>
+                    </div>
+                </section>
+            `
+            : '';
         const keywordHtml = (product.keywordList || [])
             .map((keyword) => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`)
             .join('');
@@ -284,7 +294,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
-        descriptionContent.innerHTML = `<div class="detail-description-body">${descriptionHtml}</div>`;
+        const summaryBox = detailBox.querySelector('.detail-summary');
+        if (summaryBox) {
+            summaryBox.remove();
+        }
+
+        descriptionContent.innerHTML = `
+            ${aiSummaryHtml}
+            <div class="detail-description-body">${descriptionHtml}</div>
+        `;
 
         if (keywordsBox) {
             keywordsBox.innerHTML = keywordHtml;

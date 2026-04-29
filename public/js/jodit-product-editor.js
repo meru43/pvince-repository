@@ -9,7 +9,7 @@ window.createProductJoditEditor = function createProductJoditEditor(textarea) {
         buttons: [
             'bold', 'italic', 'underline', 'strikethrough', '|',
             'ul', 'ol', '|',
-            'font', 'fontsize', 'paragraph', '|',
+            'font', 'fontsize', 'paragraph', 'brush', '|',
             'image', 'table', 'link', '|',
             'align', 'outdent', 'indent', '|',
             'undo', 'redo', '|',

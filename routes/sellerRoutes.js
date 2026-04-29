@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { runPptAiPipeline } = require('../lib/ppt-ai-pipeline');
+const { runPptAiPipeline, parseExcludedPages } = require('../lib/ppt-ai-pipeline');
 
 module.exports = (db) => {
     const router = express.Router();
@@ -283,8 +283,12 @@ module.exports = (db) => {
                 sql: `ALTER TABLE products ADD COLUMN ai_summary_text LONGTEXT NULL AFTER ai_slide_analysis_json`
             },
             {
+                name: 'ai_excluded_pages_json',
+                sql: `ALTER TABLE products ADD COLUMN ai_excluded_pages_json LONGTEXT NULL AFTER ai_summary_text`
+            },
+            {
                 name: 'use_place',
-                sql: `ALTER TABLE products ADD COLUMN use_place VARCHAR(120) NULL AFTER ai_summary_text`
+                sql: `ALTER TABLE products ADD COLUMN use_place VARCHAR(120) NULL AFTER ai_excluded_pages_json`
             },
             {
                 name: 'use_purpose',
@@ -488,6 +492,137 @@ module.exports = (db) => {
         }
     );
 
+    function buildAiReferenceImages(thumbnails, representativeThumbnailIndex) {
+        return thumbnails.map((file, index) => ({
+            absolutePath: file.path,
+            publicPath: `/uploads/thumbnails/${file.filename}`,
+            label: index === representativeThumbnailIndex
+                ? `대표 상품 이미지 ${index + 1}`
+                : `상품 이미지 ${index + 1}`
+        }));
+    }
+
+    function parseAnalysisPayload(rawValue) {
+        if (!rawValue) {
+            return null;
+        }
+
+        const parsed = JSON.parse(rawValue);
+
+        if (!parsed || !Array.isArray(parsed.slides) || !parsed.summary) {
+            throw new Error('AI 분석 결과 형식이 올바르지 않습니다.');
+        }
+
+        return {
+            slideCount: Number(parsed.slideCount || parsed.slides.length || 0),
+            totalSlideCount: Number(parsed.totalSlideCount || 0),
+            analyzedPages: Array.isArray(parsed.analyzedPages) ? parsed.analyzedPages : [],
+            excludedPages: Array.isArray(parsed.excludedPages) ? parsed.excludedPages : [],
+            slides: parsed.slides,
+            summary: parsed.summary,
+            pdfUrl: parsed.pdfUrl || '',
+            referenceImages: Array.isArray(parsed.referenceImages) ? parsed.referenceImages : []
+        };
+    }
+
+    router.post(
+        '/api/seller/products-ai/analyze',
+        requireSellerOrAdminApi,
+        upload.fields([
+            { name: 'thumbnail', maxCount: 10 },
+            { name: 'productFile', maxCount: 1 }
+        ]),
+        async (req, res) => {
+            const title = req.body.title?.trim();
+            const usePlace = req.body.usePlace?.trim() || '';
+            const usePurpose = req.body.usePurpose?.trim() || '';
+            const excludedPagesRaw = req.body.excludedPages?.trim() || '';
+            const sellerNote = sanitizeRichText(req.body.description);
+            const sellerNotePlainText = toPlainText(sellerNote);
+            const keywords = req.body.keywords?.trim() || '';
+
+            const thumbnails = req.files?.thumbnail || [];
+            const representativeThumbnailIndex = Math.max(0, Number(req.body.representativeThumbnailIndex || 0));
+            const productFile = req.files?.productFile?.[0];
+
+            if (!title) {
+                return res.json({ success: false, message: '상품명을 입력해 주세요.' });
+            }
+
+            if (!usePlace) {
+                return res.json({ success: false, message: 'PPT를 어디에 사용할지 선택해 주세요.' });
+            }
+
+            if (!usePurpose) {
+                return res.json({ success: false, message: 'PPT의 목적을 선택해 주세요.' });
+            }
+
+            if (!sellerNotePlainText) {
+                return res.json({ success: false, message: '상세 설명을 입력해 주세요.' });
+            }
+
+            if (!thumbnails.length) {
+                return res.json({ success: false, message: '상품 이미지를 업로드해 주세요.' });
+            }
+
+            if (!productFile) {
+                return res.json({ success: false, message: '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.' });
+            }
+
+            let excludedPages = [];
+            try {
+                excludedPages = parseExcludedPages(excludedPagesRaw);
+            } catch (error) {
+                return res.json({ success: false, message: error.message });
+            }
+
+            const fileExt = path.extname(productFile.originalname || '').toLowerCase();
+            if (!['.ppt', '.pptx'].includes(fileExt)) {
+                return res.json({
+                    success: false,
+                    message: 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                });
+            }
+
+            try {
+                const cleanedKeywords = keywords
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                    .join(',');
+
+                const fileName = normalizeUploadFileName(productFile.originalname);
+                const referenceImages = buildAiReferenceImages(thumbnails, representativeThumbnailIndex);
+                const analysisResult = await runPptAiPipeline({
+                    sourcePptPath: productFile.path,
+                    sourceFileName: fileName,
+                    outputKey: path.basename(productFile.filename, path.extname(productFile.filename)),
+                    publicDir: path.join(__dirname, '..', 'public'),
+                    outputNamespace: 'ppt-product-analysis',
+                    context: {
+                        title,
+                        keywords: cleanedKeywords,
+                        sellerNote: sellerNotePlainText
+                    },
+                    referenceImages,
+                    excludedPages
+                });
+
+                return res.json({
+                    success: true,
+                    message: 'AI 분석이 완료되었습니다. 결과를 확인한 뒤 상품을 등록해 주세요.',
+                    analysisResult
+                });
+            } catch (error) {
+                console.error('AI 상품 사전 분석 오류:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: `PPT 분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
+                });
+            }
+        }
+    );
+
     router.get('/seller-products-page', requireSellerOrAdmin, (req, res) => {
         res.render('seller-products');
     });
@@ -648,6 +783,8 @@ module.exports = (db) => {
             const isFree = req.body.isFree === '1' ? 1 : 0;
             const usePlace = req.body.usePlace?.trim() || '';
             const usePurpose = req.body.usePurpose?.trim() || '';
+            const excludedPagesRaw = req.body.excludedPages?.trim() || '';
+            const analysisPayloadRaw = req.body.analysisPayload || '';
             const sellerNote = sanitizeRichText(req.body.description);
             const sellerNotePlainText = toPlainText(sellerNote);
             const keywords = req.body.keywords?.trim() || '';
@@ -713,11 +850,23 @@ module.exports = (db) => {
                 });
             }
 
+            let excludedPages = [];
+            let analysisPayload = null;
+            try {
+                excludedPages = parseExcludedPages(excludedPagesRaw);
+                analysisPayload = parseAnalysisPayload(analysisPayloadRaw);
+            } catch (error) {
+                return res.json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
             const fileExt = path.extname(productFile.originalname || '').toLowerCase();
             if (!['.ppt', '.pptx'].includes(fileExt)) {
                 return res.json({
                     success: false,
-                    message: '상품등록2에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                    message: 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
                 });
             }
 
@@ -744,27 +893,14 @@ module.exports = (db) => {
                         isRepresentative: index === representativeThumbnailIndex
                     }))
                 );
-                const referenceImages = thumbnails.map((file, index) => ({
-                    absolutePath: file.path,
-                    publicPath: `/uploads/thumbnails/${file.filename}`,
-                    label: index === representativeThumbnailIndex
-                        ? `대표 상품 이미지 ${index + 1}`
-                        : `상품 이미지 ${index + 1}`
-                }));
+                const analysisResult = analysisPayload || null;
 
-                const analysisResult = await runPptAiPipeline({
-                    sourcePptPath: productFile.path,
-                    sourceFileName: fileName,
-                    outputKey: path.basename(productFile.filename, path.extname(productFile.filename)),
-                    publicDir: path.join(__dirname, '..', 'public'),
-                    outputNamespace: 'ppt-product-analysis',
-                    context: {
-                        title,
-                        keywords: cleanedKeywords,
-                        sellerNote: sellerNotePlainText
-                    },
-                    referenceImages
-                });
+                if (!analysisResult) {
+                    return res.json({
+                        success: false,
+                        message: '먼저 AI 분석을 완료해 주세요.'
+                    });
+                }
 
                 const summaryText = analysisResult.summary?.summary?.trim() || sellerNotePlainText || `${title} PPT 템플릿입니다.`;
 
@@ -782,12 +918,13 @@ module.exports = (db) => {
                         thumbnail_gallery_json,
                         ai_slide_analysis_json,
                         ai_summary_text,
+                        ai_excluded_pages_json,
                         use_place,
                         use_purpose,
                         keywords,
                         created_by
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 const values = [
@@ -803,6 +940,7 @@ module.exports = (db) => {
                     thumbnailGalleryJson,
                     JSON.stringify(analysisResult.slides || []),
                     summaryText,
+                    JSON.stringify(analysisResult.excludedPages || []),
                     usePlace,
                     usePurpose,
                     cleanedKeywords,
@@ -814,16 +952,19 @@ module.exports = (db) => {
                         console.error('AI 상품 등록 오류:', err);
                         return res.json({
                             success: false,
-                            message: '상품등록2 저장에 실패했습니다.'
+                            message: 'AI PPT등록 저장에 실패했습니다.'
                         });
                     }
 
                     return res.json({
                         success: true,
-                        message: '상품등록2와 AI 분석이 완료되었습니다.',
+                        message: 'AI PPT등록이 완료되었습니다.',
                         productId: result.insertId,
                         aiSummary: summaryText,
-                        slideCount: analysisResult.slideCount || 0
+                        slideCount: analysisResult.slideCount || 0,
+                        totalSlideCount: analysisResult.totalSlideCount || 0,
+                        analyzedPages: analysisResult.analyzedPages || [],
+                        excludedPages: analysisResult.excludedPages || []
                     });
                 });
             } catch (error) {
@@ -1133,6 +1274,8 @@ module.exports = (db) => {
             const isFree = req.body.isFree === '1' ? 1 : 0;
             const description = sanitizeRichText(req.body.description);
             const keywords = req.body.keywords?.trim();
+            const aiReanalyze = req.body.aiReanalyze === '1';
+            const excludedPagesRaw = req.body.excludedPages?.trim() || '';
 
             const newThumbnail = req.files?.thumbnail?.[0];
             const newProductFile = req.files?.productFile?.[0];
@@ -1158,6 +1301,8 @@ module.exports = (db) => {
                 });
             }
 
+            let excludedPages = [];
+
             const productSql = `
             SELECT *
             FROM products
@@ -1165,7 +1310,7 @@ module.exports = (db) => {
             LIMIT 1
         `;
 
-            db.query(productSql, [productId], (productErr, productResults) => {
+            db.query(productSql, [productId], async (productErr, productResults) => {
                 if (productErr) {
                     console.error('수정 대상 상품 조회 오류:', productErr);
                     return res.status(500).json({
@@ -1208,6 +1353,114 @@ module.exports = (db) => {
                     ? `/uploads/products/${newProductFile.filename}`
                     : product.file_path;
 
+                const normalizedNextFileName = normalizeUploadFileName(nextFileName);
+                const isAiPptProduct = String(normalizedNextFileName || '').toLowerCase().endsWith('.ppt')
+                    || String(normalizedNextFileName || '').toLowerCase().endsWith('.pptx')
+                    || !!product.ai_summary_text
+                    || !!product.ai_slide_analysis_json;
+
+                if (isAiPptProduct && !aiReanalyze && (newThumbnail || newProductFile)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'PPT 파일이나 대표 이미지를 변경한 경우 AI 분석 다시 실행을 체크해 주세요.'
+                    });
+                }
+
+                let nextAiSlideAnalysisJson = product.ai_slide_analysis_json;
+                let nextAiSummaryText = product.ai_summary_text;
+                let nextAiExcludedPagesJson = product.ai_excluded_pages_json || JSON.stringify([]);
+
+                if (isAiPptProduct && aiReanalyze) {
+                    try {
+                        excludedPages = parseExcludedPages(excludedPagesRaw);
+                    } catch (error) {
+                        return res.status(400).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+
+                    try {
+                        const publicDir = path.join(__dirname, '..', 'public');
+                        const currentProductFilePath = String(nextFilePath || '').replace(/^\/+/, '').replace(/\//g, path.sep);
+                        const pptAbsolutePath = newProductFile
+                            ? newProductFile.path
+                            : path.join(publicDir, currentProductFilePath);
+
+                        const referenceImages = newThumbnail
+                            ? [{
+                                absolutePath: newThumbnail.path,
+                                publicPath: `/uploads/thumbnails/${newThumbnail.filename}`,
+                                label: '대표 상품 이미지'
+                            }]
+                            : (() => {
+                                try {
+                                    const parsedGallery = JSON.parse(product.thumbnail_gallery_json || '[]');
+                                    if (Array.isArray(parsedGallery) && parsedGallery.length) {
+                                        return parsedGallery
+                                            .map((item, index) => {
+                                                const publicPath = String(item.path || '');
+                                                if (!publicPath) {
+                                                    return null;
+                                                }
+
+                                                return {
+                                                    absolutePath: path.join(publicDir, publicPath.replace(/^\/+/, '').replace(/\//g, path.sep)),
+                                                    publicPath,
+                                                    label: item.isRepresentative
+                                                        ? `대표 상품 이미지 ${index + 1}`
+                                                        : `상품 이미지 ${index + 1}`
+                                                };
+                                            })
+                                            .filter(Boolean);
+                                    }
+                                } catch (error) {
+                                    console.error('thumbnail gallery parse error:', error);
+                                }
+
+                                if (product.thumbnail_path) {
+                                    return [{
+                                        absolutePath: path.join(publicDir, String(product.thumbnail_path).replace(/^\/+/, '').replace(/\//g, path.sep)),
+                                        publicPath: product.thumbnail_path,
+                                        label: '대표 상품 이미지'
+                                    }];
+                                }
+
+                                return [];
+                            })();
+
+                        const analysisResult = await runPptAiPipeline({
+                            sourcePptPath: pptAbsolutePath,
+                            sourceFileName: normalizedNextFileName,
+                            outputKey: path.basename(
+                                newProductFile ? newProductFile.filename : currentProductFilePath,
+                                path.extname(newProductFile ? newProductFile.filename : currentProductFilePath)
+                            ),
+                            publicDir,
+                            outputNamespace: 'ppt-product-analysis',
+                            context: {
+                                title,
+                                keywords: cleanedKeywords,
+                                sellerNote: toPlainText(description)
+                            },
+                            referenceImages,
+                            excludedPages
+                        });
+
+                        nextAiSlideAnalysisJson = JSON.stringify(analysisResult.slides || []);
+                        nextAiSummaryText = analysisResult.summary?.summary?.trim()
+                            || toPlainText(description)
+                            || `${title} PPT 템플릿입니다.`;
+                        nextAiExcludedPagesJson = JSON.stringify(analysisResult.excludedPages || []);
+                    } catch (error) {
+                        console.error('AI product reanalysis error:', error);
+                        return res.status(500).json({
+                            success: false,
+                            message: `PPT 재분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
+                        });
+                    }
+                }
+
                 const updateSql = `
                 UPDATE products
                 SET
@@ -1219,6 +1472,9 @@ module.exports = (db) => {
                     file_name = ?,
                     file_path = ?,
                     thumbnail_path = ?,
+                    ai_slide_analysis_json = ?,
+                    ai_summary_text = ?,
+                    ai_excluded_pages_json = ?,
                     keywords = ?
                 WHERE id = ?
             `;
@@ -1229,9 +1485,12 @@ module.exports = (db) => {
                     isFree ? 0 : (salePrice ? Number(salePrice) : null),
                     isFree,
                     description,
-                    nextFileName,
+                    normalizedNextFileName,
                     nextFilePath,
                     nextThumbnailPath,
+                    nextAiSlideAnalysisJson,
+                    nextAiSummaryText,
+                    nextAiExcludedPagesJson,
                     cleanedKeywords,
                     productId
                 ];

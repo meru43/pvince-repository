@@ -246,6 +246,28 @@
     word-break: break-word;
 }
 
+.detail-ai-summary-box {
+    margin: 0 0 24px;
+    padding: 20px 22px;
+    border: 1px solid #e1e1e1;
+    border-radius: 18px;
+    background: #f8fafc;
+}
+
+.detail-ai-summary-label {
+    margin: 0 0 10px;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.detail-ai-summary-text p {
+    margin: 0;
+    color: #4b5563;
+    line-height: 1.8;
+}
+
 .detail-description-body h1,
 .detail-description-body h2,
 .detail-description-body h3 {
