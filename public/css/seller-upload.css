@@ -439,6 +439,23 @@
     right: 8px;
 }
 
+.thumbnail-replace-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background: #fff;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.thumbnail-replace-btn:hover {
+    background: #f8fafc;
+}
+
 .seller-upload-error {
     min-height: 20px;
     margin: -4px 0 0;

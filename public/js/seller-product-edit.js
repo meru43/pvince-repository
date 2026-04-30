@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const MAX_THUMBNAILS = 10;
+
     const form = document.getElementById('seller-product-edit-form');
     const errorText = document.getElementById('seller-product-edit-error');
     const submitButton = form.querySelector('button[type="submit"]');
@@ -8,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
+    const thumbnailPreviewList = document.getElementById('thumbnail-preview-list');
     const priceInput = document.getElementById('product-price');
     const salePriceInput = document.getElementById('product-sale-price');
     const isFreeInput = document.getElementById('product-is-free');
@@ -19,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const excludedPagesGroup = document.getElementById('product-excluded-pages-group');
     const excludedPagesInput = document.getElementById('product-excluded-pages');
 
-    const currentThumbnailPreview = document.getElementById('current-thumbnail-preview');
     const currentProductFile = document.getElementById('current-product-file');
     const productActiveStatus = document.getElementById('product-active-status');
     const productStopMemo = document.getElementById('product-stop-memo');
@@ -27,6 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let isSubmitting = false;
     let aiPptProduct = false;
+    let thumbnailItems = [];
+    let nextThumbnailToken = 1;
 
     const descriptionEditor = window.createProductJoditEditor
         ? window.createProductJoditEditor(descriptionInput)
@@ -98,8 +102,168 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function markRepresentative(index) {
+        thumbnailItems = thumbnailItems.map((item, itemIndex) => ({
+            ...item,
+            isRepresentative: itemIndex === index
+        }));
+    }
+
+    function ensureRepresentative() {
+        if (!thumbnailItems.length) {
+            return;
+        }
+
+        if (!thumbnailItems.some((item) => item.isRepresentative)) {
+            thumbnailItems[0].isRepresentative = true;
+        }
+    }
+
+    function createThumbnailItemFromFile(file) {
+        return {
+            clientId: `new-${Date.now()}-${nextThumbnailToken += 1}`,
+            source: 'new',
+            name: file.name,
+            file,
+            path: '',
+            previewUrl: URL.createObjectURL(file),
+            isRepresentative: thumbnailItems.length === 0
+        };
+    }
+
+    function renderThumbnailPreview() {
+        ensureRepresentative();
+
+        if (!thumbnailItems.length) {
+            thumbnailPreviewList.innerHTML = '';
+            return;
+        }
+
+        thumbnailPreviewList.innerHTML = thumbnailItems.map((item, index) => {
+            const previewUrl = item.previewUrl || item.path || '';
+            const checked = item.isRepresentative ? 'checked' : '';
+
+            return `
+                <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}">
+                    <button type="button" class="preview-remove-btn" data-remove-index="${index}" aria-label="이미지 제거">X</button>
+                    <button type="button" class="thumbnail-replace-btn" data-replace-index="${index}">교체</button>
+                    <img src="${previewUrl}" alt="${item.name || `상품 이미지 ${index + 1}`}" class="thumbnail-preview-image">
+                    <label class="thumbnail-radio-label">
+                        <input type="radio" name="representative-thumbnail" value="${index}" ${checked}>
+                        <span>대표 이미지</span>
+                    </label>
+                    <p class="preview-file-name">${item.name || `상품 이미지 ${index + 1}`}</p>
+                </div>
+            `;
+        }).join('');
+
+        thumbnailPreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const index = Number(button.dataset.removeIndex);
+                if (Number.isNaN(index)) {
+                    return;
+                }
+
+                const [removed] = thumbnailItems.splice(index, 1);
+                if (removed?.previewUrl?.startsWith('blob:')) {
+                    URL.revokeObjectURL(removed.previewUrl);
+                }
+
+                ensureRepresentative();
+                renderThumbnailPreview();
+            });
+        });
+
+        thumbnailPreviewList.querySelectorAll('.thumbnail-replace-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const index = Number(button.dataset.replaceIndex);
+                if (Number.isNaN(index)) {
+                    return;
+                }
+
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+
+                input.addEventListener('change', () => {
+                    const file = input.files?.[0];
+                    if (!file) {
+                        return;
+                    }
+
+                    const current = thumbnailItems[index];
+                    const replacement = createThumbnailItemFromFile(file);
+                    replacement.isRepresentative = !!current?.isRepresentative;
+
+                    if (current?.previewUrl?.startsWith('blob:')) {
+                        URL.revokeObjectURL(current.previewUrl);
+                    }
+
+                    thumbnailItems[index] = replacement;
+                    ensureRepresentative();
+                    renderThumbnailPreview();
+                });
+
+                input.click();
+            });
+        });
+
+        thumbnailPreviewList.querySelectorAll('input[name="representative-thumbnail"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                markRepresentative(Number(input.value) || 0);
+                renderThumbnailPreview();
+            });
+        });
+    }
+
+    function appendThumbnailFiles(nextFiles) {
+        const availableSlots = MAX_THUMBNAILS - thumbnailItems.length;
+
+        if (availableSlots <= 0) {
+            setError('상품 이미지는 최대 10장까지 유지할 수 있습니다.');
+            return;
+        }
+
+        const filesToAdd = nextFiles.slice(0, availableSlots);
+        const skipped = nextFiles.length - filesToAdd.length;
+
+        filesToAdd.forEach((file) => {
+            thumbnailItems.push(createThumbnailItemFromFile(file));
+        });
+
+        if (skipped > 0) {
+            setError('상품 이미지는 최대 10장까지 유지할 수 있습니다.');
+        } else {
+            setError('');
+        }
+
+        ensureRepresentative();
+        renderThumbnailPreview();
+    }
+
+    function buildThumbnailPayload() {
+        return thumbnailItems.map((item, index) => ({
+            clientId: item.clientId,
+            source: item.source,
+            path: item.source === 'existing' ? item.path : '',
+            name: item.name || '',
+            isRepresentative: !!item.isRepresentative,
+            order: index
+        }));
+    }
+
     isFreeInput.addEventListener('change', togglePriceInputs);
     reanalyzeInput?.addEventListener('change', syncReanalyzeUi);
+
+    thumbnailInput.addEventListener('change', () => {
+        const files = Array.from(thumbnailInput.files || []);
+        if (!files.length) {
+            return;
+        }
+
+        appendThumbnailFiles(files);
+        thumbnailInput.value = '';
+    });
 
     try {
         const response = await fetch(`/api/seller/products/${productId}`, {
@@ -161,13 +325,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        syncReanalyzeUi();
-
-        if (product.thumbnail_path) {
-            currentThumbnailPreview.innerHTML = `<img src="${product.thumbnail_path}" alt="${product.title}" style="max-width: 240px;" />`;
-        } else {
-            currentThumbnailPreview.innerHTML = '<p>등록된 썸네일이 없습니다.</p>';
+        try {
+            const parsedGallery = JSON.parse(product.thumbnail_gallery_json || '[]');
+            if (Array.isArray(parsedGallery) && parsedGallery.length) {
+                thumbnailItems = parsedGallery.map((item, index) => ({
+                    clientId: `existing-${index + 1}`,
+                    source: 'existing',
+                    name: item.name || `상품 이미지 ${index + 1}`,
+                    file: null,
+                    path: item.path || '',
+                    previewUrl: item.path || '',
+                    isRepresentative: !!item.isRepresentative
+                }));
+            }
+        } catch (error) {
+            thumbnailItems = [];
         }
+
+        if (!thumbnailItems.length && product.thumbnail_path) {
+            thumbnailItems = [{
+                clientId: 'existing-1',
+                source: 'existing',
+                name: product.title || '대표 이미지',
+                file: null,
+                path: product.thumbnail_path,
+                previewUrl: product.thumbnail_path,
+                isRepresentative: true
+            }];
+        }
+
+        renderThumbnailPreview();
+        syncReanalyzeUi();
 
         if (product.file_name) {
             currentProductFile.innerHTML = `<p>${product.file_name}</p>`;
@@ -199,6 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const keywords = keywordsInput.value.trim();
         const shouldReanalyze = aiPptProduct && !!reanalyzeInput?.checked;
         const excludedPages = shouldReanalyze && excludedPagesInput ? excludedPagesInput.value.trim() : '';
+        const hasNewProductFile = !!productFileInput.files[0];
 
         if (!title) {
             setError('상품명을 입력해 주세요.');
@@ -215,8 +404,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (aiPptProduct && !shouldReanalyze && (thumbnailInput.files[0] || productFileInput.files[0])) {
-            setError('PPT 파일이나 대표 이미지를 변경한 경우 AI 분석 다시 실행을 체크해 주세요.');
+        if (!thumbnailItems.length) {
+            setError('상품 이미지를 최소 1장 유지해 주세요.');
+            return;
+        }
+
+        if (aiPptProduct && !shouldReanalyze && hasNewProductFile) {
+            setError('PPT 파일을 변경한 경우 AI 분석 다시 실행을 체크해 주세요.');
             return;
         }
 
@@ -229,12 +423,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('keywords', keywords);
         formData.append('excludedPages', excludedPages);
         formData.append('aiReanalyze', shouldReanalyze ? '1' : '0');
+        formData.append('thumbnailGalleryState', JSON.stringify(buildThumbnailPayload()));
 
-        if (thumbnailInput.files[0]) {
-            formData.append('thumbnail', thumbnailInput.files[0]);
-        }
+        thumbnailItems
+            .filter((item) => item.source === 'new' && item.file)
+            .forEach((item) => {
+                formData.append('thumbnail', item.file);
+                formData.append('thumbnailClientId', item.clientId);
+            });
 
-        if (productFileInput.files[0]) {
+        if (hasNewProductFile) {
             formData.append('productFile', productFileInput.files[0]);
         }
 

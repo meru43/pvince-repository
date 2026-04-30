@@ -27,14 +27,10 @@
                 </div>
 
                 <div class="form-group">
-                    <label>현재 썸네일</label>
-                    <div id="current-thumbnail-preview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="product-thumbnail">새 상품 썸네일</label>
-                    <input type="file" id="product-thumbnail" name="thumbnail" accept="image/*" />
-                    <small>새 파일을 업로드하지 않으면 기존 썸네일이 유지됩니다.</small>
+                    <label for="product-thumbnail">상품 이미지</label>
+                    <input type="file" id="product-thumbnail" name="thumbnail" accept="image/*" multiple />
+                    <small>최대 10장까지 유지할 수 있고, 기존 이미지는 삭제/교체하거나 새 이미지를 추가할 수 있습니다.</small>
+                    <div class="thumbnail-preview-list" id="thumbnail-preview-list"></div>
                 </div>
 
                 <div class="form-group">
@@ -74,7 +70,7 @@
                         <input type="checkbox" id="product-ai-reanalyze" name="aiReanalyze" />
                         AI 분석 다시 실행
                     </label>
-                    <small>선택하지 않으면 이전에 분석한 AI 결과를 그대로 유지하고, 제목/설명/금액만 수정합니다.</small>
+                    <small>선택하지 않으면 이전 AI 분석 결과를 그대로 유지하고, 제목/설명/금액/썸네일만 수정합니다.</small>
                 </div>
 
                 <div class="form-group excluded-pages-group" id="product-excluded-pages-group" style="display:none;">
@@ -97,7 +93,7 @@
                 <div class="form-group">
                     <label for="product-file">새 판매상품 파일</label>
                     <input type="file" id="product-file" name="productFile" />
-                    <small>새 파일을 업로드하지 않으면 기존 파일이 유지됩니다.</small>
+                    <small>새 파일을 업로드하지 않으면 기존 파일을 유지합니다.</small>
                 </div>
 
                 <p class="seller-upload-error" id="seller-product-edit-error"></p>

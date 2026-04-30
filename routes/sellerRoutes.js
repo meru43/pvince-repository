@@ -525,6 +525,26 @@ module.exports = (db) => {
         };
     }
 
+    function parseThumbnailGalleryState(rawValue) {
+        if (!rawValue) {
+            return [];
+        }
+
+        const parsed = JSON.parse(rawValue);
+        if (!Array.isArray(parsed)) {
+            throw new Error('상품 이미지 상태를 해석할 수 없습니다.');
+        }
+
+        return parsed.map((item, index) => ({
+            clientId: String(item?.clientId || `thumbnail-${index + 1}`),
+            source: item?.source === 'existing' ? 'existing' : 'new',
+            path: String(item?.path || ''),
+            name: String(item?.name || ''),
+            isRepresentative: Boolean(item?.isRepresentative),
+            order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index
+        }));
+    }
+
     router.post(
         '/api/seller/products-ai/analyze',
         requireSellerOrAdminApi,
@@ -1228,7 +1248,7 @@ module.exports = (db) => {
         '/api/seller/products/:id',
         requireSellerOrAdminApi,
         upload.fields([
-            { name: 'thumbnail', maxCount: 1 },
+            { name: 'thumbnail', maxCount: 10 },
             { name: 'productFile', maxCount: 1 }
         ]),
         (req, res) => {
@@ -1243,9 +1263,14 @@ module.exports = (db) => {
             const keywords = req.body.keywords?.trim();
             const aiReanalyze = req.body.aiReanalyze === '1';
             const excludedPagesRaw = req.body.excludedPages?.trim() || '';
+            const thumbnailGalleryStateRaw = req.body.thumbnailGalleryState || '[]';
 
-            const newThumbnail = req.files?.thumbnail?.[0];
+            const newThumbnails = req.files?.thumbnail || [];
             const newProductFile = req.files?.productFile?.[0];
+            const thumbnailClientIdsRaw = req.body.thumbnailClientId;
+            const thumbnailClientIds = Array.isArray(thumbnailClientIdsRaw)
+                ? thumbnailClientIdsRaw
+                : (thumbnailClientIdsRaw ? [thumbnailClientIdsRaw] : []);
 
             if (!title) {
                 return res.status(400).json({
@@ -1301,10 +1326,6 @@ module.exports = (db) => {
                     .filter(Boolean)
                     .join(',');
 
-                const nextThumbnailPath = newThumbnail
-                    ? `/uploads/thumbnails/${newThumbnail.filename}`
-                    : product.thumbnail_path;
-
                 const nextFileName = newProductFile
                     ? newProductFile.originalname
                     : product.file_name;
@@ -1319,12 +1340,92 @@ module.exports = (db) => {
                     || !!product.ai_summary_text
                     || !!product.ai_slide_analysis_json;
 
-                if (isAiPptProduct && !aiReanalyze && (newThumbnail || newProductFile)) {
+                let thumbnailGalleryState = [];
+                try {
+                    thumbnailGalleryState = parseThumbnailGalleryState(thumbnailGalleryStateRaw)
+                        .sort((a, b) => a.order - b.order);
+                } catch (error) {
                     return res.status(400).json({
                         success: false,
-                        message: 'PPT 파일이나 대표 이미지를 변경한 경우 AI 분석 다시 실행을 체크해 주세요.'
+                        message: error.message
                     });
                 }
+
+                if (isAiPptProduct && !aiReanalyze && newProductFile) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'PPT 파일을 변경한 경우 AI 분석 다시 실행을 체크해 주세요.'
+                    });
+                }
+
+                const newThumbnailMap = new Map();
+                newThumbnails.forEach((file, index) => {
+                    const clientId = String(thumbnailClientIds[index] || `new-${index + 1}`);
+                    newThumbnailMap.set(clientId, file);
+                });
+
+                let nextThumbnailGallery = [];
+
+                if (thumbnailGalleryState.length) {
+                    nextThumbnailGallery = thumbnailGalleryState
+                        .map((item) => {
+                            if (item.source === 'existing') {
+                                return {
+                                    path: item.path,
+                                    name: item.name || path.basename(item.path || ''),
+                                    isRepresentative: item.isRepresentative
+                                };
+                            }
+
+                            const matchedFile = newThumbnailMap.get(item.clientId);
+                            if (!matchedFile) {
+                                return null;
+                            }
+
+                            return {
+                                path: `/uploads/thumbnails/${matchedFile.filename}`,
+                                name: normalizeUploadFileName(matchedFile.originalname),
+                                isRepresentative: item.isRepresentative
+                            };
+                        })
+                        .filter(Boolean);
+                } else {
+                    try {
+                        nextThumbnailGallery = JSON.parse(product.thumbnail_gallery_json || '[]');
+                    } catch (error) {
+                        nextThumbnailGallery = [];
+                    }
+
+                    if (!nextThumbnailGallery.length && product.thumbnail_path) {
+                        nextThumbnailGallery = [{
+                            path: product.thumbnail_path,
+                            name: product.title || '대표 이미지',
+                            isRepresentative: true
+                        }];
+                    }
+                }
+
+                if (!nextThumbnailGallery.length) {
+                    return res.status(400).json({
+                        success: false,
+                        message: '상품 이미지를 최소 1장 유지해 주세요.'
+                    });
+                }
+
+                if (nextThumbnailGallery.length > 10) {
+                    return res.status(400).json({
+                        success: false,
+                        message: '?곹뭹 ?대?吏??理쒕? 10?κ퉴吏 ?좎??????덉뒿?덈떎.'
+                    });
+                }
+
+                if (!nextThumbnailGallery.some((item) => item.isRepresentative)) {
+                    nextThumbnailGallery[0].isRepresentative = true;
+                }
+
+                const representativeThumbnail = nextThumbnailGallery.find((item) => item.isRepresentative) || nextThumbnailGallery[0];
+                const nextThumbnailPath = representativeThumbnail?.path || product.thumbnail_path;
+                const nextThumbnailGalleryJson = JSON.stringify(nextThumbnailGallery);
 
                 let nextAiSlideAnalysisJson = product.ai_slide_analysis_json;
                 let nextAiSummaryText = product.ai_summary_text;
@@ -1347,47 +1448,22 @@ module.exports = (db) => {
                             ? newProductFile.path
                             : path.join(publicDir, currentProductFilePath);
 
-                        const referenceImages = newThumbnail
-                            ? [{
-                                absolutePath: newThumbnail.path,
-                                publicPath: `/uploads/thumbnails/${newThumbnail.filename}`,
-                                label: '대표 상품 이미지'
-                            }]
-                            : (() => {
-                                try {
-                                    const parsedGallery = JSON.parse(product.thumbnail_gallery_json || '[]');
-                                    if (Array.isArray(parsedGallery) && parsedGallery.length) {
-                                        return parsedGallery
-                                            .map((item, index) => {
-                                                const publicPath = String(item.path || '');
-                                                if (!publicPath) {
-                                                    return null;
-                                                }
-
-                                                return {
-                                                    absolutePath: path.join(publicDir, publicPath.replace(/^\/+/, '').replace(/\//g, path.sep)),
-                                                    publicPath,
-                                                    label: item.isRepresentative
-                                                        ? `대표 상품 이미지 ${index + 1}`
-                                                        : `상품 이미지 ${index + 1}`
-                                                };
-                                            })
-                                            .filter(Boolean);
-                                    }
-                                } catch (error) {
-                                    console.error('thumbnail gallery parse error:', error);
+                        const referenceImages = nextThumbnailGallery
+                            .map((item, index) => {
+                                const publicPath = String(item.path || '');
+                                if (!publicPath) {
+                                    return null;
                                 }
 
-                                if (product.thumbnail_path) {
-                                    return [{
-                                        absolutePath: path.join(publicDir, String(product.thumbnail_path).replace(/^\/+/, '').replace(/\//g, path.sep)),
-                                        publicPath: product.thumbnail_path,
-                                        label: '대표 상품 이미지'
-                                    }];
-                                }
-
-                                return [];
-                            })();
+                                return {
+                                    absolutePath: path.join(publicDir, publicPath.replace(/^\/+/, '').replace(/\//g, path.sep)),
+                                    publicPath,
+                                    label: item.isRepresentative
+                                        ? `대표 상품 이미지 ${index + 1}`
+                                        : `상품 이미지 ${index + 1}`
+                                };
+                            })
+                            .filter(Boolean);
 
                         const analysisResult = await runPptAiPipeline({
                             sourcePptPath: pptAbsolutePath,
@@ -1432,6 +1508,7 @@ module.exports = (db) => {
                     file_name = ?,
                     file_path = ?,
                     thumbnail_path = ?,
+                    thumbnail_gallery_json = ?,
                     ai_slide_analysis_json = ?,
                     ai_summary_text = ?,
                     ai_excluded_pages_json = ?,
@@ -1448,6 +1525,7 @@ module.exports = (db) => {
                     normalizedNextFileName,
                     nextFilePath,
                     nextThumbnailPath,
+                    nextThumbnailGalleryJson,
                     nextAiSlideAnalysisJson,
                     nextAiSummaryText,
                     nextAiExcludedPagesJson,
