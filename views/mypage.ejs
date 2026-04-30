@@ -12,7 +12,7 @@
 <body>
     <%- include('partials/header') %>
 
-    <main class="container page">
+    <main class="container page" data-user-role="<%= userRole || 'member' %>">
         <section class="page-title-wrap">
             <h2 class="page-title">마이페이지</h2>
             <p class="page-desc">내 정보와 구매한 상품을 확인할 수 있습니다.</p>
@@ -35,26 +35,26 @@
                 </div>
 
                 <nav class="mypage-menu">
-                    <a href="#purchase-list" class="mypage-menu-item active">구매한 상품</a>
-                    <a href="#account-info" class="mypage-menu-item">내 정보</a>
+                    <button type="button" class="mypage-menu-item active" data-target="purchase-list">구매한 상품</button>
+                    <button type="button" class="mypage-menu-item" data-target="account-info">내 정보</button>
                 </nav>
-
-                <% if (userRole === 'seller' || userRole === 'admin') { %>
-                    <div class="mypage-admin-links">
-                        <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">판매상품 관리</a>
-                        <a href="/seller-sales-page" class="btn btn-outline mypage-seller-btn">판매관리</a>
-                        <% if (userRole === 'admin') { %>
-                            <a href="/admin-users-page" class="btn btn-outline mypage-seller-btn">회원관리</a>
-                            <a href="/admin-settlements-page" class="btn btn-outline mypage-seller-btn">정산관리</a>
-                        <% } %>
-                    </div>
-                <% } %>
 
                 <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
             </aside>
 
             <div class="mypage-content">
-                <section class="mypage-box" id="purchase-list">
+                <% if (userRole === 'seller' || userRole === 'admin') { %>
+                    <div class="mypage-management-tabs" id="mypage-management-tabs">
+                        <button type="button" class="mypage-management-tab" data-target="seller-products">판매상품 관리</button>
+                        <button type="button" class="mypage-management-tab" data-target="seller-sales">판매관리</button>
+                        <% if (userRole === 'admin') { %>
+                            <button type="button" class="mypage-management-tab" data-target="admin-users">회원관리</button>
+                            <button type="button" class="mypage-management-tab" data-target="admin-settlements">정산관리</button>
+                        <% } %>
+                    </div>
+                <% } %>
+
+                <section class="mypage-box mypage-panel" id="purchase-list">
                     <div class="box-head">
                         <h3 class="box-title">구매한 상품</h3>
                         <span class="box-count" id="purchase-count">총 0건</span>
@@ -67,7 +67,7 @@
                     <div class="mypage-pagination" id="purchase-pagination"></div>
                 </section>
 
-                <section class="mypage-box" id="account-info">
+                <section class="mypage-box mypage-panel" id="account-info" hidden>
                     <div class="box-head">
                         <h3 class="box-title">내 정보</h3>
                     </div>
@@ -83,10 +83,7 @@
                             <div class="account-edit-area">
                                 <strong class="account-value" id="account-nickname">-</strong>
                                 <input type="text" class="account-input" id="account-nickname-input" hidden />
-                                <button type="button" class="btn btn-outline account-toggle-btn"
-                                    data-field="nickname" data-mode="edit">
-                                    수정
-                                </button>
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="nickname" data-mode="edit">수정</button>
                                 <p class="account-message" id="account-nickname-message"></p>
                             </div>
                         </div>
@@ -96,10 +93,7 @@
                             <div class="account-edit-area">
                                 <strong class="account-value" id="account-email">-</strong>
                                 <input type="email" class="account-input" id="account-email-input" hidden />
-                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="email"
-                                    data-mode="edit">
-                                    수정
-                                </button>
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="email" data-mode="edit">수정</button>
                                 <p class="account-message" id="account-email-message"></p>
                             </div>
                         </div>
@@ -109,10 +103,7 @@
                             <div class="account-edit-area">
                                 <strong class="account-value" id="account-name">-</strong>
                                 <input type="text" class="account-input" id="account-name-input" hidden />
-                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="name"
-                                    data-mode="edit">
-                                    수정
-                                </button>
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="name" data-mode="edit">수정</button>
                                 <p class="account-message" id="account-name-message"></p>
                             </div>
                         </div>
@@ -122,10 +113,7 @@
                             <div class="account-edit-area">
                                 <strong class="account-value" id="account-phone">-</strong>
                                 <input type="text" class="account-input" id="account-phone-input" hidden />
-                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="phone"
-                                    data-mode="edit">
-                                    수정
-                                </button>
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="phone" data-mode="edit">수정</button>
                                 <p class="account-message" id="account-phone-message"></p>
                             </div>
                         </div>
@@ -159,6 +147,125 @@
                         </div>
                     </div>
                 </section>
+
+                <section class="mypage-box mypage-panel" id="seller-products" hidden>
+                    <div class="box-head">
+                        <h3 class="box-title">판매상품 관리</h3>
+                        <span class="box-count" id="seller-products-count">총 0개</span>
+                    </div>
+
+                    <div class="management-toolbar">
+                        <input type="search" id="seller-products-search" class="management-search-input" placeholder="상품명, 설명, 키워드 검색">
+                        <button type="button" class="btn btn-outline" id="seller-products-search-btn">검색</button>
+                    </div>
+
+                    <div class="management-card-list" id="seller-products-list">
+                        <p class="empty-message">판매 상품을 불러오는 중입니다.</p>
+                    </div>
+                </section>
+
+                <section class="mypage-box mypage-panel" id="seller-sales" hidden>
+                    <div class="box-head">
+                        <h3 class="box-title">판매관리</h3>
+                        <span class="box-count" id="seller-sales-count">총 0건</span>
+                    </div>
+
+                    <div class="management-toolbar">
+                        <input type="search" id="seller-sales-search" class="management-search-input" placeholder="상품명, 주문번호, 구매자 검색">
+                        <button type="button" class="btn btn-outline" id="seller-sales-search-btn">검색</button>
+                        <button type="button" class="btn btn-primary" id="seller-settlement-request-btn" hidden>정산 신청</button>
+                    </div>
+
+                    <div class="sales-summary-grid" id="seller-sales-summary"></div>
+                    <div class="management-table-wrap">
+                        <table class="management-table">
+                            <thead>
+                                <tr>
+                                    <th>주문일</th>
+                                    <th>주문번호</th>
+                                    <th>상품명</th>
+                                    <th>구매자</th>
+                                    <th>결제수단</th>
+                                    <th>금액</th>
+                                    <th>정산상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seller-sales-list">
+                                <tr>
+                                    <td colspan="7" class="empty-message table-empty">판매 내역을 불러오는 중입니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <% if (userRole === 'admin') { %>
+                    <section class="mypage-box mypage-panel" id="admin-users" hidden>
+                        <div class="box-head">
+                            <h3 class="box-title">회원관리</h3>
+                            <span class="box-count" id="admin-users-count">총 0명</span>
+                        </div>
+
+                        <div class="management-toolbar">
+                            <input type="search" id="admin-users-search" class="management-search-input" placeholder="아이디, 닉네임, 이메일, 이름 검색">
+                            <button type="button" class="btn btn-outline" id="admin-users-search-btn">검색</button>
+                        </div>
+
+                        <div class="management-table-wrap">
+                            <table class="management-table admin-users-table">
+                                <thead>
+                                    <tr>
+                                        <th>회원</th>
+                                        <th>이메일</th>
+                                        <th>연락처</th>
+                                        <th>권한</th>
+                                        <th>상태</th>
+                                        <th>관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-list-inline">
+                                    <tr>
+                                        <td colspan="6" class="empty-message table-empty">회원 목록을 불러오는 중입니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="mypage-box mypage-panel" id="admin-settlements" hidden>
+                        <div class="box-head">
+                            <h3 class="box-title">정산관리</h3>
+                            <span class="box-count" id="admin-settlements-count">총 0건</span>
+                        </div>
+
+                        <div class="management-toolbar">
+                            <input type="search" id="admin-settlements-search" class="management-search-input" placeholder="판매자명 또는 정산번호 검색">
+                            <button type="button" class="btn btn-outline" id="admin-settlements-search-btn">검색</button>
+                        </div>
+
+                        <div class="management-table-wrap">
+                            <table class="management-table">
+                                <thead>
+                                    <tr>
+                                        <th>신청일</th>
+                                        <th>판매자</th>
+                                        <th>건수</th>
+                                        <th>총 판매금액</th>
+                                        <th>수수료</th>
+                                        <th>정산금액</th>
+                                        <th>상태</th>
+                                        <th>출력</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-settlements-list-inline">
+                                    <tr>
+                                        <td colspan="8" class="empty-message table-empty">정산 목록을 불러오는 중입니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                <% } %>
             </div>
         </section>
     </main>
