@@ -229,8 +229,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 18px;
     text-decoration: none;
+    width: 100%;
+}
+
+.mypage-admin-links {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
 }
 
 .logout-btn {

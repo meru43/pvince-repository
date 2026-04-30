@@ -14,8 +14,6 @@
             <a href="/cart-page" id="cart-link" hidden>장바구니</a>
             <a href="/seller-upload-page" id="seller-upload-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품등록</a>
             <a href="/seller-upload2-page" id="seller-upload2-link" <%= currentUser.canManageProducts ? '' : 'hidden' %>>AI PPT등록</a>
-            <a href="/admin-users-page" id="admin-link" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>
-
             <div class="header-user-menu" id="header-user-menu" <%= currentUser.loggedIn ? '' : 'hidden' %>>
                 <button
                     type="button"
@@ -39,7 +37,7 @@
                         <div class="header-user-meta">
                             <strong class="header-user-name" id="header-user-name"><%= currentUser.nickname || currentUser.username || '사용자' %></strong>
                             <span class="header-user-role" id="header-user-role">
-                                <%= currentUser.role === 'admin' ? '슈퍼관리자' : currentUser.role === 'seller' ? '셀러회원' : '일반회원' %>
+                                <%= currentUser.role === 'admin' ? '슈퍼관리자' : currentUser.role === 'seller' ? '판매회원' : '일반회원' %>
                             </span>
                         </div>
                     </div>
@@ -47,11 +45,6 @@
                     <div class="header-user-links">
                         <a href="/mypage-page" class="header-user-link" id="header-menu-mypage">마이페이지</a>
                         <a href="/cart-page" class="header-user-link" id="header-menu-cart">장바구니</a>
-                        <a href="/seller-upload2-page" class="header-user-link" id="header-menu-seller-upload2" <%= currentUser.canManageProducts ? '' : 'hidden' %>>AI PPT등록</a>
-                        <a href="/seller-products-page" class="header-user-link" id="header-menu-seller" <%= currentUser.canManageProducts ? '' : 'hidden' %>>상품관리</a>
-                        <a href="/seller-sales-page" class="header-user-link" id="header-menu-sales" <%= currentUser.canManageProducts ? '' : 'hidden' %>>판매관리</a>
-                        <a href="/admin-users-page" class="header-user-link" id="header-menu-admin" <%= currentUser.isAdmin ? '' : 'hidden' %>>회원관리</a>
-                        <a href="/admin-settlements-page" class="header-user-link" id="header-menu-admin-settlement" <%= currentUser.isAdmin ? '' : 'hidden' %>>정산관리</a>
                         <button type="button" class="header-user-link logout" id="header-menu-logout">로그아웃</button>
                     </div>
                 </div>

@@ -12,153 +12,160 @@
 <body>
     <%- include('partials/header') %>
 
-        <main class="container page">
-            <section class="page-title-wrap">
-                <h2 class="page-title">마이페이지</h2>
-                <p class="page-desc">내 정보와 구매한 상품을 확인할 수 있습니다.</p>
-            </section>
+    <main class="container page">
+        <section class="page-title-wrap">
+            <h2 class="page-title">마이페이지</h2>
+            <p class="page-desc">내 정보와 구매한 상품을 확인할 수 있습니다.</p>
+        </section>
 
-            <section class="mypage-layout">
-                <aside class="mypage-sidebar">
-                    <div class="profile-card">
-                        <div class="profile-card-top">
-                            <div class="profile-card-image">
-                                <img src="/images/normal user.jpg" alt="프로필 이미지" id="profile-card-image">
+        <section class="mypage-layout">
+            <aside class="mypage-sidebar">
+                <div class="profile-card">
+                    <div class="profile-card-top">
+                        <div class="profile-card-image">
+                            <img src="/images/normal user.jpg" alt="프로필 이미지" id="profile-card-image">
+                        </div>
+
+                        <div>
+                            <p class="profile-label">ACCOUNT</p>
+                            <h3 class="profile-name" id="profile-name">로딩 중...</h3>
+                            <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav class="mypage-menu">
+                    <a href="#purchase-list" class="mypage-menu-item active">구매한 상품</a>
+                    <a href="#account-info" class="mypage-menu-item">내 정보</a>
+                </nav>
+
+                <% if (userRole === 'seller' || userRole === 'admin') { %>
+                    <div class="mypage-admin-links">
+                        <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">판매상품 관리</a>
+                        <a href="/seller-sales-page" class="btn btn-outline mypage-seller-btn">판매관리</a>
+                        <% if (userRole === 'admin') { %>
+                            <a href="/admin-users-page" class="btn btn-outline mypage-seller-btn">회원관리</a>
+                            <a href="/admin-settlements-page" class="btn btn-outline mypage-seller-btn">정산관리</a>
+                        <% } %>
+                    </div>
+                <% } %>
+
+                <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
+            </aside>
+
+            <div class="mypage-content">
+                <section class="mypage-box" id="purchase-list">
+                    <div class="box-head">
+                        <h3 class="box-title">구매한 상품</h3>
+                        <span class="box-count" id="purchase-count">총 0건</span>
+                    </div>
+
+                    <div class="purchase-list" id="purchase-list-box">
+                        <p class="empty-message">구매한 상품이 없습니다.</p>
+                    </div>
+
+                    <div class="mypage-pagination" id="purchase-pagination"></div>
+                </section>
+
+                <section class="mypage-box" id="account-info">
+                    <div class="box-head">
+                        <h3 class="box-title">내 정보</h3>
+                    </div>
+
+                    <div class="account-info-list">
+                        <div class="account-info-row" data-field="username">
+                            <span class="account-label">아이디</span>
+                            <strong class="account-value" id="account-username">-</strong>
+                        </div>
+
+                        <div class="account-info-row editable-row" data-field="nickname">
+                            <span class="account-label">닉네임</span>
+                            <div class="account-edit-area">
+                                <strong class="account-value" id="account-nickname">-</strong>
+                                <input type="text" class="account-input" id="account-nickname-input" hidden />
+                                <button type="button" class="btn btn-outline account-toggle-btn"
+                                    data-field="nickname" data-mode="edit">
+                                    수정
+                                </button>
+                                <p class="account-message" id="account-nickname-message"></p>
+                            </div>
+                        </div>
+
+                        <div class="account-info-row editable-row" data-field="email">
+                            <span class="account-label">이메일</span>
+                            <div class="account-edit-area">
+                                <strong class="account-value" id="account-email">-</strong>
+                                <input type="email" class="account-input" id="account-email-input" hidden />
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="email"
+                                    data-mode="edit">
+                                    수정
+                                </button>
+                                <p class="account-message" id="account-email-message"></p>
+                            </div>
+                        </div>
+
+                        <div class="account-info-row editable-row" data-field="name">
+                            <span class="account-label">이름</span>
+                            <div class="account-edit-area">
+                                <strong class="account-value" id="account-name">-</strong>
+                                <input type="text" class="account-input" id="account-name-input" hidden />
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="name"
+                                    data-mode="edit">
+                                    수정
+                                </button>
+                                <p class="account-message" id="account-name-message"></p>
+                            </div>
+                        </div>
+
+                        <div class="account-info-row editable-row" data-field="phone">
+                            <span class="account-label">전화번호</span>
+                            <div class="account-edit-area">
+                                <strong class="account-value" id="account-phone">-</strong>
+                                <input type="text" class="account-input" id="account-phone-input" hidden />
+                                <button type="button" class="btn btn-outline account-toggle-btn" data-field="phone"
+                                    data-mode="edit">
+                                    수정
+                                </button>
+                                <p class="account-message" id="account-phone-message"></p>
+                            </div>
+                        </div>
+
+                        <div class="password-change-box">
+                            <h4 class="password-change-title">비밀번호 변경</h4>
+
+                            <div class="password-change-grid">
+                                <input type="password" id="current-password-input" placeholder="현재 비밀번호" />
+                                <input type="password" id="new-password-input" placeholder="새 비밀번호" />
+                                <input type="password" id="new-password-confirm-input" placeholder="새 비밀번호 확인" />
                             </div>
 
-                            <div>
-                                <p class="profile-label">ACCOUNT</p>
-                                <h3 class="profile-name" id="profile-name">로딩 중...</h3>
-                                <p class="profile-email" id="profile-email">사용자 정보를 불러오는 중입니다.</p>
+                            <div class="password-change-actions">
+                                <button type="button" class="btn btn-primary" id="password-save-btn">비밀번호 변경</button>
                             </div>
+
+                            <p class="password-message" id="password-message"></p>
                         </div>
                     </div>
 
-                    <nav class="mypage-menu">
-                        <a href="#purchase-list" class="mypage-menu-item active">구매한 상품</a>
-                        <a href="#account-info" class="mypage-menu-item">내 정보</a>
-                    </nav>
-
-                    <% if (userRole === 'seller' || userRole === 'admin') { %>
-                        <a href="/seller-products-page" class="btn btn-outline mypage-seller-btn">판매상품 관리</a>
-                    <% } %>
-
-                    <button type="button" class="btn btn-outline logout-btn" id="logout-btn">로그아웃</button>
-                </aside>
-
-                <div class="mypage-content">
-                    <section class="mypage-box" id="purchase-list">
-                        <div class="box-head">
-                            <h3 class="box-title">구매한 상품</h3>
-                            <span class="box-count" id="purchase-count">총 0건</span>
+                    <div class="profile-upload-box">
+                        <div class="profile-upload-preview">
+                            <img src="/images/normal user.jpg" alt="프로필 이미지 미리보기" id="profile-image-preview">
                         </div>
 
-                        <div class="purchase-list" id="purchase-list-box">
-                            <p class="empty-message">구매한 상품이 없습니다.</p>
+                        <div class="profile-upload-controls">
+                            <input type="file" id="profile-image-input" accept="image/*" />
+                            <button type="button" class="btn btn-primary" id="profile-image-save-btn">프로필 사진 변경</button>
+                            <p class="profile-image-message" id="profile-image-message"></p>
                         </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
 
-                        <div class="mypage-pagination" id="purchase-pagination"></div>
-                    </section>
-
-                    <section class="mypage-box" id="account-info">
-                        <div class="box-head">
-                            <h3 class="box-title">내 정보</h3>
-                        </div>
-
-                        <div class="account-info-list">
-                            <div class="account-info-row" data-field="username">
-                                <span class="account-label">아이디</span>
-                                <strong class="account-value" id="account-username">-</strong>
-                            </div>
-
-                            <div class="account-info-row editable-row" data-field="nickname">
-                                <span class="account-label">닉네임</span>
-                                <div class="account-edit-area">
-                                    <strong class="account-value" id="account-nickname">-</strong>
-                                    <input type="text" class="account-input" id="account-nickname-input" hidden />
-                                    <button type="button" class="btn btn-outline account-toggle-btn"
-                                        data-field="nickname" data-mode="edit">
-                                        수정
-                                    </button>
-                                    <p class="account-message" id="account-nickname-message"></p>
-                                </div>
-                            </div>
-
-                            <div class="account-info-row editable-row" data-field="email">
-                                <span class="account-label">이메일</span>
-                                <div class="account-edit-area">
-                                    <strong class="account-value" id="account-email">-</strong>
-                                    <input type="email" class="account-input" id="account-email-input" hidden />
-                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="email"
-                                        data-mode="edit">
-                                        수정
-                                    </button>
-                                    <p class="account-message" id="account-email-message"></p>
-                                </div>
-                            </div>
-
-                            <div class="account-info-row editable-row" data-field="name">
-                                <span class="account-label">이름</span>
-                                <div class="account-edit-area">
-                                    <strong class="account-value" id="account-name">-</strong>
-                                    <input type="text" class="account-input" id="account-name-input" hidden />
-                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="name"
-                                        data-mode="edit">
-                                        수정
-                                    </button>
-                                    <p class="account-message" id="account-name-message"></p>
-                                </div>
-                            </div>
-
-                            <div class="account-info-row editable-row" data-field="phone">
-                                <span class="account-label">전화번호</span>
-                                <div class="account-edit-area">
-                                    <strong class="account-value" id="account-phone">-</strong>
-                                    <input type="text" class="account-input" id="account-phone-input" hidden />
-                                    <button type="button" class="btn btn-outline account-toggle-btn" data-field="phone"
-                                        data-mode="edit">
-                                        수정
-                                    </button>
-                                    <p class="account-message" id="account-phone-message"></p>
-                                </div>
-                            </div>
-
-                            <div class="password-change-box">
-                                <h4 class="password-change-title">비밀번호 변경</h4>
-
-                                <div class="password-change-grid">
-                                    <input type="password" id="current-password-input" placeholder="현재 비밀번호" />
-                                    <input type="password" id="new-password-input" placeholder="새 비밀번호" />
-                                    <input type="password" id="new-password-confirm-input" placeholder="새 비밀번호 확인" />
-                                </div>
-
-                                <div class="password-change-actions">
-                                    <button type="button" class="btn btn-primary" id="password-save-btn">비밀번호 변경</button>
-                                </div>
-
-                                <p class="password-message" id="password-message"></p>
-                            </div>
-                        </div>
-
-                        <div class="profile-upload-box">
-                            <div class="profile-upload-preview">
-                                <img src="/images/normal user.jpg" alt="프로필 이미지 미리보기" id="profile-image-preview">
-                            </div>
-
-                            <div class="profile-upload-controls">
-                                <input type="file" id="profile-image-input" accept="image/*" />
-                                <button type="button" class="btn btn-primary" id="profile-image-save-btn">프로필 사진 변경</button>
-                                <p class="profile-image-message" id="profile-image-message"></p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-        </main>
-
-        <%- include('partials/footer') %>
-            <script src="/js/mypage.js"></script>
-            <script src="/js/common.js"></script>
+    <%- include('partials/footer') %>
+    <script src="/js/mypage.js"></script>
+    <script src="/js/common.js"></script>
 </body>
 
 </html>
