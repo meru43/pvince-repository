@@ -1346,6 +1346,13 @@ module.exports = (db) => {
                 ? thumbnailClientIdsRaw
                 : (thumbnailClientIdsRaw ? [thumbnailClientIdsRaw] : []);
 
+            console.log('[THUMBNAIL UPDATE CHECK]', {
+                productId: Number(productId),
+                newThumbnailCount: newThumbnails.length,
+                thumbnailClientIdCount: thumbnailClientIds.length,
+                supabaseConfigured: isSupabaseConfigured()
+            });
+
             if (!title) {
                 return res.status(400).json({
                     success: false,
@@ -1436,6 +1443,7 @@ module.exports = (db) => {
                 if (newThumbnails.length) {
                     try {
                         const uploadedNewThumbnails = await uploadThumbnailFiles(newThumbnails);
+                        console.log('[THUMBNAIL UPLOAD RESULT]', uploadedNewThumbnails.map((file) => file.publicPath));
                         uploadedNewThumbnailMap = new Map(
                             uploadedNewThumbnails.map((file, index) => ([
                                 String(thumbnailClientIds[index] || `new-${index + 1}`),
