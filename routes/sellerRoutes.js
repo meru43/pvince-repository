@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { runPptAiPipeline, parseExcludedPages } = require('../lib/ppt-ai-pipeline');
+const { uploadFileToSupabaseStorage, isSupabaseConfigured } = require('../lib/supabase-storage');
 
 module.exports = (db) => {
     const router = express.Router();
@@ -467,7 +468,7 @@ module.exports = (db) => {
         '/api/editor/image-upload',
         requireSellerOrAdminApi,
         upload.single('editorImage'),
-        (req, res) => {
+        async (req, res) => {
             const file = req.file;
 
             if (!file) {
@@ -500,6 +501,59 @@ module.exports = (db) => {
                 ? `대표 상품 이미지 ${index + 1}`
                 : `상품 이미지 ${index + 1}`
         }));
+    }
+
+    function resolveLocalThumbnailPath(publicPath, localPath) {
+        if (localPath && String(localPath).trim() !== '') {
+            return String(localPath).trim();
+        }
+
+        const normalizedPublicPath = String(publicPath || '').trim();
+        if (!normalizedPublicPath.startsWith('/uploads/')) {
+            return '';
+        }
+
+        return path.join(
+            __dirname,
+            '..',
+            'public',
+            normalizedPublicPath.replace(/^\/+/, '').replace(/\//g, path.sep)
+        );
+    }
+
+    async function uploadThumbnailFiles(files) {
+        if (!Array.isArray(files) || files.length === 0) {
+            return [];
+        }
+
+        if (!isSupabaseConfigured()) {
+            return files.map((file) => ({
+                publicPath: `/uploads/thumbnails/${file.filename}`,
+                localPath: file.path,
+                name: normalizeUploadFileName(file.originalname)
+            }));
+        }
+
+        const bucketName = process.env.SUPABASE_BUCKET_PRODUCT_THUMBNAILS || 'product-thumbnails';
+
+        return Promise.all(
+            files.map(async (file) => {
+                const normalizedName = normalizeUploadFileName(file.originalname);
+                const uploaded = await uploadFileToSupabaseStorage({
+                    bucket: bucketName,
+                    folder: 'products',
+                    localFilePath: file.path,
+                    originalName: normalizedName,
+                    mimeType: file.mimetype
+                });
+
+                return {
+                    publicPath: uploaded.publicUrl,
+                    localPath: file.path,
+                    name: normalizedName
+                };
+            })
+        );
     }
 
     function parseAnalysisPayload(rawValue) {
@@ -539,6 +593,7 @@ module.exports = (db) => {
             clientId: String(item?.clientId || `thumbnail-${index + 1}`),
             source: item?.source === 'existing' ? 'existing' : 'new',
             path: String(item?.path || ''),
+            localPath: String(item?.localPath || ''),
             name: String(item?.name || ''),
             isRepresentative: Boolean(item?.isRepresentative),
             order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index
@@ -647,7 +702,7 @@ module.exports = (db) => {
             { name: 'thumbnail', maxCount: 10 },
             { name: 'productFile', maxCount: 5 }
         ]),
-        (req, res) => {
+        async (req, res) => {
             const title = req.body.title?.trim();
             const price = req.body.price;
             const salePrice = req.body.salePrice;
@@ -702,6 +757,18 @@ module.exports = (db) => {
                 .filter(Boolean)
                 .join(',');
 
+            let uploadedThumbnails = [];
+
+            try {
+                uploadedThumbnails = await uploadThumbnailFiles(thumbnails);
+            } catch (error) {
+                console.error('thumbnail storage upload error:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: '?곹뭹 ?몃꽕?쇱쓣 ?ㅼ옣?섎뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+                });
+            }
+
             const fileName = normalizeUploadFileName(productFile.originalname);
             const filePath = `/uploads/products/${productFile.filename}`;
             const productFilesJson = JSON.stringify(
@@ -710,11 +777,14 @@ module.exports = (db) => {
                     path: `/uploads/products/${file.filename}`
                 }))
             );
-            const thumbnailPath = `/uploads/thumbnails/${thumbnail.filename}`;
+            const thumbnailPath = uploadedThumbnails[representativeThumbnailIndex]?.publicPath
+                || uploadedThumbnails[0]?.publicPath
+                || '';
             const thumbnailGalleryJson = JSON.stringify(
-                thumbnails.map((file, index) => ({
-                    path: `/uploads/thumbnails/${file.filename}`,
-                    name: normalizeUploadFileName(file.originalname),
+                uploadedThumbnails.map((file, index) => ({
+                    path: file.publicPath,
+                    localPath: file.localPath,
+                    name: file.name,
                     isRepresentative: index === representativeThumbnailIndex
                 }))
             );
@@ -864,6 +934,7 @@ module.exports = (db) => {
                     .filter(Boolean)
                     .join(',');
 
+                const uploadedThumbnails = await uploadThumbnailFiles(thumbnails);
                 const fileName = normalizeUploadFileName(productFile.originalname);
                 const filePath = `/uploads/products/${productFile.filename}`;
                 const productFilesJson = JSON.stringify([
@@ -872,11 +943,14 @@ module.exports = (db) => {
                         path: filePath
                     }
                 ]);
-                const thumbnailPath = `/uploads/thumbnails/${thumbnail.filename}`;
+                const thumbnailPath = uploadedThumbnails[representativeThumbnailIndex]?.publicPath
+                    || uploadedThumbnails[0]?.publicPath
+                    || '';
                 const thumbnailGalleryJson = JSON.stringify(
-                    thumbnails.map((file, index) => ({
-                        path: `/uploads/thumbnails/${file.filename}`,
-                        name: normalizeUploadFileName(file.originalname),
+                    uploadedThumbnails.map((file, index) => ({
+                        path: file.publicPath,
+                        localPath: file.localPath,
+                        name: file.name,
                         isRepresentative: index === representativeThumbnailIndex
                     }))
                 );
@@ -1251,7 +1325,7 @@ module.exports = (db) => {
             { name: 'thumbnail', maxCount: 10 },
             { name: 'productFile', maxCount: 1 }
         ]),
-        (req, res) => {
+        async (req, res) => {
             const productId = req.params.id;
             const isAdmin = req.session.role === 'admin';
 
@@ -1358,11 +1432,24 @@ module.exports = (db) => {
                     });
                 }
 
-                const newThumbnailMap = new Map();
-                newThumbnails.forEach((file, index) => {
-                    const clientId = String(thumbnailClientIds[index] || `new-${index + 1}`);
-                    newThumbnailMap.set(clientId, file);
-                });
+                let uploadedNewThumbnailMap = new Map();
+                if (newThumbnails.length) {
+                    try {
+                        const uploadedNewThumbnails = await uploadThumbnailFiles(newThumbnails);
+                        uploadedNewThumbnailMap = new Map(
+                            uploadedNewThumbnails.map((file, index) => ([
+                                String(thumbnailClientIds[index] || `new-${index + 1}`),
+                                file
+                            ]))
+                        );
+                    } catch (error) {
+                        console.error('thumbnail storage upload error:', error);
+                        return res.status(500).json({
+                            success: false,
+                            message: '?곹뭹 ?몃꽕?쇱쓣 ?ㅼ옣?섎뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+                        });
+                    }
+                }
 
                 let nextThumbnailGallery = [];
 
@@ -1372,19 +1459,21 @@ module.exports = (db) => {
                             if (item.source === 'existing') {
                                 return {
                                     path: item.path,
+                                    localPath: item.localPath || resolveLocalThumbnailPath(item.path, item.localPath),
                                     name: item.name || path.basename(item.path || ''),
                                     isRepresentative: item.isRepresentative
                                 };
                             }
 
-                            const matchedFile = newThumbnailMap.get(item.clientId);
+                            const matchedFile = uploadedNewThumbnailMap.get(item.clientId);
                             if (!matchedFile) {
                                 return null;
                             }
 
                             return {
-                                path: `/uploads/thumbnails/${matchedFile.filename}`,
-                                name: normalizeUploadFileName(matchedFile.originalname),
+                                path: matchedFile.publicPath,
+                                localPath: matchedFile.localPath,
+                                name: matchedFile.name,
                                 isRepresentative: item.isRepresentative
                             };
                         })
@@ -1399,6 +1488,7 @@ module.exports = (db) => {
                     if (!nextThumbnailGallery.length && product.thumbnail_path) {
                         nextThumbnailGallery = [{
                             path: product.thumbnail_path,
+                            localPath: resolveLocalThumbnailPath(product.thumbnail_path, ''),
                             name: product.title || '대표 이미지',
                             isRepresentative: true
                         }];
@@ -1451,12 +1541,13 @@ module.exports = (db) => {
                         const referenceImages = nextThumbnailGallery
                             .map((item, index) => {
                                 const publicPath = String(item.path || '');
-                                if (!publicPath) {
+                                const localPath = resolveLocalThumbnailPath(publicPath, item.localPath);
+                                if (!publicPath || !localPath) {
                                     return null;
                                 }
 
                                 return {
-                                    absolutePath: path.join(publicDir, publicPath.replace(/^\/+/, '').replace(/\//g, path.sep)),
+                                    absolutePath: localPath,
                                     publicPath,
                                     label: item.isRepresentative
                                         ? `대표 상품 이미지 ${index + 1}`

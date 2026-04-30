@@ -246,6 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             clientId: item.clientId,
             source: item.source,
             path: item.source === 'existing' ? item.path : '',
+            localPath: item.source === 'existing' ? (item.localPath || '') : '',
             name: item.name || '',
             isRepresentative: !!item.isRepresentative,
             order: index
@@ -334,6 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     name: item.name || `상품 이미지 ${index + 1}`,
                     file: null,
                     path: item.path || '',
+                    localPath: item.localPath || '',
                     previewUrl: item.path || '',
                     isRepresentative: !!item.isRepresentative
                 }));
@@ -349,6 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 name: product.title || '대표 이미지',
                 file: null,
                 path: product.thumbnail_path,
+                localPath: '',
                 previewUrl: product.thumbnail_path,
                 isRepresentative: true
             }];
