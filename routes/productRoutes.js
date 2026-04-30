@@ -8,7 +8,8 @@ module.exports = (db) => {
         const sql = `
         SELECT
             products.*,
-            COALESCE(users.nickname, users.username) AS uploader_name
+            COALESCE(users.nickname, users.username) AS uploader_name,
+            users.profile_image AS uploader_profile_image
         FROM products
         LEFT JOIN users ON products.created_by = users.id
         WHERE products.is_active = 1

@@ -46,6 +46,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `https://via.placeholder.com/600x400?text=Product+${product.id}`;
     }
 
+    function getSellerName(product) {
+        return String(product.uploader_name || 'SJ SHOP').trim();
+    }
+
+    function getMetaLabel(product) {
+        if (Array.isArray(product.keywordList) && product.keywordList.length > 0) {
+            return String(product.keywordList[0]).trim();
+        }
+
+        if (product.keywords && String(product.keywords).trim() !== '') {
+            return String(product.keywords)
+                .split(',')
+                .map((keyword) => keyword.trim())
+                .filter(Boolean)[0] || '템플릿';
+        }
+
+        return '템플릿';
+    }
+
+    function getAvatarLetter(product) {
+        const sellerName = getSellerName(product);
+        return sellerName.charAt(0).toUpperCase() || 'S';
+    }
+
+    function getAvatarSrc(product) {
+        if (product.uploader_profile_image && String(product.uploader_profile_image).trim() !== '') {
+            return String(product.uploader_profile_image).trim();
+        }
+
+        return '';
+    }
+
     function getTargetHeight() {
         if (window.innerWidth <= 480) return 180;
         if (window.innerWidth <= 768) return 200;
@@ -210,16 +242,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
-    function renderRows(products) {
-        if (filterCount) {
-            filterCount.textContent = String(products.length);
-        }
+    function getMobileMarkup(products) {
+        const totalPages = Math.max(Math.ceil(products.length / ROWS_PER_PAGE), 1);
+        currentPage = Math.min(currentPage, totalPages);
 
-        if (!products || products.length === 0) {
-            productGrid.innerHTML = '<p class="empty-message">조건에 맞는 상품이 없습니다.</p>';
-            return;
-        }
+        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+        const visibleProducts = products.slice(startIndex, startIndex + ROWS_PER_PAGE);
 
+        return `
+            ${visibleProducts.map((product) => `
+                <div class="product-row product-row-mobile">
+                    <a
+                        href="/products-page/${product.id}"
+                        class="product-card product-card-mobile"
+                    >
+                        <span class="product-thumb">
+                            <img
+                                src="${product._thumbnailSrc}"
+                                alt="${product.title}"
+                            >
+                        </span>
+
+                        <span class="product-info">
+                            <span class="product-title-row">
+                                <strong class="product-name">${product.title}</strong>
+                                <span class="product-price">${getDisplayPrice(product)}</span>
+                            </span>
+                            <span class="product-meta">
+                                ${getAvatarSrc(product)
+                ? `<span class="product-avatar product-avatar-image"><img src="${getAvatarSrc(product)}" alt="${getSellerName(product)} 프로필"></span>`
+                : `<span class="product-avatar">${getAvatarLetter(product)}</span>`}
+                                <span class="product-meta-text">
+                                    <span class="product-seller">${getSellerName(product)}</span>
+                                    <span class="product-dot">•</span>
+                                    <span class="product-tag">${getMetaLabel(product)}</span>
+                                </span>
+                            </span>
+                        </span>
+                    </a>
+                </div>
+            `).join('')}
+            ${getPaginationMarkup(totalPages)}
+        `;
+    }
+
+    function getDesktopMarkup(products) {
         const containerWidth = productGrid.clientWidth;
         const gap = getGap();
         const targetHeight = getTargetHeight();
@@ -231,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
         const visibleRows = rows.slice(startIndex, startIndex + ROWS_PER_PAGE);
 
-        productGrid.innerHTML = `
+        return `
             ${visibleRows.map((row) => `
                 <div class="product-row" style="gap:${gap}px;">
                     ${row.items.map(({ product, width }) => `
@@ -248,8 +315,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </span>
 
                             <span class="product-info">
-                                <strong class="product-name">${product.title}</strong>
-                                <span class="product-price">${getDisplayPrice(product)}</span>
+                                <span class="product-title-row">
+                                    <strong class="product-name">${product.title}</strong>
+                                    <span class="product-price">${getDisplayPrice(product)}</span>
+                                </span>
+                                <span class="product-meta">
+                                    ${getAvatarSrc(product)
+                    ? `<span class="product-avatar product-avatar-image"><img src="${getAvatarSrc(product)}" alt="${getSellerName(product)} 프로필"></span>`
+                    : `<span class="product-avatar">${getAvatarLetter(product)}</span>`}
+                                    <span class="product-meta-text">
+                                        <span class="product-seller">${getSellerName(product)}</span>
+                                        <span class="product-dot">•</span>
+                                        <span class="product-tag">${getMetaLabel(product)}</span>
+                                    </span>
+                                </span>
                             </span>
                         </a>
                     `).join('')}
@@ -257,6 +336,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             `).join('')}
             ${getPaginationMarkup(totalPages)}
         `;
+    }
+
+    function renderRows(products) {
+        if (filterCount) {
+            filterCount.textContent = String(products.length);
+        }
+
+        if (!products || products.length === 0) {
+            productGrid.innerHTML = '<p class="empty-message">조건에 맞는 상품이 없습니다.</p>';
+            return;
+        }
+
+        productGrid.innerHTML = window.innerWidth <= 768
+            ? getMobileMarkup(products)
+            : getDesktopMarkup(products);
     }
 
     function applyFilters(resetPage = false) {
