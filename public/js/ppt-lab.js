@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const MIN_MATCH_RATE = 53;
+
     const form = document.getElementById('ppt-match-form');
     const messageEl = document.getElementById('ppt-match-message');
     const submitBtn = document.getElementById('ppt-match-submit');
@@ -280,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return enriched
             .sort((a, b) => b.overallScore - a.overallScore)
-            .filter((item) => item.overallScore > 0);
+            .filter((item) => item.overallScore >= MIN_MATCH_RATE);
     }
 
     function renderMatches(matches) {

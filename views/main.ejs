@@ -14,52 +14,41 @@
 
     <main>
         <section class="hero">
-            <div class="container hero-inner">
+            <div class="container hero-shell">
                 <div class="hero-copy">
-                    <p class="hero-eyebrow">AI PPT MATCHING</p>
-                    <h1 class="hero-title">내가 원하는 PPT를 입력하면<br />AI가 가장 어울리는 템플릿을 추천해드려요</h1>
-                    <p class="hero-desc">
-                        발표 자료, 제안서, 포트폴리오, 브랜드 소개서까지.
-                        원하는 목적과 분위기를 입력하면 업로드된 템플릿 중에서 가장 잘 맞는 PPT를 찾아드립니다.
-                    </p>
+                    <div class="hero-badge">AI PPT MATCHING</div>
+                    <h1 class="hero-title">
+                        <span class="hero-title-primary">원하는 PPT를 말해보세요.</span>
+                        <span class="hero-title-accent">AI가 템플릿을 추천해드려요</span>
+                    </h1>
+                    <p class="hero-desc">분위기, 목적, 업종, 사용 장면만 설명하면 어울리는 PPT를 빠르게 찾아드립니다.</p>
                 </div>
 
-                <div class="hero-visual">
-                    <div class="hero-visual-card">
-                        <div class="hero-visual-badge">추천 흐름</div>
-                        <ol class="hero-visual-steps">
-                            <li>원하는 PPT 내용을 입력</li>
-                            <li>AI가 목적과 분위기 분석</li>
-                            <li>가장 유사한 템플릿을 매치율로 추천</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-
-            <div class="container hero-search-shell">
                 <form id="main-ppt-search-form" class="hero-search-panel" action="/ppt-lab-page" method="get">
-                    <div class="hero-search-head">
-                        <span class="hero-search-star">✦</span>
-                        <p>AI가 원하는 PPT를 골라드려요. 필요한 발표나 문서 방향을 자유롭게 입력해보세요!</p>
-                    </div>
+                    <label for="main-ppt-search" class="hero-search-label">어떤 PPT가 필요한지 자유롭게 입력해보세요</label>
 
                     <div class="hero-search-body">
+                        <span class="hero-search-attach" aria-hidden="true">✦</span>
                         <input
                             type="text"
                             id="main-ppt-search"
                             name="q"
                             class="hero-search-input"
-                            placeholder="원하는 ppt를 입력하세요"
+                            placeholder="예: 차분한 톤의 기업 소개서, 교육용 발표 자료, 감성적인 포트폴리오"
                             autocomplete="off"
                         />
                         <button type="submit" class="hero-search-submit" aria-label="AI 추천 받기">
-                            <span>→</span>
+                            <span>↗</span>
                         </button>
                     </div>
 
                     <div class="hero-actions">
-                        <a href="/ppt-lab-page" class="hero-chip-link">PPT 매칭 검색</a>
-                        <a href="/products-page" class="hero-chip-link">상품리스트 보기</a>
+                        <a href="/ppt-lab-page?q=브랜드 소개서" class="hero-chip-link">브랜드 소개서</a>
+                        <a href="/ppt-lab-page?q=회사 소개" class="hero-chip-link">회사 소개</a>
+                        <a href="/ppt-lab-page?q=강의 발표" class="hero-chip-link">강의 발표</a>
+                        <a href="/ppt-lab-page?q=이벤트 기획안" class="hero-chip-link">이벤트 기획안</a>
+                        <a href="/ppt-lab-page?q=교육 자료" class="hero-chip-link">교육 자료</a>
+                        <a href="/products-page" class="hero-chip-link hero-chip-link-muted">상품리스트 보기</a>
                     </div>
                 </form>
             </div>

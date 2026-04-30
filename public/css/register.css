@@ -110,6 +110,12 @@
     border-color: #d0d7e2;
 }
 
+.google-auth-btn img{
+    width: 14px;
+    height: auto;
+    margin-right: 5px;
+}
+
 .register-side {
     display: flex;
 }

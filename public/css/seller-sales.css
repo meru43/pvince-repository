@@ -203,7 +203,7 @@ body.modal-open {
 
 .download-modal-dialog {
     position: relative;
-    width: min(560px, calc(100vw - 32px));
+    width: min(560px, calc(100vw - 30px));
     padding: 24px;
     background: #fff;
     border-radius: 10px;

@@ -1,5 +1,15 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
 * {
     box-sizing: border-box;
+}
+
+:root {
+    --site-font-family: "Pretendard", "Noto Sans KR", sans-serif;
+    --font-light: 300;
+    --font-base: 400;
+    --font-semibold: 600;
+    --font-extrabold: 800;
 }
 
 html,
@@ -9,10 +19,18 @@ body {
 }
 
 body {
-    font-family: Arial, "Noto Sans KR", sans-serif;
+    font-family: var(--site-font-family);
+    font-weight: var(--font-base);
     background-color: #f1f1f2;
     color: #333;
     line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
 }
 
 a {
@@ -34,10 +52,9 @@ ul {
 }
 
 .container {
-    width: 100%;
-    max-width: 1680px;
+    width: min(calc(100% - 30px), 1680px);
     margin: 0 auto;
-    padding: 0 32px;
+    padding: 0;
 }
 
 .site-header {
@@ -54,7 +71,7 @@ ul {
 
 .logo a {
     font-size: 22px;
-    font-weight: 700;
+    font-weight: var(--font-semibold);
     color: #333;
 }
 
@@ -167,7 +184,7 @@ body:not(.header-auth-ready) #order-check-link {
     background: #eef3f8;
     color: #51606f;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
 }
 
 .header-user-links {
@@ -188,7 +205,7 @@ body:not(.header-auth-ready) #order-check-link {
     background: transparent;
     color: #27313d;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: var(--font-semibold);
     text-align: left;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -218,7 +235,7 @@ body:not(.header-auth-ready) #order-check-link {
 .page-title {
     margin: 0 0 8px;
     font-size: 32px;
-    font-weight: 700;
+    font-weight: var(--font-extrabold);
 }
 
 .page-desc {
@@ -236,9 +253,20 @@ body:not(.header-auth-ready) #order-check-link {
     padding: 0 18px;
     border-radius: 5px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong,
+b {
+    font-weight: var(--font-semibold);
 }
 
 .btn-outline {
@@ -263,10 +291,6 @@ body:not(.header-auth-ready) #order-check-link {
 }
 
 @media (max-width: 1200px) {
-    .container {
-        padding: 0 24px;
-    }
-
     .page {
         padding: 36px 0 52px;
     }
@@ -277,10 +301,6 @@ body:not(.header-auth-ready) #order-check-link {
 }
 
 @media (max-width: 1024px) {
-    .container {
-        padding: 0 20px;
-    }
-
     .header-inner {
         min-height: 68px;
     }
@@ -293,10 +313,6 @@ body:not(.header-auth-ready) #order-check-link {
 }
 
 @media (max-width: 768px) {
-    .container {
-        padding: 0 16px;
-    }
-
     .header-inner {
         gap: 14px;
         padding: 14px 0;
@@ -327,15 +343,11 @@ body:not(.header-auth-ready) #order-check-link {
 
     .header-user-panel {
         right: -8px;
-        width: min(260px, calc(100vw - 32px));
+        width: min(260px, calc(100vw - 30px));
     }
 }
 
 @media (max-width: 375px) {
-    .container {
-        padding: 0 12px;
-    }
-
     .logo a {
         font-size: 20px;
     }

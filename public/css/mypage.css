@@ -415,7 +415,7 @@ body.modal-open {
 
 .download-modal-dialog {
     position: relative;
-    width: min(560px, calc(100vw - 32px));
+    width: min(560px, calc(100vw - 30px));
     margin: 10vh auto 0;
     padding: 24px;
     background: #fff;
@@ -494,7 +494,7 @@ body.modal-open {
 }
 
 .invoice-modal-dialog {
-    width: min(520px, calc(100vw - 32px));
+    width: min(520px, calc(100vw - 30px));
     max-height: calc(100vh - 40px);
     margin: 20px auto 0;
     display: flex;
@@ -782,7 +782,7 @@ body.modal-open {
     }
 
     .download-modal-dialog {
-        width: calc(100vw - 24px);
+        width: calc(100vw - 30px);
         padding: 18px 16px;
     }
 
