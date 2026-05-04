@@ -73,12 +73,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         )).join('');
     }
 
-    window.__handleAdminReviewDelete = async function handleAdminReviewDelete(event) {
+    window.__handleAdminReviewDelete = async function handleAdminReviewDelete(event, buttonEl) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
 
-        const button = event.currentTarget || event.target;
+        const button = buttonEl || event.currentTarget || event.target?.closest?.('.detail-review-remove-btn');
         const reviewId = Number(button?.dataset?.reviewId || 0);
         if (!reviewId) return false;
 
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <strong class="detail-review-author">${escapeHtml(review.author_name || '익명')}</strong>
                             <div class="detail-review-rating">${renderRatingStars(review.rating)}</div>
                         </div>
-                        ${product.is_admin ? `<button type="button" class="detail-review-remove-btn" data-review-id="${Number(review.id || 0)}" onclick="window.__handleAdminReviewDelete(event)">삭제</button>` : ''}
+                        ${product.is_admin ? `<button type="button" class="detail-review-remove-btn" data-review-id="${Number(review.id || 0)}" onclick="window.__handleAdminReviewDelete(event, this)">삭제</button>` : ''}
                     </div>
                     <p class="detail-review-content">${escapeHtml(review.content || '').replace(/\n/g, '<br>')}</p>
                     <p class="detail-review-date">${escapeHtml(formatDateTime(review.created_at))}</p>
