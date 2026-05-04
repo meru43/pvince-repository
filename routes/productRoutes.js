@@ -48,7 +48,8 @@ module.exports = (db) => {
         const sql = `
             SELECT
                 products.*,
-                COALESCE(users.nickname, users.username) AS uploader_name
+                COALESCE(users.nickname, users.username) AS uploader_name,
+                users.profile_image AS uploader_profile_image
             FROM products
             LEFT JOIN users ON products.created_by = users.id
             WHERE products.id = ?
@@ -73,18 +74,51 @@ module.exports = (db) => {
             }
 
             const product = results[0];
-            product.is_owner = currentUserId > 0 && Number(product.created_by) === currentUserId;
-            product.is_admin = currentUserRole === 'admin';
-            product.can_purchase = !product.is_owner;
-            product.display_description = product.ai_summary_text || product.description || '';
 
-            product.keywordList = product.keywords
-                ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
-                : [];
+            const reviewSql = `
+                SELECT
+                    pr.id,
+                    pr.rating,
+                    pr.content,
+                    pr.created_at,
+                    COALESCE(u.nickname, u.username) AS author_name
+                FROM product_reviews pr
+                JOIN users u ON pr.user_id = u.id
+                WHERE pr.product_id = ?
+                ORDER BY pr.created_at DESC, pr.id DESC
+            `;
 
-            return res.json({
-                success: true,
-                product
+            db.query(reviewSql, [productId], (reviewErr, reviewRows) => {
+                if (reviewErr) {
+                    console.error('product reviews query error:', reviewErr);
+                    return res.json({
+                        success: false,
+                        message: '상품 상세 불러오기 실패'
+                    });
+                }
+
+                const reviews = Array.isArray(reviewRows) ? reviewRows : [];
+                const reviewCount = reviews.length;
+                const averageRating = reviewCount
+                    ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
+                    : 0;
+
+                product.is_owner = currentUserId > 0 && Number(product.created_by) === currentUserId;
+                product.is_admin = currentUserRole === 'admin';
+                product.can_purchase = !product.is_owner;
+                product.display_description = product.ai_summary_text || product.description || '';
+                product.average_rating = averageRating;
+                product.review_count = reviewCount;
+                product.reviews = reviews;
+
+                product.keywordList = product.keywords
+                    ? product.keywords.split(',').map(v => v.trim()).filter(Boolean)
+                    : [];
+
+                return res.json({
+                    success: true,
+                    product
+                });
             });
         });
     });

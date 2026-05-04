@@ -1,9 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const detailBox = document.getElementById('product-detail-box');
-    const descriptionBox = document.getElementById('product-description-box');
-    const descriptionContent = document.getElementById('product-description');
-    const keywordsBox = document.getElementById('product-keywords');
-
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
 
@@ -49,6 +45,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             .join('');
     }
 
+    function formatPrice(value, isFree) {
+        if (Number(isFree) === 1) {
+            return '무료';
+        }
+        return `${Number(value || 0).toLocaleString()}원`;
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '-';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    }
+
+    function renderRatingStars(value) {
+        const safeValue = Math.max(0, Math.min(5, Math.round(Number(value || 0))));
+        return Array.from({ length: 5 }, (_, index) => (
+            `<span class="detail-rating-star${index < safeValue ? ' is-active' : ''}">★</span>`
+        )).join('');
+    }
+
     async function addToCart(product) {
         try {
             const response = await fetch('/api/cart', {
@@ -63,7 +87,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             const data = await response.json();
-
             if (data.success) {
                 alert(data.message);
                 return;
@@ -74,18 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('장바구니 담기 실패:', error);
             alert('서버와 통신 중 오류가 발생했습니다.');
         }
-    }
-
-    function getDisplayPrice(product) {
-        if (Number(product.is_free) === 1) {
-            return '무료';
-        }
-
-        if (product.sale_price) {
-            return `${Number(product.sale_price).toLocaleString()}원`;
-        }
-
-        return `${Number(product.price || 0).toLocaleString()}원`;
     }
 
     function parseProductFiles(product) {
@@ -119,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .filter((item) => item?.path)
                         .map((item) => ({
                             path: item.path,
-                            name: item.name || product.title,
+                            name: item.name || product.title || '상품 이미지',
                             isRepresentative: Boolean(item.isRepresentative)
                         }));
                 }
@@ -137,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         return [{
-            path: `https://via.placeholder.com/800x520?text=Product+${product.id}`,
+            path: `https://via.placeholder.com/1280x720?text=Product+${product.id}`,
             name: product.title || '상품 이미지',
             isRepresentative: true
         }];
@@ -155,7 +166,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (typeof Swiper === 'undefined') {
-            return;
         }
 
         thumbSwiper = new Swiper('.detail-thumb-swiper', {
@@ -183,7 +193,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderProduct(product) {
-        const summaryText = product.ai_summary_text || htmlToPlainText(product.description || '') || '';
+        const galleryImages = parseThumbnailGallery(product);
+        const productFiles = parseProductFiles(product);
         const descriptionHtml = normalizeDescriptionHtml(product.description || product.ai_summary_text || '');
         const aiSummaryHtml = product.ai_summary_text
             ? `
@@ -198,9 +209,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const keywordHtml = (product.keywordList || [])
             .map((keyword) => `<span class="keyword-tag">${escapeHtml(keyword)}</span>`)
             .join('');
-
-        const galleryImages = parseThumbnailGallery(product);
-        const displayPrice = getDisplayPrice(product);
+        const basePrice = Number(product.price || 0);
+        const salePrice = Number(product.sale_price || 0);
+        const hasDiscount = Number(product.is_free) !== 1
+            && salePrice > 0
+            && basePrice > salePrice;
+        const discountPercent = hasDiscount
+            ? Math.round(((basePrice - salePrice) / basePrice) * 100)
+            : 0;
+        const displayPrice = formatPrice(hasDiscount ? salePrice : product.sale_price || product.price, product.is_free);
         const originalPriceHtml = (
             Number(product.is_free) !== 1
             && product.sale_price
@@ -208,17 +225,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         )
             ? `<p class="detail-original-price">${Number(product.price).toLocaleString()}원</p>`
             : '';
-
-        const ownerTagHtml = product.is_owner
-            ? '<span class="detail-owner-tag">본인 상품</span>'
-            : '';
+        const uploaderName = escapeHtml(product.uploader_name || '미정');
+        const uploaderProfileImage = String(product.uploader_profile_image || '').trim();
+        const ratingSummaryHtml = Number(product.review_count || 0) > 0
+            ? `
+                <div class="detail-rating-summary">
+                    <div class="detail-rating-stars">${renderRatingStars(product.average_rating)}</div>
+                    <span class="detail-rating-average">${Number(product.average_rating || 0).toFixed(1)}</span>
+                    <span class="detail-rating-count">(${Number(product.review_count || 0)})</span>
+                </div>
+            `
+            : `
+                <div class="detail-rating-summary is-empty">
+                    <span class="detail-rating-empty">아직 등록된 후기가 없습니다.</span>
+                </div>
+            `;
+        const reviewsHtml = Array.isArray(product.reviews) && product.reviews.length
+            ? product.reviews.map((review) => `
+                <article class="detail-review-item">
+                    <div class="detail-review-head">
+                        <div class="detail-review-head-main">
+                            <strong class="detail-review-author">${escapeHtml(review.author_name || '익명')}</strong>
+                            <div class="detail-review-rating">${renderRatingStars(review.rating)}</div>
+                        </div>
+                        ${product.is_admin ? `<button type="button" class="detail-review-remove-btn" data-review-id="${Number(review.id || 0)}">삭제</button>` : ''}
+                    </div>
+                    <p class="detail-review-content">${escapeHtml(review.content || '').replace(/\n/g, '<br>')}</p>
+                    <p class="detail-review-date">${escapeHtml(formatDateTime(review.created_at))}</p>
+                </article>
+            `).join('')
+            : '<p class="detail-review-empty">첫 후기를 남겨보세요.</p>';
 
         const adminDownloadHtml = product.is_admin
             ? `
                 <div class="detail-admin-download">
                     <button type="button" class="btn btn-primary" id="admin-download-toggle">다운로드</button>
                     <div class="detail-download-list" id="detail-download-list" hidden>
-                        ${parseProductFiles(product).map((file, index) => `
+                        ${productFiles.map((file, index) => `
                             <a href="/download/${product.id}?file=${index}" class="detail-download-item">${escapeHtml(file.name)}</a>
                         `).join('')}
                     </div>
@@ -241,74 +284,106 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
 
         detailBox.innerHTML = `
-            <div class="detail-gallery">
-                <div class="detail-main-slider-wrap">
-                    <div class="swiper detail-main-swiper">
+            <div class="detail-primary">
+                <section class="detail-gallery">
+                    <div class="detail-main-slider-wrap">
+                        <div class="swiper detail-main-swiper">
+                            <div class="swiper-wrapper">
+                                ${galleryImages.map((image) => `
+                                    <div class="swiper-slide">
+                                        <div class="detail-image">
+                                            <img src="${image.path}" alt="${escapeHtml(image.name)}">
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <button type="button" class="detail-swiper-nav detail-swiper-prev" aria-label="이전 이미지"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path d="M199.7 299.8C189.4 312.4 190.2 330.9 201.9 342.6L329.9 470.6C339.1 479.8 352.8 482.5 364.8 477.5C376.8 472.5 384.6 460.9 384.6 447.9L384.6 191.9C384.6 179 376.8 167.3 364.8 162.3C352.8 157.3 339.1 160.1 329.9 169.2L201.9 297.2L199.7 299.6z"/></svg></button>
+                        <button type="button" class="detail-swiper-nav detail-swiper-next" aria-label="다음 이미지"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path d="M441.3 299.8C451.5 312.4 450.8 330.9 439.1 342.6L311.1 470.6C301.9 479.8 288.2 482.5 276.2 477.5C264.2 472.5 256.5 460.9 256.5 448L256.5 192C256.5 179.1 264.3 167.4 276.3 162.4C288.3 157.4 302 160.2 311.2 169.3L439.2 297.3L441.4 299.7z"/></svg></button>
+                    </div>
+
+                    <div class="swiper detail-thumb-swiper">
                         <div class="swiper-wrapper">
                             ${galleryImages.map((image) => `
                                 <div class="swiper-slide">
-                                    <div class="detail-image">
+                                    <button type="button" class="detail-gallery-thumb">
                                         <img src="${image.path}" alt="${escapeHtml(image.name)}">
-                                    </div>
+                                    </button>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                    <button type="button" class="detail-swiper-nav detail-swiper-prev" aria-label="이전 이미지">&lt;</button>
-                    <button type="button" class="detail-swiper-nav detail-swiper-next" aria-label="다음 이미지">&gt;</button>
-                </div>
+                </section>
 
-                <div class="swiper detail-thumb-swiper">
-                    <div class="swiper-wrapper">
-                        ${galleryImages.map((image) => `
-                            <div class="swiper-slide">
-                                <button type="button" class="detail-gallery-thumb">
-                                    <img src="${image.path}" alt="${escapeHtml(image.name)}">
-                                </button>
-                            </div>
-                        `).join('')}
+                <section class="detail-description-box">
+                    <h3 class="section-title">상품 설명</h3>
+                    <div class="description-content">
+                        ${aiSummaryHtml}
+                        <div class="detail-description-body">${descriptionHtml}</div>
                     </div>
-                </div>
+                    <section class="detail-reviews-box">
+                        <div class="detail-reviews-head">
+                            <h3 class="section-title">리뷰</h3>
+                        </div>
+                        <div class="detail-reviews-list">
+                            ${reviewsHtml}
+                        </div>
+                    </section>
+                    <div class="product-keywords">${keywordHtml}</div>
+                </section>
             </div>
 
-            <div class="detail-content">
-                <p class="detail-category">상품 상세</p>
-                ${ownerTagHtml}
-                <h2 class="detail-title">${escapeHtml(product.title)}</h2>
-                ${originalPriceHtml}
-                <p class="detail-price">${displayPrice}</p>
-
-                <div class="detail-summary">
-                    <p>${escapeHtml(summaryText || '상품 설명이 없습니다.')}</p>
+            <aside class="detail-content">
+                <div class="detail-info-hero">
+                    <div class="detail-brand-row">
+                        ${uploaderProfileImage
+                            ? `<img src="${uploaderProfileImage}" alt="${uploaderName}" class="detail-brand-avatar">`
+                            : `<span class="detail-brand-badge">${uploaderName.slice(0, 1)}</span>`}
+                        <span class="detail-brand-name">${uploaderName}</span>
+                    </div>
+                    <h2 class="detail-title">${escapeHtml(product.title)}</h2>
+                    ${ratingSummaryHtml}
+                    ${Number(product.is_free) === 1
+                        ? `
+                            <div class="detail-price-summary detail-price-summary-free">
+                                <p class="detail-price">${displayPrice}</p>
+                            </div>
+                        `
+                        : hasDiscount
+                            ? `
+                                <div class="detail-price-summary">
+                                    <div class="detail-price-breakdown">
+                                        <div class="detail-price-row">
+                                            <span class="detail-price-label">할인율</span>
+                                            <span class="detail-discount-rate">${discountPercent}%</span>
+                                        </div>
+                                        <div class="detail-price-row">
+                                            <span class="detail-price-label">판매가</span>
+                                            <span class="detail-original-price">${basePrice.toLocaleString()}원</span>
+                                        </div>
+                                        <div class="detail-price-row detail-price-row-final">
+                                            <span class="detail-price-label">할인가</span>
+                                            <span class="detail-price">${salePrice.toLocaleString()}원</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                            : `
+                                <div class="detail-price-summary">
+                                    <div class="detail-price-row detail-price-row-final">
+                                        <span class="detail-price-label">판매가</span>
+                                        <span class="detail-price">${displayPrice}</span>
+                                    </div>
+                                </div>
+                            `}
                 </div>
-
-                <ul class="detail-meta">
-                    <li><strong>상품 번호</strong> <span>${product.id}</span></li>
-                    <li><strong>업로더</strong> <span>${escapeHtml(product.uploader_name || '미정')}</span></li>
-                    <li><strong>가격</strong> <span>${displayPrice}</span></li>
-                </ul>
 
                 <div class="detail-actions">
                     ${actionHtml}
                 </div>
-            </div>
+            </aside>
         `;
 
-        const summaryBox = detailBox.querySelector('.detail-summary');
-        if (summaryBox) {
-            summaryBox.remove();
-        }
-
-        descriptionContent.innerHTML = `
-            ${aiSummaryHtml}
-            <div class="detail-description-body">${descriptionHtml}</div>
-        `;
-
-        if (keywordsBox) {
-            keywordsBox.innerHTML = keywordHtml;
-        }
-
-        descriptionBox.style.display = 'block';
         initializeSwipers();
 
         if (product.is_admin) {
@@ -330,6 +405,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             addCartBtn?.addEventListener('click', () => addToCart(product));
             purchaseBtn?.addEventListener('click', () => {
                 window.location.href = `/order-page/${product.id}`;
+            });
+        }
+
+        if (product.is_admin) {
+            detailBox.querySelectorAll('.detail-review-delete-action').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const reviewId = Number(button.dataset.reviewId || 0);
+                    if (!reviewId) return;
+
+                    const originalConfirm = window.confirm.bind(window);
+                    if (!originalConfirm('정말 이 리뷰를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.')) {
+                        return;
+                    }
+                    window.confirm = () => true;
+
+                    if (!window.confirm('정말 이 리뷰를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.')) {
+                        return;
+                    }
+
+                    if (!window.confirm('이 리뷰를 삭제할까요?')) {
+                        return;
+                    }
+
+                    window.confirm = originalConfirm;
+
+                    try {
+                        const response = await fetch(`/api/reviews/${reviewId}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            alert(data.message || '리뷰 삭제에 실패했습니다.');
+                            return;
+                        }
+
+                        alert(data.message || '리뷰가 삭제되었습니다.');
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('review delete failed:', error);
+                        alert('서버와 통신 중 오류가 발생했습니다.');
+                    }
+                });
+            });
+
+            detailBox.querySelectorAll('.detail-review-remove-btn').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const reviewId = Number(button.dataset.reviewId || 0);
+                    if (!reviewId) return;
+
+                    const shouldDelete = window.confirm('정말 이 리뷰를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.');
+                    if (!shouldDelete) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/reviews/${reviewId}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            alert(data.message || '리뷰 삭제에 실패했습니다.');
+                            return;
+                        }
+
+                        alert(data.message || '리뷰가 삭제되었습니다.');
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('review delete failed:', error);
+                        alert('서버와 통신 중 오류가 발생했습니다.');
+                    }
+                });
             });
         }
     }

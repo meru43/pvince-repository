@@ -406,6 +406,170 @@ document.addEventListener('DOMContentLoaded', async () => {
     const downloadModal = createDownloadModal();
     const invoiceModal = createInvoiceModal();
 
+    function createReviewModal() {
+        const modal = document.createElement('div');
+        modal.className = 'download-modal review-modal';
+        modal.hidden = true;
+        modal.innerHTML = `
+            <div class="download-modal-backdrop" data-review-modal-close></div>
+            <div class="download-modal-dialog review-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+                <div class="download-modal-head">
+                    <div>
+                        <p class="download-modal-label">REVIEW</p>
+                        <h3 class="download-modal-title" id="review-modal-title">리뷰 작성</h3>
+                    </div>
+                    <button type="button" class="download-modal-close" data-review-modal-close aria-label="팝업 닫기">${closeButtonSvg}</button>
+                </div>
+                <p class="review-modal-desc" id="review-modal-desc">구매한 상품에 대한 후기를 남겨주세요.</p>
+                <div class="review-rating-group">
+                    <p class="review-rating-label">별점</p>
+                    <div class="review-stars" id="review-stars"></div>
+                </div>
+                <div class="review-text-group">
+                    <label for="review-content-input" class="review-text-label">후기 내용</label>
+                    <textarea id="review-content-input" class="review-content-input" placeholder="상품 사용 후기를 20자 이상 작성해주세요."></textarea>
+                </div>
+                <p class="review-modal-message" id="review-modal-message"></p>
+                <div class="review-modal-actions">
+                    <button type="button" class="btn btn-primary review-submit-btn" id="review-submit-btn">저장하기</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const titleEl = modal.querySelector('#review-modal-title');
+        const descEl = modal.querySelector('#review-modal-desc');
+        const starsEl = modal.querySelector('#review-stars');
+        const contentInput = modal.querySelector('#review-content-input');
+        const messageEl = modal.querySelector('#review-modal-message');
+        const submitBtn = modal.querySelector('#review-submit-btn');
+
+        let currentProduct = null;
+        let currentRating = 5;
+
+        function renderStars() {
+            starsEl.innerHTML = Array.from({ length: 5 }, (_, index) => {
+                const starValue = index + 1;
+                return `
+                    <button
+                        type="button"
+                        class="review-star-btn${starValue <= currentRating ? ' is-active' : ''}"
+                        data-rating="${starValue}"
+                        aria-label="${starValue}점 선택"
+                    >
+                        ★
+                    </button>
+                `;
+            }).join('');
+
+            starsEl.querySelectorAll('.review-star-btn').forEach((button) => {
+                button.addEventListener('click', () => {
+                    currentRating = Number(button.dataset.rating || 5);
+                    renderStars();
+                });
+            });
+        }
+
+        function setMessage(message = '', isError = false) {
+            messageEl.textContent = message;
+            messageEl.classList.toggle('is-error', isError);
+            messageEl.classList.toggle('is-success', Boolean(message) && !isError);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            currentProduct = null;
+            currentRating = 5;
+            contentInput.value = '';
+            setMessage('');
+        }
+
+        function openModal(product) {
+            currentProduct = product;
+            currentRating = Number(product.review_rating || 5) || 5;
+            titleEl.textContent = product.review_id ? '리뷰 수정' : '리뷰 작성';
+            descEl.textContent = `${product.title || '상품'}에 대한 후기를 남겨주세요.`;
+            contentInput.value = product.review_content || '';
+            setMessage('');
+            renderStars();
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            contentInput.focus();
+        }
+
+        submitBtn?.addEventListener('click', async () => {
+            if (!currentProduct) return;
+
+            const content = String(contentInput.value || '').trim();
+            if (!content) {
+                setMessage('후기 내용을 입력해주세요.', true);
+                return;
+            }
+
+            if (content.length < 20) {
+                setMessage('리뷰는 20자 이상 작성해주세요.', true);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            setMessage('');
+
+            try {
+                const response = await fetch('/api/reviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        productId: currentProduct.product_id,
+                        rating: currentRating,
+                        content
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    setMessage(data.message || '리뷰 저장에 실패했습니다.', true);
+                    return;
+                }
+
+                const targetItem = purchaseItems.find((item) => String(item.product_id) === String(currentProduct.product_id));
+                if (targetItem) {
+                    targetItem.review_id = data.review?.id || targetItem.review_id || true;
+                    targetItem.review_rating = data.review?.rating || currentRating;
+                    targetItem.review_content = data.review?.content || content;
+                    targetItem.review_created_at = data.review?.created_at || new Date().toISOString();
+                }
+
+                renderPurchasePage();
+                setMessage('리뷰가 저장되었습니다.');
+                setTimeout(closeModal, 500);
+            } catch (error) {
+                console.error('review save failed:', error);
+                setMessage('서버와 통신 중 오류가 발생했습니다.', true);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target.closest('[data-review-modal-close]')) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+
+        return { openModal };
+    }
+
+    const reviewModal = createReviewModal();
+
     function setActivePanel(panelId) {
         panels.forEach((panel) => {
             panel.hidden = panel.id !== panelId;
@@ -519,6 +683,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </a>
 
                     <div class="product-download-area">
+                        <button type="button" class="btn btn-outline purchase-review-btn" data-product-id="${product.product_id}">
+                            ${product.review_id ? '리뷰 수정' : '리뷰 작성'}
+                        </button>
                         <button type="button" class="btn btn-outline purchase-download-btn" data-product-id="${product.product_id}">다운로드</button>
                         <button type="button" class="btn btn-outline purchase-invoice-btn" data-product-id="${product.product_id}">영수증</button>
                     </div>
@@ -1118,6 +1285,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (mode === 'save') {
                 await saveProfileField(field);
             }
+            return;
+        }
+
+        const reviewBtn = event.target.closest('.purchase-review-btn');
+        if (reviewBtn) {
+            const product = purchasedProducts.get(String(reviewBtn.dataset.productId || ''));
+            if (!product) {
+                alert('리뷰를 작성할 상품 정보를 찾을 수 없습니다.');
+                return;
+            }
+
+            reviewModal.openModal(product);
             return;
         }
 

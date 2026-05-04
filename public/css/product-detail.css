@@ -1,9 +1,18 @@
 .product-detail {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    grid-template-columns: minmax(0, 900px) minmax(360px, 1fr);
     gap: 40px;
     align-items: start;
+    justify-content: space-between;
     margin-bottom: 48px;
+}
+
+.detail-primary {
+    display: grid;
+    gap: 32px;
+    min-width: 0;
+    width: 100%;
+    max-width: 900px;
 }
 
 .detail-gallery {
@@ -25,18 +34,22 @@
 }
 
 .detail-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #fff;
-    border: 1px solid #e9e9e9;
+    border: 1px solid #e1e1e1;
     border-radius: 10px;
     overflow: hidden;
-    height: 600px;
+    aspect-ratio: 16 / 9;
 }
 
 .detail-image img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #fff;
 }
 
 .detail-swiper-nav {
@@ -50,12 +63,19 @@
     height: 46px;
     border: none;
     border-radius: 999px;
-    background: rgba(17, 24, 39, 0.88);
+    background: rgba(51, 51, 51, 0.88);
     color: #fff;
     font-size: 20px;
     font-weight: 700;
     transform: translateY(-50%);
     cursor: pointer;
+}
+
+.detail-swiper-nav svg {
+    width: 20px;
+    height: 20px;
+    fill: #fff;
+    color: #fff;
 }
 
 .detail-swiper-prev {
@@ -81,7 +101,7 @@
     width: 92px;
     height: 72px;
     padding: 0;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e1e1e1;
     border-radius: 5px;
     background: #fff;
     overflow: hidden;
@@ -92,80 +112,161 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #fff;
 }
 
 .detail-thumb-swiper .swiper-slide-thumb-active .detail-gallery-thumb {
-    border-color: #111827;
-    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
+    border-color: #333;
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.08);
 }
 
 .detail-content {
+    position: sticky;
+    top: 96px;
     background: #fff;
-    border: 1px solid #e9e9e9;
+    border: 1px solid #e1e1e1;
     border-radius: 10px;
     padding: 32px;
     min-width: 0;
 }
 
-.detail-category {
-    margin: 0 0 10px;
-    font-size: 14px;
-    color: #777;
+.detail-info-hero {
+    margin-bottom: 24px;
+}
+
+.detail-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.detail-brand-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid #e1e1e1;
+    flex-shrink: 0;
+}
+
+.detail-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #2f80ed;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.detail-brand-name {
+    color: #4b5563;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 .detail-title {
     margin: 0 0 16px;
-    font-size: 34px;
+    color: #333;
+    font-size: 26px;
     line-height: 1.3;
 }
 
-.detail-owner-tag {
-    display: inline-flex;
+.detail-rating-summary {
+    display: flex;
     align-items: center;
-    margin: 0 0 16px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: #eef6ff;
-    color: #1e5aa8;
-    font-size: 13px;
+    gap: 8px;
+    margin: -2px 0 18px;
+}
+
+.detail-rating-summary.is-empty {
+    margin-top: 0;
+}
+
+.detail-rating-stars,
+.detail-review-rating {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.detail-rating-star {
+    color: #d0d5dd;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.detail-rating-star.is-active {
+    color: #f5b301;
+}
+
+.detail-rating-average {
+    color: #333;
+    font-size: 16px;
     font-weight: 700;
 }
 
-.detail-price {
-    margin: 0 0 24px;
-    font-size: 30px;
-    font-weight: 700;
-}
-
-.detail-original-price {
-    margin: 0 0 6px;
-    color: #999;
-    text-decoration: line-through;
+.detail-rating-count,
+.detail-rating-empty {
+    color: #777;
     font-size: 14px;
 }
 
-.detail-summary {
-    margin-bottom: 24px;
-    color: #555;
-}
-
-.detail-summary p {
-    margin: 0 0 8px;
-}
-
-.detail-meta {
+.detail-price-summary {
     display: grid;
-    gap: 12px;
-    margin-bottom: 28px;
+    gap: 10px;
 }
 
-.detail-meta li {
+.detail-price-summary-free {
+    justify-items: end;
+}
+
+.detail-price-breakdown {
+    display: grid;
+    gap: 10px;
+}
+
+.detail-price-row {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    padding: 14px 0;
-    border-bottom: 1px solid #eee;
+    gap: 16px;
+}
+
+.detail-price-row-final {
+    margin-top: 2px;
+}
+
+.detail-price-label {
+    color: #555;
     font-size: 15px;
+    font-weight: 700;
+}
+
+.detail-discount-rate {
+    color: #c0575a;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.detail-price {
+    margin: 0;
+    color: #333;
+    font-size: 42px;
+    font-weight: 800;
+}
+
+.detail-original-price {
+    margin: 0;
+    color: #999;
+    text-decoration: line-through;
+    font-size: 22px;
+    font-weight: 700;
 }
 
 .detail-actions {
@@ -204,7 +305,7 @@
     display: grid;
     gap: 8px;
     padding: 14px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e1e1e1;
     border-radius: 5px;
     background: #fff;
 }
@@ -224,14 +325,123 @@
 }
 
 .detail-description-box {
+    display: flex;
+    flex-direction: column;
     background: #fff;
-    border: 1px solid #e9e9e9;
+    border: 1px solid #e1e1e1;
     border-radius: 10px;
     padding: 32px;
+    min-width: 0;
+}
+
+.description-content {
+    order: 1;
+}
+
+.product-keywords {
+    order: 2;
+}
+
+.detail-reviews-box {
+    order: 3;
+    margin-top: 34px;
+    padding-top: 28px;
+    border-top: 1px solid #e1e1e1;
+}
+
+.detail-reviews-head {
+    margin-bottom: 18px;
+}
+
+.detail-reviews-list {
+    display: grid;
+    gap: 18px;
+}
+
+.detail-review-item {
+    padding: 20px 22px;
+    border: 1px solid #e1e1e1;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.detail-review-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.detail-review-head-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.detail-review-author {
+    color: #333;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.detail-review-delete-action {
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border: 1px solid #e1e1e1;
+    border-radius: 5px;
+    background: #fff;
+    color: #c0575a;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.detail-review-delete-action:hover {
+    border-color: #c0575a;
+    background: #fff6f5;
+}
+
+.detail-review-remove-btn {
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border: 1px solid #e1e1e1;
+    border-radius: 5px;
+    background: #fff;
+    color: #c0575a;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.detail-review-remove-btn:hover {
+    border-color: #c0575a;
+    background: #fff6f5;
+}
+
+.detail-review-content {
+    margin: 0 0 10px;
+    color: #555;
+    line-height: 1.8;
+    word-break: break-word;
+}
+
+.detail-review-date {
+    margin: 0;
+    color: #888;
+    font-size: 13px;
+}
+
+.detail-review-empty {
+    margin: 0;
+    color: #777;
+    font-size: 15px;
 }
 
 .section-title {
     margin: 0 0 18px;
+    color: #333;
     font-size: 24px;
 }
 
@@ -398,10 +608,6 @@
         gap: 28px;
     }
 
-    .detail-image {
-        height: 520px;
-    }
-
     .detail-content,
     .detail-description-box {
         padding: 28px;
@@ -413,24 +619,27 @@
         grid-template-columns: 1fr;
     }
 
-    .detail-image {
-        height: auto;
-        aspect-ratio: 4 / 3;
+    .detail-content {
+        position: static;
     }
 }
 
 @media (max-width: 768px) {
+    .detail-primary {
+        gap: 24px;
+    }
+
     .detail-content,
     .detail-description-box {
         padding: 22px 18px;
     }
 
     .detail-title {
-        font-size: 28px;
+        font-size: 24px;
     }
 
     .detail-price {
-        font-size: 26px;
+        font-size: 34px;
     }
 
     .detail-meta li {
@@ -461,11 +670,11 @@
     }
 
     .detail-title {
-        font-size: 24px;
+        font-size: 22px;
     }
 
     .detail-price {
-        font-size: 22px;
+        font-size: 30px;
     }
 
     .section-title {

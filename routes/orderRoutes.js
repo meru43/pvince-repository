@@ -52,6 +52,32 @@ module.exports = (db, path) => {
 
     ensurePaymentMethodColumn();
 
+    function ensureProductReviewTable() {
+        const createSql = `
+            CREATE TABLE IF NOT EXISTS product_reviews (
+                id INT NOT NULL AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                product_id INT NOT NULL,
+                rating TINYINT NOT NULL,
+                content TEXT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uniq_product_review_user (user_id, product_id),
+                KEY idx_product_reviews_product (product_id),
+                KEY idx_product_reviews_user (user_id)
+            )
+        `;
+
+        db.query(createSql, (createErr) => {
+            if (createErr) {
+                console.error('product_reviews table ensure error:', createErr);
+            }
+        });
+    }
+
+    ensureProductReviewTable();
+
     function getOrderPrice(product) {
         if (Number(product.is_free) === 1) {
             return 0;
@@ -984,7 +1010,35 @@ module.exports = (db, path) => {
                       AND oi.product_id = purchases.product_id
                     ORDER BY o.created_at DESC, oi.id DESC
                     LIMIT 1
-                ) AS paid_price
+                ) AS paid_price,
+                (
+                    SELECT pr.id
+                    FROM product_reviews pr
+                    WHERE pr.user_id = purchases.user_id
+                      AND pr.product_id = purchases.product_id
+                    LIMIT 1
+                ) AS review_id,
+                (
+                    SELECT pr.rating
+                    FROM product_reviews pr
+                    WHERE pr.user_id = purchases.user_id
+                      AND pr.product_id = purchases.product_id
+                    LIMIT 1
+                ) AS review_rating,
+                (
+                    SELECT pr.content
+                    FROM product_reviews pr
+                    WHERE pr.user_id = purchases.user_id
+                      AND pr.product_id = purchases.product_id
+                    LIMIT 1
+                ) AS review_content,
+                (
+                    SELECT pr.created_at
+                    FROM product_reviews pr
+                    WHERE pr.user_id = purchases.user_id
+                      AND pr.product_id = purchases.product_id
+                    LIMIT 1
+                ) AS review_created_at
             FROM purchases
             JOIN products ON purchases.product_id = products.id
             WHERE purchases.user_id = ?
@@ -1012,6 +1066,171 @@ module.exports = (db, path) => {
                 products: normalizedProducts
             });
         });
+    });
+
+    router.post('/api/reviews', (req, res) => {
+        if (!req.session.userId) {
+            return res.json({
+                success: false,
+                message: '로그인이 필요합니다.'
+            });
+        }
+
+        const userId = req.session.userId;
+        const productId = Number(req.body.productId || 0);
+        const rating = Number(req.body.rating || 0);
+        const content = String(req.body.content || '').trim();
+
+        if (!productId) {
+            return res.json({
+                success: false,
+                message: '상품 정보가 올바르지 않습니다.'
+            });
+        }
+
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+            return res.json({
+                success: false,
+                message: '별점은 1점부터 5점까지 선택해주세요.'
+            });
+        }
+
+        if (!content) {
+            return res.json({
+                success: false,
+                message: '리뷰 내용을 입력해주세요.'
+            });
+        }
+
+        if (content.length < 20) {
+            return res.json({
+                success: false,
+                message: '리뷰는 20자 이상 작성해주세요.'
+            });
+        }
+
+        const purchaseCheckSql = `
+            SELECT id
+            FROM purchases
+            WHERE user_id = ? AND product_id = ?
+            LIMIT 1
+        `;
+
+        db.query(purchaseCheckSql, [userId, productId], (purchaseErr, purchaseRows) => {
+            if (purchaseErr) {
+                console.error('review purchase check error:', purchaseErr);
+                return res.json({
+                    success: false,
+                    message: '리뷰 작성 가능 여부를 확인하지 못했습니다.'
+                });
+            }
+
+            if (!purchaseRows.length) {
+                return res.json({
+                    success: false,
+                    message: '구매한 상품만 리뷰를 작성할 수 있습니다.'
+                });
+            }
+
+            const upsertSql = `
+                INSERT INTO product_reviews (user_id, product_id, rating, content)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    rating = VALUES(rating),
+                    content = VALUES(content),
+                    updated_at = CURRENT_TIMESTAMP
+            `;
+
+            db.query(upsertSql, [userId, productId, rating, content], (reviewErr) => {
+                if (reviewErr) {
+                    console.error('review save error:', reviewErr);
+                    return res.json({
+                        success: false,
+                        message: '리뷰 저장에 실패했습니다.'
+                    });
+                }
+
+                const reviewSql = `
+                    SELECT
+                        pr.id,
+                        pr.rating,
+                        pr.content,
+                        pr.created_at,
+                        COALESCE(u.nickname, u.username) AS author_name
+                    FROM product_reviews pr
+                    JOIN users u ON pr.user_id = u.id
+                    WHERE pr.user_id = ? AND pr.product_id = ?
+                    LIMIT 1
+                `;
+
+                db.query(reviewSql, [userId, productId], (fetchErr, reviewRows) => {
+                    if (fetchErr) {
+                        console.error('review fetch error:', fetchErr);
+                        return res.json({
+                            success: true,
+                            message: '리뷰가 저장되었습니다.'
+                        });
+                    }
+
+                    return res.json({
+                        success: true,
+                        message: '리뷰가 저장되었습니다.',
+                        review: reviewRows[0] || null
+                    });
+                });
+            });
+        });
+    });
+
+    router.delete('/api/reviews/:id', (req, res) => {
+        if (!req.session.userId) {
+            return res.json({
+                success: false,
+                message: '로그인이 필요합니다.'
+            });
+        }
+
+        if (String(req.session.role || '') !== 'admin') {
+            return res.json({
+                success: false,
+                message: '관리자만 리뷰를 삭제할 수 있습니다.'
+            });
+        }
+
+        const reviewId = Number(req.params.id || 0);
+
+        if (!reviewId) {
+            return res.json({
+                success: false,
+                message: '삭제할 리뷰 정보가 올바르지 않습니다.'
+            });
+        }
+
+        db.query(
+            'DELETE FROM product_reviews WHERE id = ? LIMIT 1',
+            [reviewId],
+            (deleteErr, deleteResult) => {
+                if (deleteErr) {
+                    console.error('review delete error:', deleteErr);
+                    return res.json({
+                        success: false,
+                        message: '리뷰 삭제에 실패했습니다.'
+                    });
+                }
+
+                if (!deleteResult.affectedRows) {
+                    return res.json({
+                        success: false,
+                        message: '이미 삭제되었거나 존재하지 않는 리뷰입니다.'
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: '리뷰가 삭제되었습니다.'
+                });
+            }
+        );
     });
 
     router.get('/my-download-logs', (req, res) => {
