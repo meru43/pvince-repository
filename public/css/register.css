@@ -139,12 +139,12 @@
     line-height: 1.8;
 }
 
-.nickname-check-row {
+.register-check-row {
     display: flex;
     gap: 10px;
 }
 
-.nickname-check-row input {
+.register-check-row input {
     flex: 1;
 }
 
@@ -153,6 +153,14 @@
     margin: -8px 0 0;
     font-size: 14px;
     color: #666;
+}
+
+.register-check-message.is-error {
+    color: #e50c12;
+}
+
+.register-check-message.is-success {
+    color: #21831c;
 }
 
 @media (max-width: 1024px) {
@@ -199,11 +207,11 @@
         font-size: 24px;
     }
 
-    .nickname-check-row {
+    .register-check-row {
         flex-direction: column;
     }
 
-    .nickname-check-row .btn {
+    .register-check-row .btn {
         width: 100%;
     }
 }

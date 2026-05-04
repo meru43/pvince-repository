@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('login-form');
     const usernameInput = document.getElementById('login-id');
     const passwordInput = document.getElementById('login-password');
+    const rememberInput = document.getElementById('login-remember');
     const errorText = document.getElementById('login-error');
 
     try {
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
+        const rememberLogin = Boolean(rememberInput.checked);
 
         errorText.textContent = '';
 
@@ -42,7 +44,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     username,
-                    password
+                    password,
+                    rememberLogin
                 })
             });
 

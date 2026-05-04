@@ -27,6 +27,10 @@ module.exports = (db, bcrypt) => {
         return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(String(password || ''));
     }
 
+    function isValidUsername(username) {
+        return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(String(username || '').trim());
+    }
+
     function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
     }
@@ -388,6 +392,13 @@ module.exports = (db, bcrypt) => {
             });
         }
 
+        if (!isValidUsername(username)) {
+            return res.json({
+                success: false,
+                message: '아이디는 영문과 숫자를 포함해 6자 이상으로 입력해주세요.'
+            });
+        }
+
         if (!isValidAccountPassword(password)) {
             return res.json({
                 success: false,
@@ -511,13 +522,55 @@ module.exports = (db, bcrypt) => {
         });
     });
 
+    router.post('/check-username', (req, res) => {
+        const username = req.body.username?.trim();
+
+        if (!username) {
+            return res.json({
+                success: false,
+                message: '아이디를 입력해주세요.'
+            });
+        }
+
+        if (!isValidUsername(username)) {
+            return res.json({
+                success: false,
+                message: '아이디는 영문과 숫자를 포함해 6자 이상으로 입력해주세요.'
+            });
+        }
+
+        const sql = 'SELECT id FROM users WHERE username = ? LIMIT 1';
+
+        db.query(sql, [username], (err, results) => {
+            if (err) {
+                console.error('아이디 중복 확인 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '아이디 확인에 실패했습니다.'
+                });
+            }
+
+            if (results.length > 0) {
+                return res.json({
+                    success: false,
+                    message: '이미 사용 중인 아이디입니다.'
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: '사용 가능한 아이디입니다.'
+            });
+        });
+    });
+
     router.post('/check-nickname', (req, res) => {
         const nickname = req.body.nickname?.trim();
 
         if (!nickname) {
             return res.json({
                 success: false,
-                message: '?됰꽕?꾩쓣 ?낅젰?댁＜?몄슂.'
+                message: '닉네임을 입력해주세요.'
             });
         }
 
@@ -525,23 +578,65 @@ module.exports = (db, bcrypt) => {
 
         db.query(sql, [nickname], (err, results) => {
             if (err) {
-                console.error('?됰꽕??以묐났 ?뺤씤 ?ㅻ쪟:', err);
+                console.error('닉네임 중복 확인 오류:', err);
                 return res.json({
                     success: false,
-                    message: '?됰꽕???뺤씤???ㅽ뙣?덉뒿?덈떎.'
+                    message: '닉네임 확인에 실패했습니다.'
                 });
             }
 
             if (results.length > 0) {
                 return res.json({
                     success: false,
-                    message: '?대? ?ъ슜 以묒씤 ?됰꽕?꾩엯?덈떎.'
+                    message: '이미 사용 중인 닉네임입니다.'
                 });
             }
 
             return res.json({
                 success: true,
-                message: '?ъ슜 媛?ν븳 ?됰꽕?꾩엯?덈떎.'
+                message: '사용 가능한 닉네임입니다.'
+            });
+        });
+    });
+
+    router.post('/check-email', (req, res) => {
+        const email = req.body.email?.trim();
+
+        if (!email) {
+            return res.json({
+                success: false,
+                message: '이메일을 입력해주세요.'
+            });
+        }
+
+        if (!isValidEmail(email)) {
+            return res.json({
+                success: false,
+                message: '올바른 이메일 형식으로 입력해주세요.'
+            });
+        }
+
+        const sql = 'SELECT id FROM users WHERE email = ? LIMIT 1';
+
+        db.query(sql, [email], (err, results) => {
+            if (err) {
+                console.error('이메일 중복 확인 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '이메일 확인에 실패했습니다.'
+                });
+            }
+
+            if (results.length > 0) {
+                return res.json({
+                    success: false,
+                    message: '이미 사용 중인 이메일입니다.'
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: '사용 가능한 이메일입니다.'
             });
         });
     });
@@ -1021,6 +1116,7 @@ module.exports = (db, bcrypt) => {
     router.post('/login', (req, res) => {
         const username = req.body.username?.trim();
         const password = req.body.password?.trim();
+        const rememberLogin = Boolean(req.body.rememberLogin);
 
         console.log('로그인 요청값:', { username });
 
@@ -1080,6 +1176,13 @@ module.exports = (db, bcrypt) => {
                     (user.google_id && String(user.google_id).trim() !== '')
                     || (user.google_email && String(user.google_email).trim() !== '')
                 );
+
+                if (rememberLogin) {
+                    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+                } else {
+                    req.session.cookie.expires = false;
+                    req.session.cookie.maxAge = null;
+                }
 
                 return res.json({
                     success: true,

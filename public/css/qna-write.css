@@ -68,6 +68,17 @@
     line-height: 1.7;
 }
 
+.form-group .jodit-container {
+    border-color: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.form-group .jodit-toolbar__box:not(:empty),
+.form-group .jodit-status-bar {
+    border-color: #e1e1e1;
+}
+
 #guest-password-group {
     padding: 16px;
     border: 1px solid #f0e4c7;

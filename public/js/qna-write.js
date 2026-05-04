@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const writerGroup = document.getElementById('writer-group');
     const guestPasswordInput = document.getElementById('guest-password');
     const guestPasswordGroup = document.getElementById('guest-password-group');
+    const contentEditor = window.createProductJoditEditor
+        ? window.createProductJoditEditor(contentInput)
+        : null;
 
     let currentUser = null;
 
@@ -30,7 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
 
         const title = titleInput.value.trim();
-        const content = contentInput.value.trim();
+        const rawContent = contentEditor ? contentEditor.value : contentInput.value;
+        const content = window.normalizeProductEditorHtml
+            ? window.normalizeProductEditorHtml(rawContent).trim()
+            : rawContent.trim();
         const writer = currentUser
             ? (currentUser.nickname || currentUser.username)
             : writerInput.value.trim();

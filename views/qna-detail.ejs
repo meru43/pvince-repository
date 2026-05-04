@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Q&A 상세보기</title>
+    <title>Q&amp;A 상세보기</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/qna-detail.css" />
 </head>
@@ -12,16 +12,53 @@
 <body>
     <%- include('partials/header') %>
 
-        <main class="container page">
-            <section class="detail-head" id="qna-detail-head">
-                <p class="empty-message">게시글을 불러오는 중입니다.</p>
+    <main class="container page qna-detail-page">
+        <section class="board-detail is-loading" id="qna-board-detail">
+            <header class="board-detail-head" id="qna-detail-head">
+                <div class="detail-head-top">
+                    <p class="detail-category">Q&amp;A BOARD</p>
+                    <div class="skeleton-line skeleton-title"></div>
+                </div>
+                <div class="detail-meta">
+                    <div class="detail-meta-group">
+                        <div class="skeleton-line skeleton-meta"></div>
+                    </div>
+                    <div class="detail-meta-group">
+                        <div class="skeleton-line skeleton-meta"></div>
+                        <div class="skeleton-line skeleton-meta skeleton-meta-short"></div>
+                        <div class="skeleton-line skeleton-meta skeleton-meta-short"></div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="board-detail-body">
+                <div class="board-detail-content board-detail-content-skeleton" id="qna-detail-content">
+                    <div class="skeleton-line skeleton-paragraph"></div>
+                    <div class="skeleton-line skeleton-paragraph"></div>
+                    <div class="skeleton-line skeleton-paragraph skeleton-paragraph-medium"></div>
+                    <div class="skeleton-line skeleton-paragraph"></div>
+                    <div class="skeleton-line skeleton-paragraph skeleton-paragraph-short"></div>
+                </div>
             </section>
 
-            <section class="detail-content-box">
-                <div class="detail-content" id="qna-detail-content"></div>
+            <section class="board-detail-files" id="qna-detail-files">
+                <div class="board-detail-files-label">첨부파일</div>
+                <div class="board-detail-files-value">등록된 파일이 없습니다.</div>
             </section>
 
-            <section id="qna-answer-box-wrap"></section>
+            <section id="qna-answer-box-wrap">
+                <section class="answer-box answer-box-skeleton">
+                    <div class="answer-head">
+                        <h3 class="answer-title">답변</h3>
+                        <span class="answer-status waiting">답변 대기</span>
+                    </div>
+                    <div class="answer-content">
+                        <div class="skeleton-line skeleton-paragraph"></div>
+                        <div class="skeleton-line skeleton-paragraph skeleton-paragraph-medium"></div>
+                        <div class="skeleton-line skeleton-paragraph skeleton-paragraph-short"></div>
+                    </div>
+                </section>
+            </section>
 
             <section id="admin-answer-form-box" class="admin-answer-box" style="display: none;">
                 <div class="admin-answer-actions" id="admin-answer-actions">
@@ -30,10 +67,10 @@
 
                 <div class="admin-answer-editor" id="admin-answer-editor" style="display: none;">
                     <form id="admin-answer-form">
-                        <textarea id="admin-answer-content" placeholder="답변 내용을 입력하세요"></textarea>
+                        <textarea id="admin-answer-content" placeholder="답변 내용을 입력하세요."></textarea>
 
                         <div class="admin-answer-editor-actions">
-                            <button type="submit" class="btn btn-primary">답변 등록</button>
+                            <button type="submit" class="btn btn-primary">답변 저장</button>
                             <button type="button" class="btn btn-outline" id="admin-answer-cancel-btn">취소</button>
                         </div>
                     </form>
@@ -45,51 +82,69 @@
                 </div>
             </section>
 
-            <section class="detail-actions">
-                <a href="/qna-page" class="btn btn-outline">목록으로</a>
-                <a href="/qna-write-page" class="btn btn-primary">글쓰기</a>
-
-                <button type="button" class="btn btn-outline" id="admin-edit-btn" style="display:none;">수정</button>
-                <button type="button" class="btn btn-outline" id="admin-delete-btn" style="display:none;">삭제</button>
-                <button type="button" class="btn btn-primary" id="admin-notice-btn" style="display:none;">공지 설정</button>
-                <div id="guest-action-box" style="display: none;">
+            <section class="board-detail-actions">
+                <div class="board-detail-actions-left" id="guest-action-box" style="display: none;">
                     <input
                         type="password"
                         id="guest-action-password"
-                        placeholder="비회원 수정/삭제용 비밀번호를 입력하세요"
+                        class="guest-password-input"
+                        placeholder="비회원 게시글 비밀번호"
                         style="display: none;"
                     />
-                    <button type="button" id="guest-edit-btn">수정</button>
-                    <button type="button" id="guest-delete-btn">삭제</button>
+                    <button type="button" class="btn btn-outline" id="guest-edit-btn">수정</button>
+                    <button type="button" class="btn btn-outline" id="guest-delete-btn">삭제</button>
+                </div>
+
+                <div class="board-detail-actions-right">
+                    <a href="/qna-page" class="btn btn-outline">목록</a>
+                    <a href="/qna-write-page" class="btn btn-primary">글쓰기</a>
+                    <button type="button" class="btn btn-outline" id="admin-edit-btn" style="display:none;">수정</button>
+                    <button type="button" class="btn btn-outline" id="admin-delete-btn" style="display:none;">삭제</button>
+                    <button type="button" class="btn btn-primary" id="admin-notice-btn" style="display:none;">공지 설정</button>
                 </div>
             </section>
-            <section class="admin-edit-box" id="admin-edit-box" style="display:none;">
-                <div class="admin-edit-head">
-                    <h3 class="admin-edit-title">게시글 수정</h3>
-                </div>
 
-                <div class="admin-edit-form">
-                    <div class="form-group">
-                        <label for="admin-edit-title-input">제목</label>
-                        <input type="text" id="admin-edit-title-input" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="admin-edit-content-input">내용</label>
-                        <textarea id="admin-edit-content-input"></textarea>
-                    </div>
-
-                    <div class="admin-edit-actions">
-                        <button type="button" class="btn btn-outline" id="admin-edit-cancel-btn">취소</button>
-                        <button type="button" class="btn btn-primary" id="admin-edit-save-btn">저장</button>
-                    </div>
-                </div>
+            <section class="board-detail-nav" id="qna-detail-nav">
+                <a class="board-detail-nav-item" id="qna-prev-link" href="#">
+                    <span class="board-detail-nav-label">이전글</span>
+                    <span class="board-detail-nav-title" id="qna-prev-title">이전 글이 없습니다.</span>
+                    <span class="board-detail-nav-date" id="qna-prev-date"></span>
+                </a>
+                <a class="board-detail-nav-item" id="qna-next-link" href="#">
+                    <span class="board-detail-nav-label">다음글</span>
+                    <span class="board-detail-nav-title" id="qna-next-title">다음 글이 없습니다.</span>
+                    <span class="board-detail-nav-date" id="qna-next-date"></span>
+                </a>
             </section>
-        </main>
+        </section>
 
-        <%- include('partials/footer') %>
-            <script src="/js/common.js"></script>
-            <script src="/js/qna-detail.js"></script>
+        <section class="admin-edit-box" id="admin-edit-box" style="display:none;">
+            <div class="admin-edit-head">
+                <h3 class="admin-edit-title">게시글 수정</h3>
+            </div>
+
+            <div class="admin-edit-form">
+                <div class="form-group">
+                    <label for="admin-edit-title-input">제목</label>
+                    <input type="text" id="admin-edit-title-input" />
+                </div>
+
+                <div class="form-group">
+                    <label for="admin-edit-content-input">내용</label>
+                    <textarea id="admin-edit-content-input"></textarea>
+                </div>
+
+                <div class="admin-edit-actions">
+                    <button type="button" class="btn btn-outline" id="admin-edit-cancel-btn">취소</button>
+                    <button type="button" class="btn btn-primary" id="admin-edit-save-btn">저장</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <%- include('partials/footer') %>
+    <script src="/js/common.js"></script>
+    <script src="/js/qna-detail.js"></script>
 </body>
 
 </html>

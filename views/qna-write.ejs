@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Q&A 글쓰기</title>
+    <title>Q&amp;A 글쓰기</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/qna-write.css" />
 </head>
@@ -12,45 +13,48 @@
 <body>
     <%- include('partials/header') %>
 
-        <main class="container page">
-            <section class="write-box">
-                <div class="write-head">
-                    <p class="write-label">Q&A BOARD</p>
-                    <h2 class="write-title">문의 글 작성</h2>
-                    <p class="write-desc">상품, 다운로드, 사용 관련 문의 내용을 작성해 주세요.</p>
+    <main class="container page">
+        <section class="write-box">
+            <div class="write-head">
+                <p class="write-label">Q&amp;A BOARD</p>
+                <h2 class="write-title">문의 글 작성</h2>
+                <p class="write-desc">상품, 다운로드, 사용 관련 문의 내용을 작성해 주세요.</p>
+            </div>
+
+            <form class="write-form">
+                <div class="form-group">
+                    <label for="write-title">제목</label>
+                    <input type="text" id="write-title" placeholder="제목을 입력하세요" />
                 </div>
 
-                <form class="write-form">
-                    <div class="form-group">
-                        <label for="write-title">제목</label>
-                        <input type="text" id="write-title" placeholder="제목을 입력하세요" />
-                    </div>
+                <div class="form-group" id="writer-group">
+                    <label for="write-name">작성자</label>
+                    <input type="text" id="write-name" placeholder="작성자명을 입력하세요" />
+                </div>
 
-                    <div class="form-group" id="writer-group">
-                        <label for="write-name">작성자</label>
-                        <input type="text" id="write-name" placeholder="작성자명을 입력하세요" />
-                    </div>
+                <div class="form-group">
+                    <label for="write-content">내용</label>
+                    <textarea id="write-content" placeholder="문의 내용을 입력하세요"></textarea>
+                </div>
 
-                    <div class="form-group">
-                        <label for="write-content">내용</label>
-                        <textarea id="write-content" placeholder="문의 내용을 입력하세요"></textarea>
-                    </div>
+                <div class="form-group" id="guest-password-group">
+                    <label for="guest-password">비밀번호</label>
+                    <input type="password" id="guest-password" placeholder="비회원 수정/삭제용 비밀번호를 입력하세요" />
+                </div>
 
-                    <div class="form-group" id="guest-password-group">
-                        <label for="guest-password">비밀번호</label>
-                        <input type="password" id="guest-password" placeholder="비회원 수정/삭제용 비밀번호를 입력하세요" />
-                    </div>
+                <div class="write-actions">
+                    <a href="/qna-page" class="btn btn-outline">취소</a>
+                    <button type="submit" class="btn btn-primary">등록하기</button>
+                </div>
+            </form>
+        </section>
+    </main>
 
-                    <div class="write-actions">
-                        <a href="/qna-page" class="btn btn-outline">취소</a>
-                        <button type="submit" class="btn btn-primary">등록하기</button>
-                    </div>
-                </form>
-            </section>
-        </main>
-        <%- include('partials/footer') %>
-            <script src="/js/qna-write.js"></script>
-            <script src="/js/common.js"></script>
+    <%- include('partials/footer') %>
+    <script src="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.js"></script>
+    <script src="/js/jodit-product-editor.js"></script>
+    <script src="/js/qna-write.js"></script>
+    <script src="/js/common.js"></script>
 </body>
 
 </html>

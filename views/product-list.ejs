@@ -12,38 +12,147 @@
 <body>
     <%- include('partials/header') %>
 
-        <main class="container page">
-            <section class="page-title-wrap">
-                <h2 class="page-title">템플릿 상품 리스트</h2>
-                <p class="page-desc">원하는 템플릿을 선택해서 상세 페이지로 이동해보세요.</p>
-            </section>
+    <main class="container page">
+        <section class="page-title-wrap">
+            <h2 class="page-title">템플릿 상품 리스트</h2>
+            <p class="page-desc">원하는 템플릿을 선택해서 상세 페이지로 이동해보세요.</p>
+        </section>
 
-            <section class="product-filter-bar">
-                <div class="product-filter-controls">
-                    <input type="text" id="product-search-input" class="product-filter-input" placeholder="상품명, 설명, 키워드 검색" />
-                    <select id="product-price-filter" class="product-filter-select">
-                        <option value="all">전체 가격</option>
-                        <option value="free">무료</option>
-                        <option value="paid">유료</option>
-                    </select>
-                    <select id="product-sort-select" class="product-filter-select">
-                        <option value="latest">최신순</option>
-                        <option value="price-low">낮은 가격순</option>
-                        <option value="price-high">높은 가격순</option>
-                        <option value="name">이름순</option>
-                    </select>
-                    <button type="button" id="product-filter-reset" class="btn btn-outline product-filter-reset">초기화</button>
+        <section class="product-filter-bar">
+            <div class="product-filter-controls">
+                <input type="text" id="product-search-input" class="product-filter-input" placeholder="상품명, 설명, 키워드 검색" />
+                <select id="product-price-filter" class="product-filter-select">
+                    <option value="all">전체 가격</option>
+                    <option value="free">무료</option>
+                    <option value="paid">유료</option>
+                </select>
+                <select id="product-sort-select" class="product-filter-select">
+                    <option value="latest">최신순</option>
+                    <option value="price-low">낮은 가격순</option>
+                    <option value="price-high">높은 가격순</option>
+                    <option value="name">이름순</option>
+                </select>
+                <button type="button" id="product-filter-reset" class="btn btn-outline product-filter-reset">초기화</button>
+            </div>
+            <p class="product-filter-meta">총 <strong id="product-filter-count">0</strong>개 상품</p>
+        </section>
+
+        <section class="product-grid is-loading" id="product-grid">
+            <div class="product-row">
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
                 </div>
-                <p class="product-filter-meta">총 <strong id="product-filter-count">0</strong>개 상품</p>
-            </section>
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title skeleton-title-medium"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title skeleton-title-short"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+            <div class="product-row">
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title skeleton-title-medium"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="product-card product-card-skeleton">
+                    <span class="product-thumb product-thumb-skeleton"></span>
+                    <span class="product-info">
+                        <span class="product-title-row">
+                            <span class="skeleton-line skeleton-title skeleton-title-short"></span>
+                            <span class="skeleton-line skeleton-price"></span>
+                        </span>
+                        <span class="product-meta">
+                            <span class="product-avatar skeleton-avatar"></span>
+                            <span class="product-meta-text">
+                                <span class="skeleton-line skeleton-meta"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </section>
+    </main>
 
-            <section class="product-grid" id="product-grid">
-                <p class="empty-message">상품을 불러오는 중입니다.</p>
-            </section>
-        </main>
-        <%- include('partials/footer') %>
-            <script src="/js/product-list.js"></script>
-            <script src="/js/common.js"></script>
+    <%- include('partials/footer') %>
+    <script src="/js/product-list.js"></script>
+    <script src="/js/common.js"></script>
 </body>
 
 </html>

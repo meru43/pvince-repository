@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Q&A 게시판</title>
+    <title>Q&amp;A 게시판</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/qna.css" />
 </head>
@@ -12,51 +12,83 @@
 <body>
     <%- include('partials/header') %>
 
-        <main class="container page">
-            <section class="page-title-wrap">
-                <h2 class="page-title">Q&A 게시판</h2>
-                <p class="page-desc">상품 문의, 다운로드 문의, 사용 관련 질문을 남길 수 있습니다.</p>
-            </section>
+    <main class="container page">
+        <section class="page-title-wrap">
+            <h2 class="page-title">Q&amp;A 게시판</h2>
+            <p class="page-desc">상품 문의, 다운로드 문의, 사용 관련 질문을 남길 수 있습니다.</p>
+        </section>
 
-            <section class="board-top">
-                <div class="board-search">
-                    <input type="text" placeholder="제목 또는 내용을 검색하세요" />
-                    <button type="button" class="btn btn-outline">검색</button>
+        <section class="board-top">
+            <div class="board-search">
+                <input type="text" placeholder="제목 또는 내용을 검색하세요" />
+                <button type="button" class="btn btn-outline">검색</button>
+            </div>
+
+            <a href="/qna-write-page" class="btn btn-primary write-btn">글쓰기</a>
+        </section>
+
+        <section class="board-table">
+            <div class="board-head">
+                <span class="col-number">번호</span>
+                <span class="col-title">제목</span>
+                <span class="col-writer">작성자</span>
+                <span class="col-status">상태</span>
+                <span class="col-date">등록일</span>
+                <span class="col-view">조회</span>
+            </div>
+
+            <div id="qna-list-box" class="board-list is-loading">
+                <div class="board-row board-row-skeleton">
+                    <span class="col-number"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-title"><span class="skeleton-line skeleton-title-line"></span></span>
+                    <span class="col-writer"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-status"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-date"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-view"><span class="skeleton-line skeleton-text skeleton-text-short"></span></span>
                 </div>
-
-                <a href="/qna-write-page" class="btn btn-primary write-btn">글쓰기</a>
-            </section>
-
-            <section class="board-table">
-                <div class="board-head">
-                    <span class="col-number">번호</span>
-                    <span class="col-title">제목</span>
-                    <span class="col-writer">작성자</span>
-                    <span class="col-status">상태</span>
-                    <span class="col-date">등록일</span>
-                    <span class="col-view">조회</span>
+                <div class="board-row board-row-skeleton">
+                    <span class="col-number"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-title"><span class="skeleton-line skeleton-title-line skeleton-title-line-medium"></span></span>
+                    <span class="col-writer"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-status"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-date"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-view"><span class="skeleton-line skeleton-text skeleton-text-short"></span></span>
                 </div>
-
-                <div id="qna-list-box">
-                    <p class="empty-message">게시글을 불러오는 중입니다.</p>
+                <div class="board-row board-row-skeleton">
+                    <span class="col-number"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-title"><span class="skeleton-line skeleton-title-line"></span></span>
+                    <span class="col-writer"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-status"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-date"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-view"><span class="skeleton-line skeleton-text skeleton-text-short"></span></span>
                 </div>
-            </section>
-
-            <section class="pagination">
-                <a href="#" class="page-nav-btn">첫페이지</a>
-                <a href="#" class="page-nav-btn">이전페이지</a>
-
-                <div class="page-number-group">
-                    <a href="#" class="page-btn active">1</a>
+                <div class="board-row board-row-skeleton">
+                    <span class="col-number"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-title"><span class="skeleton-line skeleton-title-line skeleton-title-line-short"></span></span>
+                    <span class="col-writer"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-status"><span class="skeleton-line skeleton-chip"></span></span>
+                    <span class="col-date"><span class="skeleton-line skeleton-text"></span></span>
+                    <span class="col-view"><span class="skeleton-line skeleton-text skeleton-text-short"></span></span>
                 </div>
+            </div>
+        </section>
 
-                <a href="#" class="page-nav-btn">다음페이지</a>
-                <a href="#" class="page-nav-btn">끝페이지</a>
-            </section>
-        </main>
-        <%- include('partials/footer') %>
-            <script src="/js/qna-list.js"></script>
-            <script src="/js/common.js"></script>
+        <section class="pagination">
+            <a href="#" class="page-nav-btn">첫페이지</a>
+            <a href="#" class="page-nav-btn">이전페이지</a>
+
+            <div class="page-number-group">
+                <a href="#" class="page-btn active">1</a>
+            </div>
+
+            <a href="#" class="page-nav-btn">다음페이지</a>
+            <a href="#" class="page-nav-btn">끝페이지</a>
+        </section>
+    </main>
+
+    <%- include('partials/footer') %>
+    <script src="/js/qna-list.js"></script>
+    <script src="/js/common.js"></script>
 </body>
 
 </html>

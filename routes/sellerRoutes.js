@@ -210,6 +210,34 @@ module.exports = (db) => {
             .trim();
     }
 
+    function getExistingProductFiles(product) {
+        if (product?.product_files_json) {
+            try {
+                const parsedFiles = JSON.parse(product.product_files_json);
+
+                if (Array.isArray(parsedFiles) && parsedFiles.length > 0) {
+                    return parsedFiles
+                        .map((file) => ({
+                            name: normalizeUploadFileName(file?.name || ''),
+                            path: String(file?.path || '').trim()
+                        }))
+                        .filter((file) => file.name && file.path);
+                }
+            } catch (error) {
+                console.error('existing product_files_json parse error:', error);
+            }
+        }
+
+        if (product?.file_name && product?.file_path) {
+            return [{
+                name: normalizeUploadFileName(product.file_name),
+                path: String(product.file_path).trim()
+            }];
+        }
+
+        return [];
+    }
+
     const thumbnailDir = path.join(__dirname, '..', 'public', 'uploads', 'thumbnails');
     const productFileDir = path.join(__dirname, '..', 'public', 'uploads', 'products');
     const editorImageDir = path.join(__dirname, '..', 'public', 'uploads', 'editor');
@@ -556,6 +584,41 @@ module.exports = (db) => {
         );
     }
 
+    async function uploadProductFiles(files) {
+        if (!Array.isArray(files) || files.length === 0) {
+            return [];
+        }
+
+        if (!isSupabaseConfigured()) {
+            return files.map((file) => ({
+                publicPath: `/uploads/products/${file.filename}`,
+                localPath: file.path,
+                name: normalizeUploadFileName(file.originalname)
+            }));
+        }
+
+        const bucketName = process.env.SUPABASE_BUCKET_PRODUCT_FILES || 'product-files';
+
+        return Promise.all(
+            files.map(async (file) => {
+                const normalizedName = normalizeUploadFileName(file.originalname);
+                const uploaded = await uploadFileToSupabaseStorage({
+                    bucket: bucketName,
+                    folder: 'products/files',
+                    localFilePath: file.path,
+                    originalName: normalizedName,
+                    mimeType: file.mimetype
+                });
+
+                return {
+                    publicPath: uploaded.publicUrl,
+                    localPath: file.path,
+                    name: normalizedName
+                };
+            })
+        );
+    }
+
     function parseAnalysisPayload(rawValue) {
         if (!rawValue) {
             return null;
@@ -769,12 +832,24 @@ module.exports = (db) => {
                 });
             }
 
-            const fileName = normalizeUploadFileName(productFile.originalname);
-            const filePath = `/uploads/products/${productFile.filename}`;
+            let uploadedProductFiles = [];
+
+            try {
+                uploadedProductFiles = await uploadProductFiles(productFiles);
+            } catch (error) {
+                console.error('product file storage upload error:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: '상품 파일 업로드에 실패했습니다.'
+                });
+            }
+
+            const fileName = uploadedProductFiles[0]?.name || normalizeUploadFileName(productFile.originalname);
+            const filePath = uploadedProductFiles[0]?.publicPath || `/uploads/products/${productFile.filename}`;
             const productFilesJson = JSON.stringify(
-                productFiles.map((file) => ({
-                    name: normalizeUploadFileName(file.originalname),
-                    path: `/uploads/products/${file.filename}`
+                uploadedProductFiles.map((file) => ({
+                    name: file.name,
+                    path: file.publicPath
                 }))
             );
             const thumbnailPath = uploadedThumbnails[representativeThumbnailIndex]?.publicPath
@@ -935,8 +1010,10 @@ module.exports = (db) => {
                     .join(',');
 
                 const uploadedThumbnails = await uploadThumbnailFiles(thumbnails);
-                const fileName = normalizeUploadFileName(productFile.originalname);
-                const filePath = `/uploads/products/${productFile.filename}`;
+                const uploadedProductFiles = await uploadProductFiles([productFile]);
+                const uploadedProductFile = uploadedProductFiles[0];
+                const fileName = uploadedProductFile?.name || normalizeUploadFileName(productFile.originalname);
+                const filePath = uploadedProductFile?.publicPath || `/uploads/products/${productFile.filename}`;
                 const productFilesJson = JSON.stringify([
                     {
                         name: fileName,
@@ -1407,13 +1484,34 @@ module.exports = (db) => {
                     .filter(Boolean)
                     .join(',');
 
-                const nextFileName = newProductFile
-                    ? newProductFile.originalname
-                    : product.file_name;
+                let uploadedReplacementProductFiles = [];
 
-                const nextFilePath = newProductFile
-                    ? `/uploads/products/${newProductFile.filename}`
-                    : product.file_path;
+                if (newProductFile) {
+                    try {
+                        uploadedReplacementProductFiles = await uploadProductFiles([newProductFile]);
+                    } catch (error) {
+                        console.error('product file storage upload error:', error);
+                        return res.status(500).json({
+                            success: false,
+                            message: '상품 파일 업로드에 실패했습니다.'
+                        });
+                    }
+                }
+
+                const uploadedReplacementProductFile = uploadedReplacementProductFiles[0];
+                const nextFileName = uploadedReplacementProductFile?.name
+                    || (newProductFile ? normalizeUploadFileName(newProductFile.originalname) : product.file_name);
+
+                const nextFilePath = uploadedReplacementProductFile?.publicPath
+                    || (newProductFile ? `/uploads/products/${newProductFile.filename}` : product.file_path);
+
+                const nextProductFiles = newProductFile
+                    ? [{
+                        name: nextFileName,
+                        path: nextFilePath
+                    }]
+                    : getExistingProductFiles(product);
+                const nextProductFilesJson = JSON.stringify(nextProductFiles);
 
                 const normalizedNextFileName = normalizeUploadFileName(nextFileName);
                 const isAiPptProduct = String(normalizedNextFileName || '').toLowerCase().endsWith('.ppt')
@@ -1606,6 +1704,7 @@ module.exports = (db) => {
                     description = ?,
                     file_name = ?,
                     file_path = ?,
+                    product_files_json = ?,
                     thumbnail_path = ?,
                     thumbnail_gallery_json = ?,
                     ai_slide_analysis_json = ?,
@@ -1623,6 +1722,7 @@ module.exports = (db) => {
                     description,
                     normalizedNextFileName,
                     nextFilePath,
+                    nextProductFilesJson,
                     nextThumbnailPath,
                     nextThumbnailGalleryJson,
                     nextAiSlideAnalysisJson,

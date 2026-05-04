@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
 
 module.exports = (db, path) => {
     const router = express.Router();
@@ -123,7 +124,11 @@ module.exports = (db, path) => {
         );
     }
 
-    function sendProductFile(res, product, fileIndex, onBeforeSend = null) {
+    function isAbsoluteHttpUrl(value) {
+        return /^https?:\/\//i.test(String(value || '').trim());
+    }
+
+    async function sendProductFile(res, product, fileIndex, onBeforeSend = null) {
         const files = getProductFiles(product);
         const safeIndex = Number.isInteger(fileIndex) && fileIndex >= 0 ? fileIndex : 0;
         const selectedFile = files[safeIndex] || files[0];
@@ -135,14 +140,55 @@ module.exports = (db, path) => {
             });
         }
 
-        const safeRelativePath = String(selectedFile.path || '').replace(/^\/+/, '');
-        const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
-
         if (typeof onBeforeSend === 'function') {
             onBeforeSend();
         }
 
         setDownloadHeaders(res, selectedFile.name);
+
+        if (isAbsoluteHttpUrl(selectedFile.path)) {
+            try {
+                const response = await fetch(selectedFile.path);
+
+                if (!response.ok) {
+                    console.error('remote product file download error:', response.status, selectedFile.path);
+                    return res.status(404).json({
+                        success: false,
+                        message: '파일 다운로드 실패'
+                    });
+                }
+
+                const contentType = response.headers.get('content-type');
+                const contentLength = response.headers.get('content-length');
+
+                if (contentType) {
+                    res.setHeader('Content-Type', contentType);
+                }
+
+                if (contentLength) {
+                    res.setHeader('Content-Length', contentLength);
+                }
+
+                const fileBuffer = Buffer.from(await response.arrayBuffer());
+                return res.send(fileBuffer);
+            } catch (downloadErr) {
+                console.error('remote file download error:', downloadErr);
+                return res.status(500).json({
+                    success: false,
+                    message: '파일 다운로드 실패'
+                });
+            }
+        }
+
+        const safeRelativePath = String(selectedFile.path || '').replace(/^\/+/, '');
+        const filePath = path.join(__dirname, '..', 'public', safeRelativePath);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({
+                success: false,
+                message: '다운로드할 파일을 찾을 수 없습니다.'
+            });
+        }
 
         return res.sendFile(filePath, (downloadErr) => {
             if (downloadErr) {

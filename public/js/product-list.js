@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     let cachedProducts = [];
     let currentPage = 1;
 
+    function setGridLoading(isLoading) {
+        productGrid?.classList.toggle('is-loading', isLoading);
+    }
+
     function getDisplayPrice(product) {
         if (Number(product.is_free) === 1) {
             return '무료';
@@ -117,6 +121,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }));
     }
 
+    function buildInitialProducts(products) {
+        return products.map((product) => ({
+            ...product,
+            _thumbnailSrc: getThumbnailSrc(product),
+            _ratio: 4 / 3
+        }));
+    }
+
     function buildRows(products, containerWidth, gap, targetHeight) {
         const rows = [];
         let row = [];
@@ -133,9 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (expectedWidth >= containerWidth || isLastProduct) {
                 const availableWidth = Math.max(containerWidth - totalGap, 0);
                 const shouldFillRow = expectedWidth >= containerWidth;
-                const rowHeight = shouldFillRow
-                    ? availableWidth / ratioSum
-                    : targetHeight;
+                const rowHeight = shouldFillRow ? availableWidth / ratioSum : targetHeight;
 
                 let usedWidth = 0;
 
@@ -252,17 +262,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `
             ${visibleProducts.map((product) => `
                 <div class="product-row product-row-mobile">
-                    <a
-                        href="/products-page/${product.id}"
-                        class="product-card product-card-mobile"
-                    >
+                    <a href="/products-page/${product.id}" class="product-card product-card-mobile">
                         <span class="product-thumb">
-                            <img
-                                src="${product._thumbnailSrc}"
-                                alt="${product.title}"
-                            >
+                            <img src="${product._thumbnailSrc}" alt="${product.title}">
                         </span>
-
                         <span class="product-info">
                             <span class="product-title-row">
                                 <strong class="product-name">${product.title}</strong>
@@ -274,7 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 : `<span class="product-avatar">${getAvatarLetter(product)}</span>`}
                                 <span class="product-meta-text">
                                     <span class="product-seller">${getSellerName(product)}</span>
-                                    <span class="product-dot">•</span>
+                                    <span class="product-dot">·</span>
                                     <span class="product-tag">${getMetaLabel(product)}</span>
                                 </span>
                             </span>
@@ -302,18 +305,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${visibleRows.map((row) => `
                 <div class="product-row" style="gap:${gap}px;">
                     ${row.items.map(({ product, width }) => `
-                        <a
-                            href="/products-page/${product.id}"
-                            class="product-card"
-                            style="--card-width:${width}px;"
-                        >
+                        <a href="/products-page/${product.id}" class="product-card" style="--card-width:${width}px;">
                             <span class="product-thumb">
-                                <img
-                                    src="${product._thumbnailSrc}"
-                                    alt="${product.title}"
-                                >
+                                <img src="${product._thumbnailSrc}" alt="${product.title}">
                             </span>
-
                             <span class="product-info">
                                 <span class="product-title-row">
                                     <strong class="product-name">${product.title}</strong>
@@ -325,7 +320,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     : `<span class="product-avatar">${getAvatarLetter(product)}</span>`}
                                     <span class="product-meta-text">
                                         <span class="product-seller">${getSellerName(product)}</span>
-                                        <span class="product-dot">•</span>
+                                        <span class="product-dot">·</span>
                                         <span class="product-tag">${getMetaLabel(product)}</span>
                                     </span>
                                 </span>
@@ -342,6 +337,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filterCount) {
             filterCount.textContent = String(products.length);
         }
+
+        setGridLoading(false);
 
         if (!products || products.length === 0) {
             productGrid.innerHTML = '<p class="empty-message">조건에 맞는 상품이 없습니다.</p>';
@@ -413,14 +410,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await response.json();
 
         if (!data.success) {
+            setGridLoading(false);
             productGrid.innerHTML = `<p class="empty-message">${data.message || '상품을 불러오지 못했습니다.'}</p>`;
             return;
         }
 
-        cachedProducts = await enrichProducts(data.products || []);
+        const rawProducts = data.products || [];
+        cachedProducts = buildInitialProducts(rawProducts);
         applyFilters(true);
+
+        enrichProducts(rawProducts)
+            .then((enrichedProducts) => {
+                cachedProducts = enrichedProducts;
+                applyFilters(false);
+            })
+            .catch((error) => {
+                console.error('Product ratio enrich failed:', error);
+            });
     } catch (error) {
         console.error('상품 목록 불러오기 실패:', error);
+        setGridLoading(false);
         productGrid.innerHTML = '<p class="empty-message">서버와 통신 중 오류가 발생했습니다.</p>';
     }
 });

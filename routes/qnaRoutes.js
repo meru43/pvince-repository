@@ -22,7 +22,6 @@ module.exports = (db) => {
         next();
     }
 
-    // 글 저장
     router.post('/api/qna', async (req, res) => {
         const title = req.body.title?.trim();
         const content = req.body.content?.trim();
@@ -61,10 +60,10 @@ module.exports = (db) => {
 
             db.query(sql, [title, writer, content, userId, hashedGuestPassword], (err, result) => {
                 if (err) {
-                    console.error('Q&A 글 저장 오류:', err);
+                    console.error('Q&A 글 등록 오류:', err);
                     return res.json({
                         success: false,
-                        message: '글 저장에 실패했습니다.'
+                        message: '글 등록에 실패했습니다.'
                     });
                 }
 
@@ -83,7 +82,6 @@ module.exports = (db) => {
         }
     });
 
-    // 목록조회
     router.get('/api/qna', (req, res) => {
         const sql = `
             SELECT
@@ -116,59 +114,105 @@ module.exports = (db) => {
         });
     });
 
-    // 상세조회 + 조회수 증가
     router.get('/api/qna/:id', (req, res) => {
         const postId = req.params.id;
 
-        const updateSql = 'UPDATE qna_posts SET views = views + 1 WHERE id = ?';
+        const selectSql = `
+            SELECT
+                id,
+                title,
+                writer,
+                user_id,
+                content,
+                is_notice,
+                views,
+                created_at,
+                updated_at,
+                answer_content,
+                answer_created_at
+            FROM qna_posts
+            WHERE id = ?
+        `;
 
-        db.query(updateSql, [postId], (updateErr) => {
-            if (updateErr) {
-                console.error('조회수 증가 오류:', updateErr);
+        const previousSql = `
+            SELECT id, title, created_at
+            FROM qna_posts
+            WHERE id < ?
+            ORDER BY id DESC
+            LIMIT 1
+        `;
+
+        const nextSql = `
+            SELECT id, title, created_at
+            FROM qna_posts
+            WHERE id > ?
+            ORDER BY id ASC
+            LIMIT 1
+        `;
+
+        db.query(selectSql, [postId], (err, results) => {
+            if (err) {
+                console.error('Q&A 상세 조회 오류:', err);
+                return res.json({
+                    success: false,
+                    message: '상세 내용을 불러오지 못했습니다.'
+                });
             }
 
-            const selectSql = `
-                SELECT
-                    id,
-                    title,
-                    writer,
-                    user_id,
-                    content,
-                    is_notice,
-                    views,
-                    created_at,
-                    updated_at,
-                    answer_content,
-                    answer_created_at
-                FROM qna_posts
-                WHERE id = ?
-            `;
+            if (results.length === 0) {
+                return res.json({
+                    success: false,
+                    message: '게시글을 찾을 수 없습니다.'
+                });
+            }
 
-            db.query(selectSql, [postId], (err, results) => {
-                if (err) {
-                    console.error('Q&A 상세 조회 오류:', err);
-                    return res.json({
-                        success: false,
-                        message: '상세 내용을 불러오지 못했습니다.'
-                    });
-                }
+            const post = results[0];
+            let previousPost = null;
+            let nextPost = null;
+            let doneCount = 0;
+            let responded = false;
 
-                if (results.length === 0) {
-                    return res.json({
-                        success: false,
-                        message: '게시글을 찾을 수 없습니다.'
-                    });
-                }
+            const finish = () => {
+                doneCount += 1;
+                if (responded || doneCount < 2) return;
 
+                responded = true;
                 return res.json({
                     success: true,
-                    post: results[0]
+                    post,
+                    previousPost,
+                    nextPost
                 });
+            };
+
+            db.query(previousSql, [postId], (previousErr, previousResults) => {
+                if (previousErr) {
+                    console.error('Q&A 이전글 조회 오류:', previousErr);
+                } else {
+                    previousPost = previousResults[0] || null;
+                }
+
+                finish();
+            });
+
+            db.query(nextSql, [postId], (nextErr, nextResults) => {
+                if (nextErr) {
+                    console.error('Q&A 다음글 조회 오류:', nextErr);
+                } else {
+                    nextPost = nextResults[0] || null;
+                }
+
+                finish();
+            });
+
+            db.query('UPDATE qna_posts SET views = views + 1 WHERE id = ?', [postId], (updateErr) => {
+                if (updateErr) {
+                    console.error('Q&A 조회수 증가 오류:', updateErr);
+                }
             });
         });
     });
 
-    // 비회원 비밀번호 확인
     router.post('/api/qna/:id/verify-password', async (req, res) => {
         const postId = req.params.id;
         const guestPassword = req.body.guestPassword?.trim();
@@ -236,7 +280,6 @@ module.exports = (db) => {
         });
     });
 
-    // 게시글 수정 (관리자 또는 본인/비회원 비밀번호 확인)
     router.patch('/api/qna/:id', async (req, res) => {
         const postId = req.params.id;
         const title = req.body.title?.trim();
@@ -317,7 +360,6 @@ module.exports = (db) => {
         });
     });
 
-    // 게시글 삭제 (관리자 또는 본인/비회원 비밀번호 확인)
     router.delete('/api/qna/:id', async (req, res) => {
         const postId = req.params.id;
         const guestPassword = req.body?.guestPassword?.trim();
@@ -366,9 +408,7 @@ module.exports = (db) => {
                 }
             }
 
-            const sql = `DELETE FROM qna_posts WHERE id = ?`;
-
-            db.query(sql, [postId], (err) => {
+            db.query('DELETE FROM qna_posts WHERE id = ?', [postId], (err) => {
                 if (err) {
                     console.error('Q&A 게시글 삭제 오류:', err);
                     return res.json({
@@ -385,7 +425,6 @@ module.exports = (db) => {
         });
     });
 
-    // 관리자 답변
     router.post('/api/qna/:id/answer', requireAdmin, (req, res) => {
         const postId = req.params.id;
         const answerContent = req.body.answerContent?.trim();
@@ -405,10 +444,10 @@ module.exports = (db) => {
 
         db.query(sql, [answerContent, postId], (err) => {
             if (err) {
-                console.error('Q&A 답변 저장 오류:', err);
+                console.error('Q&A 답변 등록 오류:', err);
                 return res.json({
                     success: false,
-                    message: '답변 저장에 실패했습니다.'
+                    message: '답변 등록에 실패했습니다.'
                 });
             }
 
@@ -444,7 +483,6 @@ module.exports = (db) => {
         });
     });
 
-    // 관리자 공지 설정/해제
     router.patch('/api/qna/:id/notice', requireAdmin, (req, res) => {
         const postId = req.params.id;
         const { isNotice } = req.body;
