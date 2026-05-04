@@ -689,6 +689,9 @@ body.modal-open {
 }
 
 .download-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 36px;
     height: 36px;
     border: none;
@@ -699,6 +702,11 @@ body.modal-open {
     font-weight: 700;
     cursor: pointer;
     flex-shrink: 0;
+}
+
+.download-modal-close svg {
+    width: 18px;
+    height: 18px;
 }
 
 .download-file-list {

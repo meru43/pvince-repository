@@ -1,5 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const MAX_THUMBNAILS = 10;
+    const closeButtonSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-x" aria-hidden="true" focusable="false">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" />
+        </svg>
+    `.trim();
 
     const form = document.getElementById('seller-upload2-form');
     const errorText = document.getElementById('seller-upload-error');
@@ -212,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             return `
                 <div class="thumbnail-preview-card ${checked ? 'is-representative' : ''}">
-                    <button type="button" class="preview-remove-btn" data-remove-index="${index}" aria-label="이미지 제거">X</button>
+                    <button type="button" class="preview-remove-btn" data-remove-index="${index}" aria-label="이미지 제거">${closeButtonSvg}</button>
                     <img src="${previewUrl}" alt="${file.name}" class="thumbnail-preview-image">
                     <label class="thumbnail-radio-label">
                         <input type="radio" name="representative-thumbnail" value="${index}" ${checked}>
@@ -267,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <strong class="product-file-preview-name">${selectedProductFile.name}</strong>
                     <span class="product-file-preview-size">${Math.max(1, Math.round(selectedProductFile.size / 1024))}KB</span>
                 </div>
-                <button type="button" class="preview-remove-btn" id="product-file-remove-btn" aria-label="파일 제거">X</button>
+                <button type="button" class="preview-remove-btn" id="product-file-remove-btn" aria-label="파일 제거">${closeButtonSvg}</button>
             </div>
         `;
 
