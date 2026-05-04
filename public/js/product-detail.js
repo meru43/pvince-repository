@@ -73,6 +73,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         )).join('');
     }
 
+    window.__handleAdminReviewDelete = async function handleAdminReviewDelete(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+
+        const button = event.currentTarget || event.target;
+        const reviewId = Number(button?.dataset?.reviewId || 0);
+        if (!reviewId) return false;
+
+        const shouldDelete = window.confirm('정말 이 리뷰를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.');
+        if (!shouldDelete) return false;
+
+        try {
+            const response = await fetch(`/api/reviews/${reviewId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (!data.success) {
+                alert(data.message || '리뷰 삭제에 실패했습니다.');
+                return false;
+            }
+
+            alert(data.message || '리뷰가 삭제되었습니다.');
+            window.location.reload();
+        } catch (error) {
+            console.error('review delete failed:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
+        }
+
+        return false;
+    };
+
     async function addToCart(product) {
         try {
             const response = await fetch('/api/cart', {
@@ -248,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <strong class="detail-review-author">${escapeHtml(review.author_name || '익명')}</strong>
                             <div class="detail-review-rating">${renderRatingStars(review.rating)}</div>
                         </div>
-                        ${product.is_admin ? `<button type="button" class="detail-review-remove-btn" data-review-id="${Number(review.id || 0)}">삭제</button>` : ''}
+                        ${product.is_admin ? `<button type="button" class="detail-review-remove-btn" data-review-id="${Number(review.id || 0)}" onclick="window.__handleAdminReviewDelete(event)">삭제</button>` : ''}
                     </div>
                     <p class="detail-review-content">${escapeHtml(review.content || '').replace(/\n/g, '<br>')}</p>
                     <p class="detail-review-date">${escapeHtml(formatDateTime(review.created_at))}</p>
