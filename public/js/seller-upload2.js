@@ -428,8 +428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButton.disabled = true;
             submitButton.title = 'AI 분석이 지원되는 Windows 환경에서만 등록할 수 있습니다.';
         }
-
-        setError('현재 배포 환경에서는 AI PPT 분석을 지원하지 않습니다. 이 기능은 Windows 서버 또는 로컬 Windows 환경에서만 사용할 수 있습니다.');
     }
 
     analyzeButton?.addEventListener('click', async () => {
