@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const productFileInput = document.getElementById('product-file');
     const productFilePreviewList = document.getElementById('product-file-preview-list');
     const excludedPagesInput = document.getElementById('product-excluded-pages');
-    const isPptAiAnalysisSupported = form?.dataset?.pptAiAnalysisSupported === '1';
 
     let selectedThumbnails = [];
     let representativeThumbnailIndex = 0;
@@ -418,25 +417,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    if (!isPptAiAnalysisSupported) {
-        if (analyzeButton) {
-            analyzeButton.disabled = true;
-            analyzeButton.title = '현재 배포 환경에서는 AI PPT 분석을 지원하지 않습니다.';
-        }
-
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.title = 'AI 분석이 지원되는 Windows 환경에서만 등록할 수 있습니다.';
-        }
-    }
-
     analyzeButton?.addEventListener('click', async () => {
         setError('');
-
-        if (!isPptAiAnalysisSupported) {
-            setError('현재 배포 환경에서는 AI PPT 분석을 지원하지 않습니다. 이 기능은 Windows 서버 또는 로컬 Windows 환경에서만 사용할 수 있습니다.');
-            return;
-        }
 
         const validationError = validateForAnalysis();
         if (validationError) {
@@ -478,11 +460,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setError('');
-
-        if (!isPptAiAnalysisSupported) {
-            setError('현재 배포 환경에서는 AI PPT 분석을 지원하지 않습니다. 이 기능은 Windows 서버 또는 로컬 Windows 환경에서만 사용할 수 있습니다.');
-            return;
-        }
 
         if (!analyzedPayload) {
             setError('먼저 AI 분석을 완료해 주세요.');

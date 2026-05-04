@@ -165,6 +165,10 @@ module.exports = () => {
     async function convertPptToAssets(sourcePptPath, outputPdfPath, outputSlideDir) {
         await ensureDirectoryEmpty(outputSlideDir);
 
+        if (process.platform !== 'win32') {
+            return convertPptToAssetsWithLibreOffice(sourcePptPath, outputPdfPath, outputSlideDir);
+        }
+
         const psScript = [
             "$ErrorActionPreference = 'Stop'",
             `$pptPath = '${escapePowerShellSingleQuotes(sourcePptPath)}'`,
@@ -210,6 +214,94 @@ module.exports = () => {
 
         if (!slideFiles.length) {
             throw new Error('슬라이드 이미지 추출에 실패했습니다.');
+        }
+
+        return slideFiles;
+    }
+
+    function resolveBinaryCommand(candidates, label) {
+        for (const candidate of candidates.filter(Boolean)) {
+            if (!candidate.includes('\\') && !candidate.includes('/')) {
+                return candidate;
+            }
+
+            if (fs.existsSync(candidate)) {
+                return candidate;
+            }
+        }
+
+        throw new Error(`${label} executable could not be found.`);
+    }
+
+    async function convertPptToAssetsWithLibreOffice(sourcePptPath, outputPdfPath, outputSlideDir) {
+        const sofficeCommand = resolveBinaryCommand(
+            [process.env.SOFFICE_PATH, 'soffice', '/usr/bin/soffice'],
+            'LibreOffice'
+        );
+        const pdftoppmCommand = resolveBinaryCommand(
+            [process.env.PDFTOPPM_PATH, 'pdftoppm', '/usr/bin/pdftoppm'],
+            'pdftoppm'
+        );
+        const pdfOutputDir = path.dirname(outputPdfPath);
+        const convertedPdfPath = path.join(
+            pdfOutputDir,
+            `${path.basename(sourcePptPath, path.extname(sourcePptPath))}.pdf`
+        );
+        const slidePrefix = path.join(outputSlideDir, 'slide');
+
+        await fsp.mkdir(pdfOutputDir, { recursive: true });
+
+        try {
+            await execFileAsync(sofficeCommand, [
+                '--headless',
+                '--invisible',
+                '--nodefault',
+                '--nolockcheck',
+                '--nologo',
+                '--convert-to',
+                'pdf:impress_pdf_Export',
+                '--outdir',
+                pdfOutputDir,
+                sourcePptPath
+            ], {
+                maxBuffer: 1024 * 1024 * 20
+            });
+
+            if (convertedPdfPath !== outputPdfPath && fs.existsSync(convertedPdfPath)) {
+                await fsp.copyFile(convertedPdfPath, outputPdfPath);
+            }
+
+            await execFileAsync(pdftoppmCommand, [
+                '-png',
+                '-r',
+                '150',
+                outputPdfPath,
+                slidePrefix
+            ], {
+                maxBuffer: 1024 * 1024 * 20
+            });
+        } catch (error) {
+            if (error?.code === 'ENOENT') {
+                throw new Error('LibreOffice or pdftoppm is not available in the current environment.');
+            }
+
+            throw error;
+        }
+
+        const files = await fsp.readdir(outputSlideDir);
+        const slideFiles = files
+            .filter((fileName) => /\.(png|jpe?g)$/i.test(fileName))
+            .sort((a, b) => {
+                const aMatch = a.match(/(\d+)/);
+                const bMatch = b.match(/(\d+)/);
+                const aNum = aMatch ? Number(aMatch[1]) : 0;
+                const bNum = bMatch ? Number(bMatch[1]) : 0;
+                return aNum - bNum;
+            })
+            .map((fileName) => path.join(outputSlideDir, fileName));
+
+        if (!slideFiles.length) {
+            throw new Error('No slide images were generated from the PPT file.');
         }
 
         return slideFiles;
