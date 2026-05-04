@@ -1530,13 +1530,6 @@ module.exports = (db) => {
                     });
                 }
 
-                if (isAiPptProduct && !aiReanalyze && newProductFile) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'PPT 파일을 변경한 경우 AI 분석 다시 실행을 체크해 주세요.'
-                    });
-                }
-
                 let uploadedNewThumbnailMap = new Map();
                 if (newThumbnails.length) {
                     try {
@@ -1626,8 +1619,14 @@ module.exports = (db) => {
                 let nextAiSlideAnalysisJson = product.ai_slide_analysis_json;
                 let nextAiSummaryText = product.ai_summary_text;
                 let nextAiExcludedPagesJson = product.ai_excluded_pages_json || JSON.stringify([]);
+                let updateMessage = '상품이 수정되었습니다.';
 
                 if (isAiPptProduct && aiReanalyze) {
+                    if (process.platform !== 'win32') {
+                        updateMessage = newProductFile
+                            ? 'PPT 파일과 상품 정보를 수정했습니다. 현재 배포 환경에서는 AI 재분석을 할 수 없어 기존 분석 결과를 유지했습니다.'
+                            : '상품 정보를 수정했습니다. 현재 배포 환경에서는 AI 재분석을 할 수 없어 기존 분석 결과를 유지했습니다.';
+                    } else {
                     try {
                         excludedPages = parseExcludedPages(excludedPagesRaw);
                     } catch (error) {
@@ -1692,6 +1691,7 @@ module.exports = (db) => {
                             message: `PPT 재분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
                         });
                     }
+                    }
                 }
 
                 const updateSql = `
@@ -1743,7 +1743,7 @@ module.exports = (db) => {
 
                     return res.json({
                         success: true,
-                        message: '상품이 수정되었습니다.',
+                        message: updateMessage,
                         productId: Number(productId)
                     });
                 });

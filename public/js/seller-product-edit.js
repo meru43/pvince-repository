@@ -412,11 +412,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (aiPptProduct && !shouldReanalyze && hasNewProductFile) {
-            setError('PPT 파일을 변경한 경우 AI 분석 다시 실행을 체크해 주세요.');
-            return;
-        }
-
         const formData = new FormData();
         formData.append('title', title);
         formData.append('price', isFree ? '0' : price);
