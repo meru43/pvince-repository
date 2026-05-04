@@ -488,7 +488,9 @@ module.exports = (db) => {
     });
 
     router.get('/seller-upload2-page', requireSellerOrAdmin, (req, res) => {
-        res.render('seller-upload2');
+        res.render('seller-upload2', {
+            pptAiAnalysisSupported: process.platform === 'win32'
+        });
     });
 
     // 상품 관리 페이지
@@ -707,6 +709,13 @@ module.exports = (db) => {
                 return res.json({
                     success: false,
                     message: 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                });
+            }
+
+            if (process.platform !== 'win32') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'PPT 재분석은 Windows 서버에서만 지원됩니다. 현재 배포 환경에서는 다시 분석할 수 없습니다.'
                 });
             }
 

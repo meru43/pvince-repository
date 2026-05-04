@@ -20,7 +20,12 @@
         </section>
 
         <section class="seller-upload-box">
-            <form id="seller-upload2-form" class="seller-upload-form" enctype="multipart/form-data">
+            <form
+                id="seller-upload2-form"
+                class="seller-upload-form"
+                enctype="multipart/form-data"
+                data-ppt-ai-analysis-supported="<%= pptAiAnalysisSupported ? '1' : '0' %>"
+            >
                 <div class="form-group">
                     <label for="product-title">상품명</label>
                     <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
@@ -117,6 +122,12 @@
                     <p class="analysis-loading-title">AI가 PPT를 분석하고 있습니다.</p>
                     <p class="analysis-loading-text">결과가 정리될 때까지 잠시만 기다려주세요.</p>
                 </div>
+
+                <% if (!pptAiAnalysisSupported) { %>
+                    <p class="seller-upload-error seller-upload-error-static">
+                        현재 배포 환경에서는 AI PPT 분석을 지원하지 않습니다. 이 기능은 Windows 서버 또는 로컬 Windows 환경에서만 사용할 수 있습니다.
+                    </p>
+                <% } %>
 
                 <p class="seller-upload-error" id="seller-upload-error"></p>
 
