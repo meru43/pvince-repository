@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const MAX_THUMBNAILS = 10;
+    const MAX_PRODUCT_FILES = 10;
     const closeButtonSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-x" aria-hidden="true" focusable="false">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -29,8 +30,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const productFilePreviewList = document.getElementById('product-file-preview-list');
 
     let selectedThumbnails = [];
+    let selectedProductFiles = [];
     let representativeThumbnailIndex = 0;
-    let selectedProductFile = null;
     let isSubmitting = false;
 
     const descriptionEditor = window.createProductJoditEditor
@@ -108,6 +109,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         thumbnailInput.files = dataTransfer.files;
     }
 
+    function syncProductFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedProductFiles.forEach((file) => dataTransfer.items.add(file));
+        productFileInput.files = dataTransfer.files;
+    }
+
     function renderThumbnailPreview() {
         if (!selectedThumbnails.length) {
             thumbnailPreviewList.innerHTML = '';
@@ -167,39 +174,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderProductFilePreview() {
-        if (!selectedProductFile) {
+        if (!selectedProductFiles.length) {
             productFilePreviewList.innerHTML = '';
             return;
         }
 
-        productFilePreviewList.innerHTML = `
+        productFilePreviewList.innerHTML = selectedProductFiles.map((file, index) => `
             <div class="product-file-preview-item">
                 <div class="product-file-preview-meta">
-                    <strong class="product-file-preview-name">${selectedProductFile.name}</strong>
-                    <span class="product-file-preview-size">${Math.max(1, Math.round(selectedProductFile.size / 1024))}KB</span>
+                    <strong class="product-file-preview-name">${file.name}</strong>
+                    <span class="product-file-preview-size">${Math.max(1, Math.round(file.size / 1024))}KB</span>
                 </div>
-                <button type="button" class="preview-remove-btn" id="product-file-remove-btn" aria-label="파일 제거">${closeButtonSvg}</button>
+                <button type="button" class="preview-remove-btn" data-index="${index}" aria-label="파일 제거">${closeButtonSvg}</button>
             </div>
-        `;
+        `).join('');
 
-        document.getElementById('product-file-remove-btn')?.addEventListener('click', () => {
-            selectedProductFile = null;
-            productFileInput.value = '';
-            setError('');
-            renderProductFilePreview();
+        productFilePreviewList.querySelectorAll('.preview-remove-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const index = Number(button.dataset.index);
+                if (Number.isNaN(index)) {
+                    return;
+                }
+
+                selectedProductFiles.splice(index, 1);
+                setError('');
+                syncProductFileInput();
+                renderProductFilePreview();
+            });
         });
     }
 
-    function mergeThumbnailFiles(nextFiles) {
-        const existingKeys = new Set(
-            selectedThumbnails.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
-        );
+    function mergeFiles(existingFiles, nextFiles, maxCount) {
+        const existingKeys = new Set(existingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
 
         nextFiles.forEach((file) => {
-            const key = `${file.name}-${file.size}-${file.lastModified}`;
-            if (!existingKeys.has(key) && selectedThumbnails.length < MAX_THUMBNAILS) {
-                selectedThumbnails.push(file);
-                existingKeys.add(key);
+            const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+            if (!existingKeys.has(fileKey) && existingFiles.length < maxCount) {
+                existingFiles.push(file);
+                existingKeys.add(fileKey);
             }
         });
     }
@@ -210,6 +222,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? window.normalizeProductEditorHtml(descriptionEditor ? descriptionEditor.value : descriptionInput.value)
                 : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
         ).trim();
+    }
+
+    function hasPptProductFile() {
+        return selectedProductFiles.some((file) => {
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            return ext === 'ppt' || ext === 'pptx';
+        });
     }
 
     function buildBaseFormData() {
@@ -226,10 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
 
         selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
-
-        if (selectedProductFile) {
-            formData.append('productFile', selectedProductFile);
-        }
+        selectedProductFiles.forEach((file) => formData.append('productFile', file));
 
         return formData;
     }
@@ -240,13 +256,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!title) return '상품명을 입력해 주세요.';
         if (!selectedThumbnails.length) return '상품 이미지를 업로드해 주세요.';
-        if (!selectedProductFile) return 'PPT 또는 PPTX 파일을 업로드해 주세요.';
+        if (!selectedProductFiles.length) return '상품 파일을 업로드해 주세요.';
+        if (selectedProductFiles.length > MAX_PRODUCT_FILES) return '상품 파일은 최대 10개까지 업로드할 수 있습니다.';
+        if (!hasPptProductFile()) return '업로드한 파일 중 최소 1개는 PPT 또는 PPTX 파일이어야 합니다.';
         if (!aiSummaryText) return 'AI 분석결과를 입력해 주세요.';
-
-        const ext = selectedProductFile.name.split('.').pop()?.toLowerCase();
-        if (!['ppt', 'pptx'].includes(ext || '')) {
-            return 'AI PPT 등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.';
-        }
 
         return '';
     }
@@ -266,7 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ...incomingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
         ]).size;
 
-        mergeThumbnailFiles(incomingFiles);
+        mergeFiles(selectedThumbnails, incomingFiles, MAX_THUMBNAILS);
         setError(requestedSize > MAX_THUMBNAILS ? '상품 이미지는 최대 10장까지 업로드할 수 있습니다.' : '');
 
         thumbnailInput.value = '';
@@ -275,8 +288,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     productFileInput.addEventListener('change', () => {
-        selectedProductFile = productFileInput.files?.[0] || null;
-        setError('');
+        const incomingFiles = Array.from(productFileInput.files || []);
+
+        if (!incomingFiles.length) {
+            setError('');
+            syncProductFileInput();
+            renderProductFilePreview();
+            return;
+        }
+
+        const requestedSize = new Set([
+            ...selectedProductFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+            ...incomingFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`)
+        ]).size;
+
+        mergeFiles(selectedProductFiles, incomingFiles, MAX_PRODUCT_FILES);
+        setError(requestedSize > MAX_PRODUCT_FILES ? '상품 파일은 최대 10개까지 업로드할 수 있습니다.' : '');
+
+        productFileInput.value = '';
+        syncProductFileInput();
         renderProductFilePreview();
     });
 

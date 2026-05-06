@@ -677,7 +677,7 @@ module.exports = (db) => {
         requireSellerOrAdminApi,
         upload.fields([
             { name: 'thumbnail', maxCount: 10 },
-            { name: 'productFile', maxCount: 1 }
+            { name: 'productFile', maxCount: 10 }
         ]),
         async (req, res) => {
             const title = req.body.title?.trim();
@@ -690,7 +690,11 @@ module.exports = (db) => {
 
             const thumbnails = req.files?.thumbnail || [];
             const representativeThumbnailIndex = Math.max(0, Number(req.body.representativeThumbnailIndex || 0));
-            const productFile = req.files?.productFile?.[0];
+            const productFiles = req.files?.productFile || [];
+            const productFile = productFiles.find((file) => {
+                const ext = path.extname(file.originalname || '').toLowerCase();
+                return ext === '.ppt' || ext === '.pptx';
+            }) || productFiles[0];
 
             if (!title) {
                 return res.json({ success: false, message: '상품명을 입력해 주세요.' });
@@ -709,6 +713,13 @@ module.exports = (db) => {
                 excludedPages = parseExcludedPages(excludedPagesRaw);
             } catch (error) {
                 return res.json({ success: false, message: error.message });
+            }
+
+            if (productFiles.length > 10) {
+                return res.json({
+                    success: false,
+                    message: 'PPT 상품 파일은 최대 10개까지 업로드할 수 있습니다.'
+                });
             }
 
             const fileExt = path.extname(productFile.originalname || '').toLowerCase();
@@ -1006,16 +1017,17 @@ module.exports = (db) => {
                     .join(',');
 
                 const uploadedThumbnails = await uploadThumbnailFiles(thumbnails);
-                const uploadedProductFiles = await uploadProductFiles([productFile]);
-                const uploadedProductFile = uploadedProductFiles[0];
+                const uploadedProductFiles = await uploadProductFiles(productFiles);
+                const mainProductFileIndex = Math.max(0, productFiles.indexOf(productFile));
+                const uploadedProductFile = uploadedProductFiles[mainProductFileIndex];
                 const fileName = uploadedProductFile?.name || normalizeUploadFileName(productFile.originalname);
                 const filePath = uploadedProductFile?.publicPath || `/uploads/products/${productFile.filename}`;
-                const productFilesJson = JSON.stringify([
-                    {
-                        name: fileName,
-                        path: filePath
-                    }
-                ]);
+                const productFilesJson = JSON.stringify(
+                    uploadedProductFiles.map((file, index) => ({
+                        name: file?.name || normalizeUploadFileName(productFiles[index]?.originalname || ''),
+                        path: file?.publicPath || `/uploads/products/${productFiles[index]?.filename || ''}`
+                    }))
+                );
                 const thumbnailPath = uploadedThumbnails[representativeThumbnailIndex]?.publicPath
                     || uploadedThumbnails[0]?.publicPath
                     || '';
