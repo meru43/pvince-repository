@@ -229,13 +229,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderProduct(product) {
         const galleryImages = parseThumbnailGallery(product);
         const productFiles = parseProductFiles(product);
-        const descriptionHtml = normalizeDescriptionHtml(product.description || product.ai_summary_text || '');
+        const descriptionHtml = normalizeDescriptionHtml(product.description || '');
+        const aiSummaryTextHtml = escapeHtml(product.ai_summary_text || '').replace(/\n/g, '<br>');
         const aiSummaryHtml = product.ai_summary_text
             ? `
                 <section class="detail-ai-summary-box">
                     <p class="detail-ai-summary-label">AI 분석</p>
                     <div class="detail-ai-summary-text">
-                        <p>${escapeHtml(product.ai_summary_text)}</p>
+                        <p>${aiSummaryTextHtml}</p>
                     </div>
                 </section>
             `

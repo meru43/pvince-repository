@@ -336,6 +336,16 @@
 
 .description-content {
     order: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-description-body {
+    order: 1;
+}
+
+.detail-ai-summary-box {
+    order: 2;
 }
 
 .product-keywords {
@@ -450,18 +460,18 @@
     color: #555;
 }
 
-.detail-description-body {
-    color: #374151;
-    line-height: 1.85;
-    word-break: break-word;
-}
-
 .detail-ai-summary-box {
     margin: 0 0 24px;
     padding: 20px 22px;
     border: 1px solid #e1e1e1;
     border-radius: 10px;
     background: #f8fafc;
+}
+
+.detail-description-body {
+    color: #374151;
+    line-height: 1.85;
+    word-break: break-word;
 }
 
 .detail-ai-summary-label {

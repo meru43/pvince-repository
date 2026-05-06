@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI PPT등록</title>
+    <title>AI PPT 등록</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jodit@4.2.47/es2021/jodit.min.css" />
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="stylesheet" href="/css/seller-upload.css" />
@@ -15,17 +15,12 @@
 
     <main class="container page">
         <section class="page-title-wrap">
-            <h2 class="page-title">AI PPT등록</h2>
-            <p class="page-desc">먼저 PPT를 AI로 분석한 뒤, 결과를 확인하고 상품으로 등록합니다.</p>
+            <h2 class="page-title">AI PPT 등록</h2>
+            <p class="page-desc">PPT 파일과 직접 정리한 AI 분석결과를 함께 입력하고 상품으로 등록해보세요.</p>
         </section>
 
         <section class="seller-upload-box">
-            <form
-                id="seller-upload2-form"
-                class="seller-upload-form"
-                enctype="multipart/form-data"
-                data-ppt-ai-analysis-supported="<%= pptAiAnalysisSupported ? '1' : '0' %>"
-            >
+            <form id="seller-upload2-form" class="seller-upload-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="product-title">상품명</label>
                     <input type="text" id="product-title" name="title" placeholder="상품명을 입력해 주세요." />
@@ -86,8 +81,18 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="product-description">상세 설명 / AI 참고 메모</label>
-                    <textarea id="product-description" name="description" placeholder="상세 설명과 AI 참고 메모를 입력해 주세요."></textarea>
+                    <label for="product-description">상품 설명</label>
+                    <textarea id="product-description" name="description" placeholder="상세 설명을 입력해 주세요."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-ai-summary">AI 분석결과 입력</label>
+                    <textarea
+                        id="product-ai-summary"
+                        name="aiSummaryText"
+                        placeholder="직접 정리한 AI 분석 요약, 핵심 포인트, 추천 사용처 등을 입력해 주세요."
+                    ></textarea>
+                    <small>상품 상세페이지에서 `AI 분석` 영역으로 따로 노출됩니다.</small>
                 </div>
 
                 <div class="form-group">
@@ -103,31 +108,10 @@
                     <div class="product-file-preview-list" id="product-file-preview-list"></div>
                 </div>
 
-                <div class="form-group excluded-pages-group">
-                    <label for="product-excluded-pages">분석 제외 페이지</label>
-                    <input type="text" id="product-excluded-pages" name="excludedPages" placeholder="예: 1, 3, 5-7" />
-                    <small>정확한 AI 분석을 위해 템플릿 내용과 관련 없는 주의사항이나 안내사항 페이지는 제외해 주세요. 예: 1, 3, 5-7</small>
-                </div>
-
-                <div class="analysis-result-box" id="analysis-result-box" style="display:none;">
-                    <div class="analysis-result-head">
-                        <strong>AI 분석 완료</strong>
-                        <span id="analysis-result-meta"></span>
-                    </div>
-                    <p class="analysis-result-summary" id="analysis-result-summary"></p>
-                </div>
-
-                <div class="analysis-loading-box" id="analysis-loading-box" style="display:none;" aria-live="polite">
-                    <div class="analysis-loading-spinner"></div>
-                    <p class="analysis-loading-title">AI가 PPT를 분석하고 있습니다.</p>
-                    <p class="analysis-loading-text">결과가 정리될 때까지 잠시만 기다려주세요.</p>
-                </div>
-
                 <p class="seller-upload-error" id="seller-upload-error"></p>
 
                 <div class="seller-upload-actions">
-                    <button type="button" class="btn btn-outline" id="seller-upload2-analyze">AI 분석하기</button>
-                    <button type="submit" class="btn btn-primary" id="seller-upload2-submit" disabled>상품 등록하기</button>
+                    <button type="submit" class="btn btn-primary" id="seller-upload2-submit">상품 등록하기</button>
                 </div>
             </form>
         </section>
@@ -136,8 +120,8 @@
     <div class="page-loading-overlay" id="page-loading-overlay" aria-hidden="true">
         <div class="page-loading-modal" role="status" aria-live="polite">
             <div class="page-loading-spinner"></div>
-            <p class="page-loading-title" id="page-loading-title">PPT를 분석하는 중입니다.</p>
-            <p class="page-loading-text" id="page-loading-text">분석이 끝날 때까지 페이지를 나가지 말아주세요.</p>
+            <p class="page-loading-title" id="page-loading-title">상품을 등록하는 중입니다.</p>
+            <p class="page-loading-text" id="page-loading-text">등록이 끝날 때까지 페이지를 닫지 말아주세요.</p>
         </div>
     </div>
 

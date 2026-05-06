@@ -9,15 +9,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const form = document.getElementById('seller-upload2-form');
     const errorText = document.getElementById('seller-upload-error');
-    const analyzeButton = document.getElementById('seller-upload2-analyze');
     const submitButton = document.getElementById('seller-upload2-submit');
     const loadingOverlay = document.getElementById('page-loading-overlay');
     const loadingTitle = document.getElementById('page-loading-title');
     const loadingText = document.getElementById('page-loading-text');
-    const analysisResultBox = document.getElementById('analysis-result-box');
-    const analysisLoadingBox = document.getElementById('analysis-loading-box');
-    const analysisResultMeta = document.getElementById('analysis-result-meta');
-    const analysisResultSummary = document.getElementById('analysis-result-summary');
 
     const titleInput = document.getElementById('product-title');
     const thumbnailInput = document.getElementById('product-thumbnail');
@@ -28,16 +23,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const usePlaceInput = document.getElementById('product-use-place');
     const usePurposeInput = document.getElementById('product-use-purpose');
     const descriptionInput = document.getElementById('product-description');
+    const aiSummaryInput = document.getElementById('product-ai-summary');
     const keywordsInput = document.getElementById('product-keywords');
     const productFileInput = document.getElementById('product-file');
     const productFilePreviewList = document.getElementById('product-file-preview-list');
-    const excludedPagesInput = document.getElementById('product-excluded-pages');
 
     let selectedThumbnails = [];
     let representativeThumbnailIndex = 0;
     let selectedProductFile = null;
     let isSubmitting = false;
-    let analyzedPayload = null;
 
     const descriptionEditor = window.createProductJoditEditor
         ? window.createProductJoditEditor(descriptionInput)
@@ -47,105 +41,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorText.textContent = message;
     }
 
-    function setLoading(isLoading, phase = 'analyze') {
+    function setLoading(isLoading) {
         isSubmitting = isLoading;
 
-        if (analyzeButton) {
-            analyzeButton.disabled = isLoading;
-            analyzeButton.classList.toggle('is-loading', isLoading && phase === 'analyze');
-            analyzeButton.textContent = isLoading && phase === 'analyze'
-                ? 'AI 분석 중...'
-                : 'AI 분석하기';
-        }
-
         if (submitButton) {
-            submitButton.disabled = isLoading || !analyzedPayload;
-            submitButton.classList.toggle('is-loading', isLoading && phase === 'register');
-            submitButton.textContent = isLoading && phase === 'register'
-                ? '상품 등록 중...'
-                : '상품 등록하기';
+            submitButton.disabled = isLoading;
+            submitButton.classList.toggle('is-loading', isLoading);
+            submitButton.textContent = isLoading ? '상품 등록 중...' : '상품 등록하기';
         }
-
-        const usePageOverlay = phase === 'register';
 
         if (loadingOverlay) {
             loadingOverlay.classList.toggle('is-active', isLoading);
-            loadingOverlay.setAttribute('aria-hidden', isLoading && usePageOverlay ? 'false' : 'true');
-            if (!usePageOverlay) {
-                loadingOverlay.classList.remove('is-active');
-                loadingOverlay.setAttribute('aria-hidden', 'true');
-            }
+            loadingOverlay.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
         }
 
         if (loadingTitle) {
-            loadingTitle.textContent = phase === 'register'
-                ? '상품을 등록하는 중입니다.'
-                : 'PPT를 분석하는 중입니다.';
+            loadingTitle.textContent = '상품을 등록하는 중입니다.';
         }
 
         if (loadingText) {
-            loadingText.textContent = phase === 'register'
-                ? '등록이 끝날 때까지 페이지를 나가지 말아주세요.'
-                : '분석이 끝날 때까지 페이지를 나가지 말아주세요.';
+            loadingText.textContent = '등록이 끝날 때까지 페이지를 닫지 말아주세요.';
         }
-
-        if (analysisLoadingBox) {
-            analysisLoadingBox.style.display = isLoading && phase === 'analyze' ? 'block' : 'none';
-        }
-    }
-
-    function clearAnalysisResult() {
-        analyzedPayload = null;
-
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.textContent = '상품 등록하기';
-        }
-
-        if (analysisResultBox) {
-            analysisResultBox.style.display = 'none';
-        }
-
-        if (analysisResultMeta) {
-            analysisResultMeta.textContent = '';
-        }
-
-        if (analysisResultSummary) {
-            analysisResultSummary.textContent = '';
-        }
-
-        if (analysisLoadingBox) {
-            analysisLoadingBox.style.display = 'none';
-        }
-    }
-
-    function renderAnalysisResult(payload) {
-        analyzedPayload = payload;
-
-        if (submitButton) {
-            submitButton.disabled = false;
-        }
-
-        if (!analysisResultBox || !analysisResultMeta || !analysisResultSummary) {
-            return;
-        }
-
-        const totalSummary = payload.totalSlideCount ? `전체 ${payload.totalSlideCount}장` : '';
-        const analyzedSummary = payload.slideCount ? `분석 ${payload.slideCount}장` : '';
-        const excludedSummary = Array.isArray(payload.excludedPages) && payload.excludedPages.length
-            ? `제외 ${payload.excludedPages.join(', ')}`
-            : '';
-
-        analysisResultMeta.textContent = [totalSummary, analyzedSummary, excludedSummary]
-            .filter(Boolean)
-            .join(' · ');
-        analysisResultSummary.textContent = payload.summary?.summary
-            || payload.aiSummary
-            || 'AI 분석 요약이 없습니다.';
-        if (analysisLoadingBox) {
-            analysisLoadingBox.style.display = 'none';
-        }
-        analysisResultBox.style.display = 'block';
     }
 
     window.addEventListener('beforeunload', (event) => {
@@ -190,15 +106,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dataTransfer = new DataTransfer();
         selectedThumbnails.forEach((file) => dataTransfer.items.add(file));
         thumbnailInput.files = dataTransfer.files;
-    }
-
-    function markAnalysisDirty() {
-        if (!analyzedPayload) {
-            return;
-        }
-
-        clearAnalysisResult();
-        setError('입력 내용이 변경되어 AI 분석을 다시 실행해야 합니다.');
     }
 
     function renderThumbnailPreview() {
@@ -248,7 +155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setError('');
                 syncThumbnailInput();
                 renderThumbnailPreview();
-                markAnalysisDirty();
             });
         });
 
@@ -256,7 +162,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             input.addEventListener('change', () => {
                 representativeThumbnailIndex = Number(input.value) || 0;
                 renderThumbnailPreview();
-                markAnalysisDirty();
             });
         });
     }
@@ -282,7 +187,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             productFileInput.value = '';
             setError('');
             renderProductFilePreview();
-            markAnalysisDirty();
         });
     }
 
@@ -317,8 +221,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('usePlace', usePlaceInput.value.trim());
         formData.append('usePurpose', usePurposeInput.value.trim());
         formData.append('description', getNormalizedDescription());
+        formData.append('aiSummaryText', String(aiSummaryInput?.value || '').trim());
         formData.append('keywords', keywordsInput.value.trim());
-        formData.append('excludedPages', excludedPagesInput.value.trim());
         formData.append('representativeThumbnailIndex', String(representativeThumbnailIndex));
 
         selectedThumbnails.forEach((file) => formData.append('thumbnail', file));
@@ -330,16 +234,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return formData;
     }
 
-    function validateForAnalysis() {
+    function validateForSubmit() {
         const title = titleInput.value.trim();
+        const aiSummaryText = String(aiSummaryInput?.value || '').trim();
 
         if (!title) return '상품명을 입력해 주세요.';
         if (!selectedThumbnails.length) return '상품 이미지를 업로드해 주세요.';
-        if (!selectedProductFile) return '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.';
+        if (!selectedProductFile) return 'PPT 또는 PPTX 파일을 업로드해 주세요.';
+        if (!aiSummaryText) return 'AI 분석결과를 입력해 주세요.';
 
         const ext = selectedProductFile.name.split('.').pop()?.toLowerCase();
         if (!['ppt', 'pptx'].includes(ext || '')) {
-            return 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.';
+            return 'AI PPT 등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.';
         }
 
         return '';
@@ -366,37 +272,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         thumbnailInput.value = '';
         syncThumbnailInput();
         renderThumbnailPreview();
-        markAnalysisDirty();
     });
 
     productFileInput.addEventListener('change', () => {
         selectedProductFile = productFileInput.files?.[0] || null;
         setError('');
         renderProductFilePreview();
-        markAnalysisDirty();
     });
 
     filterNumericInput(priceInput);
     filterNumericInput(salePriceInput);
     isFreeInput.addEventListener('change', togglePriceInputs);
     togglePriceInputs();
-
-    [
-        titleInput,
-        usePlaceInput,
-        usePurposeInput,
-        keywordsInput,
-        excludedPagesInput
-    ].forEach((input) => {
-        input?.addEventListener('input', markAnalysisDirty);
-        input?.addEventListener('change', markAnalysisDirty);
-    });
-
-    if (descriptionEditor) {
-        descriptionEditor.events.on('change', markAnalysisDirty);
-    } else {
-        descriptionInput?.addEventListener('input', markAnalysisDirty);
-    }
 
     try {
         const meResponse = await fetch('/me', {
@@ -406,7 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const meData = await meResponse.json();
 
         if (!meData.loggedIn || (meData.role !== 'seller' && meData.role !== 'admin')) {
-            alert('셀러 또는 관리자만 접근할 수 있습니다.');
+            alert('판매자 또는 관리자만 접근할 수 있습니다.');
             window.location.href = '/';
             return;
         }
@@ -417,56 +304,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    analyzeButton?.addEventListener('click', async () => {
-        setError('');
-
-        const validationError = validateForAnalysis();
-        if (validationError) {
-            setError(validationError);
-            return;
-        }
-
-        try {
-            setLoading(true, 'analyze');
-            if (analysisResultBox) {
-                analysisResultBox.style.display = 'none';
-            }
-
-            const response = await fetch('/api/seller/products-ai/analyze', {
-                method: 'POST',
-                credentials: 'include',
-                body: buildBaseFormData()
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                clearAnalysisResult();
-                setError(data.message || 'AI 분석에 실패했습니다.');
-                return;
-            }
-
-            renderAnalysisResult(data.analysisResult || data);
-            alert(data.message || 'AI 분석이 완료되었습니다.');
-        } catch (error) {
-            console.error('AI 분석 실패:', error);
-            clearAnalysisResult();
-            setError('서버와 통신 중 오류가 발생했습니다.');
-        } finally {
-            setLoading(false);
-        }
-    });
-
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setError('');
 
-        if (!analyzedPayload) {
-            setError('먼저 AI 분석을 완료해 주세요.');
-            return;
-        }
-
-        const validationError = validateForAnalysis();
+        const validationError = validateForSubmit();
         if (validationError) {
             setError(validationError);
             return;
@@ -478,10 +320,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const formData = buildBaseFormData();
-        formData.append('analysisPayload', JSON.stringify(analyzedPayload));
 
         try {
-            setLoading(true, 'register');
+            setLoading(true);
 
             const response = await fetch('/api/seller/products-ai', {
                 method: 'POST',
@@ -492,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (!data.success) {
-                setError(data.message || 'AI PPT등록에 실패했습니다.');
+                setError(data.message || 'AI PPT 등록에 실패했습니다.');
                 return;
             }
 
@@ -500,7 +341,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(data.message);
             window.location.href = `/products-page/${data.productId}`;
         } catch (error) {
-            console.error('AI PPT등록 실패:', error);
+            console.error('AI PPT 등록 실패:', error);
             setError('서버와 통신 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);

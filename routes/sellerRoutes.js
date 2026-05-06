@@ -212,6 +212,13 @@ module.exports = (db) => {
 
     function getExistingProductFiles(product) {
         if (product?.product_files_json) {
+            if (!aiSummaryTextRaw) {
+                return res.json({
+                    success: false,
+                    message: 'AI 분석결과를 입력해 주세요.'
+                });
+            }
+
             try {
                 const parsedFiles = JSON.parse(product.product_files_json);
 
@@ -931,10 +938,9 @@ module.exports = (db) => {
             const isFree = req.body.isFree === '1' ? 1 : 0;
             const usePlace = req.body.usePlace?.trim() || '';
             const usePurpose = req.body.usePurpose?.trim() || '';
-            const excludedPagesRaw = req.body.excludedPages?.trim() || '';
-            const analysisPayloadRaw = req.body.analysisPayload || '';
             const sellerNote = sanitizeRichText(req.body.description);
             const sellerNotePlainText = toPlainText(sellerNote);
+            const aiSummaryTextRaw = String(req.body.aiSummaryText || '').trim();
             const keywords = req.body.keywords?.trim() || '';
 
             const thumbnails = req.files?.thumbnail || [];
@@ -984,18 +990,6 @@ module.exports = (db) => {
                 });
             }
 
-            let excludedPages = [];
-            let analysisPayload = null;
-            try {
-                excludedPages = parseExcludedPages(excludedPagesRaw);
-                analysisPayload = parseAnalysisPayload(analysisPayloadRaw);
-            } catch (error) {
-                return res.json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
             const fileExt = path.extname(productFile.originalname || '').toLowerCase();
             if (!['.ppt', '.pptx'].includes(fileExt)) {
                 return res.json({
@@ -1033,9 +1027,18 @@ module.exports = (db) => {
                         isRepresentative: index === representativeThumbnailIndex
                     }))
                 );
-                const analysisResult = analysisPayload || null;
+                const analysisResult = {
+                    summary: {
+                        summary: aiSummaryTextRaw
+                    },
+                    slides: [],
+                    excludedPages: [],
+                    slideCount: 0,
+                    totalSlideCount: 0,
+                    analyzedPages: []
+                };
 
-                if (!analysisResult) {
+                if (false) {
                     return res.json({
                         success: false,
                         message: '먼저 AI 분석을 완료해 주세요.'
