@@ -224,11 +224,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         ).trim();
     }
 
-    function hasPptProductFile() {
-        return selectedProductFiles.some((file) => {
-            const ext = file.name.split('.').pop()?.toLowerCase();
-            return ext === 'ppt' || ext === 'pptx';
-        });
+    function getSelectedProductFilesSizeMb() {
+        const totalBytes = selectedProductFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
+        return totalBytes / (1024 * 1024);
     }
 
     function buildBaseFormData() {
@@ -258,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!selectedThumbnails.length) return '상품 이미지를 업로드해 주세요.';
         if (!selectedProductFiles.length) return '상품 파일을 업로드해 주세요.';
         if (selectedProductFiles.length > MAX_PRODUCT_FILES) return '상품 파일은 최대 10개까지 업로드할 수 있습니다.';
-        if (!hasPptProductFile()) return '업로드한 파일 중 최소 1개는 PPT 또는 PPTX 파일이어야 합니다.';
         if (!aiSummaryText) return 'AI 분석결과를 입력해 주세요.';
 
         return '';
@@ -360,9 +357,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: formData
             });
 
-            const data = await response.json();
+            const responseContentType = response.headers.get('content-type') || '';
+            let data = null;
 
-            if (!data.success) {
+            if (responseContentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const rawText = await response.text();
+
+                if (response.status === 413) {
+                    setError('업로드 용량이 너무 큽니다. 파일 수나 용량을 줄여서 다시 시도해 주세요.');
+                    return;
+                }
+
+                throw new Error(rawText || `HTTP ${response.status}`);
+            }
+
+            if (!response.ok || !data?.success) {
                 setError(data.message || 'AI PPT 등록에 실패했습니다.');
                 return;
             }
@@ -372,6 +383,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = `/products-page/${data.productId}`;
         } catch (error) {
             console.error('AI PPT 등록 실패:', error);
+            const totalSizeMb = getSelectedProductFilesSizeMb();
+
+            if (/413|payload too large|request entity too large/i.test(String(error?.message || ''))) {
+                setError('업로드 용량이 너무 큽니다. 파일 수나 용량을 줄여서 다시 시도해 주세요.');
+                return;
+            }
+
+            if (totalSizeMb >= 20) {
+                setError(`첨부한 파일 총 용량이 약 ${totalSizeMb.toFixed(1)}MB입니다. 업로드 용량 제한에 걸렸을 수 있어요. 파일 수나 용량을 줄여서 다시 시도해 주세요.`);
+                return;
+            }
+
             setError('서버와 통신 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);
