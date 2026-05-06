@@ -712,7 +712,7 @@ module.exports = (db) => {
             }
 
             if (!productFiles.length) {
-                return res.json({ success: false, message: '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.' });
+                return res.json({ success: false, message: '상품 파일을 1개 이상 업로드해 주세요.' });
             }
 
             let excludedPages = [];
@@ -725,15 +725,7 @@ module.exports = (db) => {
             if (productFiles.length > 10) {
                 return res.json({
                     success: false,
-                    message: 'PPT 상품 파일은 최대 10개까지 업로드할 수 있습니다.'
-                });
-            }
-
-            const fileExt = path.extname(productFile.originalname || '').toLowerCase();
-            if (false && !['.ppt', '.pptx'].includes(fileExt)) {
-                return res.json({
-                    success: false,
-                    message: 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                    message: '상품 파일은 최대 10개까지 업로드할 수 있습니다.'
                 });
             }
 
@@ -1005,15 +997,14 @@ module.exports = (db) => {
             if (!productFiles.length) {
                 return res.json({
                     success: false,
-                    message: '분석할 PPT 또는 PPTX 파일을 업로드해 주세요.'
+                    message: '상품 파일을 1개 이상 업로드해 주세요.'
                 });
             }
 
-            const fileExt = path.extname(productFile.originalname || '').toLowerCase();
-            if (!['.ppt', '.pptx'].includes(fileExt)) {
+            if (productFiles.length > 10) {
                 return res.json({
                     success: false,
-                    message: 'AI PPT등록에서는 PPT 또는 PPTX 파일만 업로드할 수 있습니다.'
+                    message: '상품 파일은 최대 10개까지 업로드할 수 있습니다.'
                 });
             }
 
