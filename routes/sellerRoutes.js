@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -24,14 +24,14 @@ module.exports = (db) => {
         if (!req.session.userId) {
             return res.status(401).json({
                 success: false,
-                message: '로그인이 필요합니다.'
+                message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??'
             });
         }
 
         if (req.session.role !== 'seller' && req.session.role !== 'admin') {
             return res.status(403).json({
                 success: false,
-                message: '셀러 또는 관리자만 접근할 수 있습니다.'
+                message: '????먮뒗 愿由ъ옄留??묎렐?????덉뒿?덈떎.'
             });
         }
 
@@ -212,13 +212,6 @@ module.exports = (db) => {
 
     function getExistingProductFiles(product) {
         if (product?.product_files_json) {
-            if (!aiSummaryTextRaw) {
-                return res.json({
-                    success: false,
-                    message: 'AI 분석결과를 입력해 주세요.'
-                });
-            }
-
             try {
                 const parsedFiles = JSON.parse(product.product_files_json);
 
@@ -471,7 +464,7 @@ module.exports = (db) => {
             } else if (file.fieldname === 'editorImage') {
                 cb(null, editorImageDir);
             } else {
-                cb(new Error('알 수 없는 파일 필드입니다.'));
+                cb(new Error('?????녿뒗 ?뚯씪 ?꾨뱶?낅땲??'));
             }
         },
         filename: (req, file, cb) => {
@@ -489,7 +482,7 @@ module.exports = (db) => {
         }
     });
 
-    // 상품 등록 페이지
+    // ?곹뭹 ?깅줉 ?섏씠吏
     router.get('/seller-upload-page', requireSellerOrAdmin, (req, res) => {
         res.render('seller-upload');
     });
@@ -500,7 +493,7 @@ module.exports = (db) => {
         });
     });
 
-    // 상품 관리 페이지
+    // ?곹뭹 愿由??섏씠吏
     router.post(
         '/api/editor/image-upload',
         requireSellerOrAdminApi,
@@ -511,14 +504,14 @@ module.exports = (db) => {
             if (!file) {
                 return res.status(400).json({
                     success: false,
-                    message: '업로드할 이미지를 선택해 주세요.'
+                    message: '?낅줈?쒗븷 ?대?吏瑜??좏깮??二쇱꽭??'
                 });
             }
 
             if (!/^image\//i.test(file.mimetype || '')) {
                 return res.status(400).json({
                     success: false,
-                    message: '에디터에는 이미지 파일만 업로드할 수 있습니다.'
+                    message: '?먮뵒?곗뿉???대?吏 ?뚯씪留??낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
@@ -535,8 +528,8 @@ module.exports = (db) => {
             absolutePath: file.path,
             publicPath: `/uploads/thumbnails/${file.filename}`,
             label: index === representativeThumbnailIndex
-                ? `대표 상품 이미지 ${index + 1}`
-                : `상품 이미지 ${index + 1}`
+                ? `????곹뭹 ?대?吏 ${index + 1}`
+                : `?곹뭹 ?대?吏 ${index + 1}`
         }));
     }
 
@@ -636,7 +629,7 @@ module.exports = (db) => {
         const parsed = JSON.parse(rawValue);
 
         if (!parsed || !Array.isArray(parsed.slides) || !parsed.summary) {
-            throw new Error('AI 분석 결과 형식이 올바르지 않습니다.');
+            throw new Error('AI 遺꾩꽍 寃곌낵 ?뺤떇???щ컮瑜댁? ?딆뒿?덈떎.');
         }
 
         return {
@@ -658,7 +651,7 @@ module.exports = (db) => {
 
         const parsed = JSON.parse(rawValue);
         if (!Array.isArray(parsed)) {
-            throw new Error('상품 이미지 상태를 해석할 수 없습니다.');
+            throw new Error('?곹뭹 ?대?吏 ?곹깭瑜??댁꽍?????놁뒿?덈떎.');
         }
 
         return parsed.map((item, index) => ({
@@ -697,22 +690,22 @@ module.exports = (db) => {
             }) || productFiles[0];
 
             if (!title) {
-                return res.json({ success: false, message: '상품명을 입력해 주세요.' });
+                return res.json({ success: false, message: '?곹뭹紐낆쓣 ?낅젰??二쇱꽭??' });
             }
 
             if (!thumbnails.length) {
-                return res.json({ success: false, message: '상품 이미지를 업로드해 주세요.' });
+                return res.json({ success: false, message: '?곹뭹 ?대?吏瑜??낅줈?쒗빐 二쇱꽭??' });
             }
 
             if (productFiles.length > 10) {
                 return res.json({
                     success: false,
-                    message: '상품 파일은 최대 10개까지 업로드할 수 있습니다.'
+                    message: '?곹뭹 ?뚯씪? 理쒕? 10媛쒓퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
             if (!productFiles.length) {
-                return res.json({ success: false, message: '상품 파일을 1개 이상 업로드해 주세요.' });
+                return res.json({ success: false, message: '?곹뭹 ?뚯씪??1媛??댁긽 ?낅줈?쒗빐 二쇱꽭??' });
             }
 
             let excludedPages = [];
@@ -725,7 +718,7 @@ module.exports = (db) => {
             if (productFiles.length > 10) {
                 return res.json({
                     success: false,
-                    message: '상품 파일은 최대 10개까지 업로드할 수 있습니다.'
+                    message: '?곹뭹 ?뚯씪? 理쒕? 10媛쒓퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
@@ -755,14 +748,14 @@ module.exports = (db) => {
 
                 return res.json({
                     success: true,
-                    message: 'AI 분석이 완료되었습니다. 결과를 확인한 뒤 상품을 등록해 주세요.',
+                    message: 'AI 遺꾩꽍???꾨즺?섏뿀?듬땲?? 寃곌낵瑜??뺤씤?????곹뭹???깅줉??二쇱꽭??',
                     analysisResult
                 });
             } catch (error) {
-                console.error('AI 상품 사전 분석 오류:', error);
+                console.error('AI ?곹뭹 ?ъ쟾 遺꾩꽍 ?ㅻ쪟:', error);
                 return res.status(500).json({
                     success: false,
-                    message: `PPT 분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
+                    message: `PPT 遺꾩꽍 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎. ${error.message || ''}`.trim()
                 });
             }
         }
@@ -776,7 +769,7 @@ module.exports = (db) => {
         res.render('seller-sales');
     });
 
-    // 상품 등록 API
+    // ?곹뭹 ?깅줉 API
     router.post(
         '/api/seller/products',
         requireSellerOrAdminApi,
@@ -801,35 +794,35 @@ module.exports = (db) => {
             if (!title) {
                 return res.json({
                     success: false,
-                    message: '상품명을 입력해주세요.'
+                    message: '?곹뭹紐낆쓣 ?낅젰?댁＜?몄슂.'
                 });
             }
 
             if (!isFree && (!price || Number(price) < 0)) {
                 return res.json({
                     success: false,
-                    message: '올바른 판매가를 입력해주세요.'
+                    message: '?щ컮瑜??먮ℓ媛瑜??낅젰?댁＜?몄슂.'
                 });
             }
 
             if (!thumbnail) {
                 return res.json({
                     success: false,
-                    message: '상품 썸네일을 업로드해주세요.'
+                    message: '?곹뭹 ?몃꽕?쇱쓣 ?낅줈?쒗빐二쇱꽭??'
                 });
             }
 
             if (!productFile) {
                 return res.json({
                     success: false,
-                    message: '판매상품 파일을 업로드해주세요.'
+                    message: '?먮ℓ?곹뭹 ?뚯씪???낅줈?쒗빐二쇱꽭??'
                 });
             }
 
             if (productFiles.length > 5) {
                 return res.json({
                     success: false,
-                    message: '판매상품 파일은 최대 5개까지 업로드할 수 있습니다.'
+                    message: '?먮ℓ?곹뭹 ?뚯씪? 理쒕? 5媛쒓퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
@@ -847,7 +840,7 @@ module.exports = (db) => {
                 console.error('thumbnail storage upload error:', error);
                 return res.status(500).json({
                     success: false,
-                    message: '?곹뭹 ?몃꽕?쇱쓣 ?ㅼ옣?섎뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+                    message: '?怨밸? ?紐껉퐬??깆뱽 ??쇱삢??롫뮉 餓???살첒揶쎛 獄쏆뮇源??됰뮸??덈뼄.'
                 });
             }
 
@@ -859,7 +852,7 @@ module.exports = (db) => {
                 console.error('product file storage upload error:', error);
                 return res.status(500).json({
                     success: false,
-                    message: '상품 파일 업로드에 실패했습니다.'
+                    message: '?곹뭹 ?뚯씪 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
@@ -918,16 +911,16 @@ module.exports = (db) => {
 
             db.query(sql, values, (err, result) => {
                 if (err) {
-                    console.error('상품 등록 오류:', err);
+                    console.error('?곹뭹 ?깅줉 ?ㅻ쪟:', err);
                     return res.json({
                         success: false,
-                        message: '상품 등록에 실패했습니다.'
+                        message: '?곹뭹 ?깅줉???ㅽ뙣?덉뒿?덈떎.'
                     });
                 }
 
                 return res.json({
                     success: true,
-                    message: '상품이 등록되었습니다.',
+                    message: '?곹뭹???깅줉?섏뿀?듬땲??',
                     productId: result.insertId
                 });
             });
@@ -962,49 +955,49 @@ module.exports = (db) => {
             if (!title) {
                 return res.json({
                     success: false,
-                    message: '상품명을 입력해 주세요.'
+                    message: '?곹뭹紐낆쓣 ?낅젰??二쇱꽭??'
                 });
             }
 
             if (!isFree && (!price || Number(price) < 0)) {
                 return res.json({
                     success: false,
-                    message: '올바른 판매가를 입력해 주세요.'
+                    message: '?щ컮瑜??먮ℓ媛瑜??낅젰??二쇱꽭??'
                 });
             }
 
             if (!thumbnail) {
                 return res.json({
                     success: false,
-                    message: '상품 썸네일을 업로드해 주세요.'
+                    message: '?곹뭹 ?몃꽕?쇱쓣 ?낅줈?쒗빐 二쇱꽭??'
                 });
             }
 
             if (thumbnails.length > 10) {
                 return res.json({
                     success: false,
-                    message: '상품 이미지는 최대 10장까지 업로드할 수 있습니다.'
+                    message: '?곹뭹 ?대?吏??理쒕? 10?κ퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
             if (thumbnails.length > 10) {
                 return res.json({
                     success: false,
-                    message: '상품 이미지는 최대 10장까지 업로드할 수 있습니다.'
+                    message: '?곹뭹 ?대?吏??理쒕? 10?κ퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
             if (!productFiles.length) {
                 return res.json({
                     success: false,
-                    message: '상품 파일을 1개 이상 업로드해 주세요.'
+                    message: '?곹뭹 ?뚯씪??1媛??댁긽 ?낅줈?쒗빐 二쇱꽭??'
                 });
             }
 
             if (productFiles.length > 10) {
                 return res.json({
                     success: false,
-                    message: '상품 파일은 최대 10개까지 업로드할 수 있습니다.'
+                    message: '?곹뭹 ?뚯씪? 理쒕? 10媛쒓퉴吏 ?낅줈?쒗븷 ???덉뒿?덈떎.'
                 });
             }
 
@@ -1052,11 +1045,11 @@ module.exports = (db) => {
                 if (false) {
                     return res.json({
                         success: false,
-                        message: '먼저 AI 분석을 완료해 주세요.'
+                        message: '癒쇱? AI 遺꾩꽍???꾨즺??二쇱꽭??'
                     });
                 }
 
-                const summaryText = analysisResult.summary?.summary?.trim() || sellerNotePlainText || `${title} PPT 템플릿입니다.`;
+                const summaryText = analysisResult.summary?.summary?.trim() || sellerNotePlainText || `${title} PPT ?쒗뵆由우엯?덈떎.`;
 
                 const sql = `
                     INSERT INTO products (
@@ -1103,16 +1096,16 @@ module.exports = (db) => {
 
                 db.query(sql, values, (err, result) => {
                     if (err) {
-                        console.error('AI 상품 등록 오류:', err);
+                        console.error('AI ?곹뭹 ?깅줉 ?ㅻ쪟:', err);
                         return res.json({
                             success: false,
-                            message: 'AI PPT등록 저장에 실패했습니다.'
+                            message: 'AI PPT?깅줉 ??μ뿉 ?ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
 
                     return res.json({
                         success: true,
-                        message: 'AI PPT등록이 완료되었습니다.',
+                        message: 'AI PPT?깅줉???꾨즺?섏뿀?듬땲??',
                         productId: result.insertId,
                         aiSummary: summaryText,
                         slideCount: analysisResult.slideCount || 0,
@@ -1122,16 +1115,16 @@ module.exports = (db) => {
                     });
                 });
             } catch (error) {
-                console.error('AI 상품 분석 오류:', error);
+                console.error('AI ?곹뭹 遺꾩꽍 ?ㅻ쪟:', error);
                 return res.status(500).json({
                     success: false,
-                    message: `PPT 분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
+                    message: `PPT 遺꾩꽍 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎. ${error.message || ''}`.trim()
                 });
             }
         }
     );
 
-    // 내 상품 목록 API
+    // ???곹뭹 紐⑸줉 API
     router.get('/api/seller/products', requireSellerOrAdminApi, (req, res) => {
         const isAdmin = req.session.role === 'admin';
         const q = (req.query.q || '').trim();
@@ -1183,10 +1176,10 @@ module.exports = (db) => {
 
         db.query(sql, params, (err, results) => {
             if (err) {
-                console.error('판매자 상품 목록 조회 오류:', err);
+                console.error('?먮ℓ???곹뭹 紐⑸줉 議고쉶 ?ㅻ쪟:', err);
                 return res.status(500).json({
                     success: false,
-                    message: '상품 목록을 불러오지 못했습니다.'
+                    message: '?곹뭹 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??'
                 });
             }
 
@@ -1213,8 +1206,8 @@ module.exports = (db) => {
                 products.created_by AS seller_id,
                 COALESCE(seller.nickname, seller.username) AS seller_name,
                 CASE
-                    WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '비회원')
-                    ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('회원 #', orders.user_id))
+                    WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '鍮꾪쉶??)
+                    ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('?뚯썝 #', orders.user_id))
                 END AS buyer_name
             FROM order_items
             JOIN orders ON order_items.order_id = orders.id
@@ -1238,8 +1231,8 @@ module.exports = (db) => {
                     OR orders.order_number LIKE ?
                     OR COALESCE(seller.nickname, seller.username) LIKE ?
                     OR CASE
-                        WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '비회원')
-                        ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('회원 #', orders.user_id))
+                        WHEN orders.user_id IS NULL THEN COALESCE(orders.guest_name, orders.guest_email, '鍮꾪쉶??)
+                        ELSE COALESCE(buyer.nickname, buyer.username, buyer.email, CONCAT('?뚯썝 #', orders.user_id))
                       END LIKE ?
                     OR COALESCE(orders.payment_method, '') LIKE ?
                 )
@@ -1255,17 +1248,17 @@ module.exports = (db) => {
                 console.error('seller sales list error:', err);
                 return res.status(500).json({
                     success: false,
-                    message: '판매 내역을 불러오지 못했습니다.'
+                    message: '?먮ℓ ?댁뿭??遺덈윭?ㅼ? 紐삵뻽?듬땲??'
                 });
             }
 
             const sales = results.map((sale) => ({
                 ...sale,
                 payment_method_label: sale.payment_method === 'bank'
-                    ? '계좌이체'
+                    ? '怨꾩쥖?댁껜'
                     : sale.payment_method === 'simple'
-                        ? '간편결제'
-                        : '신용카드'
+                        ? '媛꾪렪寃곗젣'
+                        : '?좎슜移대뱶'
             }));
 
             return res.json({
@@ -1275,7 +1268,7 @@ module.exports = (db) => {
         });
     });
 
-    // 상품 삭제 API
+    // ?곹뭹 ??젣 API
     router.delete('/api/seller/products/:id', requireSellerOrAdminApi, (req, res) => {
         const productId = req.params.id;
         const isAdmin = req.session.role === 'admin';
@@ -1289,17 +1282,17 @@ module.exports = (db) => {
 
         db.query(productSql, [productId], (productErr, productResults) => {
             if (productErr) {
-                console.error('삭제 대상 상품 조회 오류:', productErr);
+                console.error('??젣 ????곹뭹 議고쉶 ?ㅻ쪟:', productErr);
                 return res.status(500).json({
                     success: false,
-                    message: '상품 정보를 확인하지 못했습니다.'
+                    message: '?곹뭹 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?듬땲??'
                 });
             }
 
             if (productResults.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: '상품을 찾을 수 없습니다.'
+                    message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
                 });
             }
 
@@ -1308,7 +1301,7 @@ module.exports = (db) => {
             if (!isAdmin && Number(product.created_by) !== Number(req.session.userId)) {
                 return res.status(403).json({
                     success: false,
-                    message: '본인이 등록한 상품만 삭제할 수 있습니다.'
+                    message: '蹂몄씤???깅줉???곹뭹留???젣?????덉뒿?덈떎.'
                 });
             }
 
@@ -1320,10 +1313,10 @@ module.exports = (db) => {
 
             db.query(orderCheckSql, [productId], (orderErr, orderResults) => {
                 if (orderErr) {
-                    console.error('주문 연결 여부 확인 오류:', orderErr);
+                    console.error('二쇰Ц ?곌껐 ?щ? ?뺤씤 ?ㅻ쪟:', orderErr);
                     return res.status(500).json({
                         success: false,
-                        message: '삭제 가능 여부를 확인하지 못했습니다.'
+                        message: '??젣 媛???щ?瑜??뺤씤?섏? 紐삵뻽?듬땲??'
                     });
                 }
 
@@ -1332,7 +1325,7 @@ module.exports = (db) => {
                 if (linkedOrderCount > 0) {
                     return res.status(400).json({
                         success: false,
-                        message: '이미 주문된 상품은 삭제할 수 없습니다.'
+                        message: '?대? 二쇰Ц???곹뭹? ??젣?????놁뒿?덈떎.'
                     });
                 }
 
@@ -1343,23 +1336,23 @@ module.exports = (db) => {
 
                 db.query(deleteSql, [productId], (deleteErr) => {
                     if (deleteErr) {
-                        console.error('상품 삭제 오류:', deleteErr);
+                        console.error('?곹뭹 ??젣 ?ㅻ쪟:', deleteErr);
                         return res.status(500).json({
                             success: false,
-                            message: '상품 삭제에 실패했습니다.'
+                            message: '?곹뭹 ??젣???ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
 
                     return res.json({
                         success: true,
-                        message: '상품이 삭제되었습니다.'
+                        message: '?곹뭹????젣?섏뿀?듬땲??'
                     });
                 });
             });
         });
     });
 
-    // 상품 수정
+    // ?곹뭹 ?섏젙
     router.get('/seller-products/edit/:id', requireSellerOrAdmin, (req, res) => {
         res.render('seller-product-edit');
     });
@@ -1380,17 +1373,17 @@ module.exports = (db) => {
 
         db.query(sql, [productId], (err, results) => {
             if (err) {
-                console.error('판매자 상품 단건 조회 오류:', err);
+                console.error('?먮ℓ???곹뭹 ?④굔 議고쉶 ?ㅻ쪟:', err);
                 return res.status(500).json({
                     success: false,
-                    message: '상품 정보를 불러오지 못했습니다.'
+                    message: '?곹뭹 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??'
                 });
             }
 
             if (results.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: '상품을 찾을 수 없습니다.'
+                    message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
                 });
             }
 
@@ -1399,7 +1392,7 @@ module.exports = (db) => {
             if (!isAdmin && Number(product.created_by) !== Number(req.session.userId)) {
                 return res.status(403).json({
                     success: false,
-                    message: '본인이 등록한 상품만 수정할 수 있습니다.'
+                    message: '蹂몄씤???깅줉???곹뭹留??섏젙?????덉뒿?덈떎.'
                 });
             }
 
@@ -1410,13 +1403,13 @@ module.exports = (db) => {
         });
     });
 
-    // 상품 수정 저장
+    // ?곹뭹 ?섏젙 ???
     router.patch(
         '/api/seller/products/:id',
         requireSellerOrAdminApi,
         upload.fields([
             { name: 'thumbnail', maxCount: 10 },
-            { name: 'productFile', maxCount: 1 }
+            { name: 'productFile', maxCount: 10 }
         ]),
         async (req, res) => {
             const productId = req.params.id;
@@ -1428,12 +1421,11 @@ module.exports = (db) => {
             const isFree = req.body.isFree === '1' ? 1 : 0;
             const description = sanitizeRichText(req.body.description);
             const keywords = req.body.keywords?.trim();
-            const aiReanalyze = req.body.aiReanalyze === '1';
-            const excludedPagesRaw = req.body.excludedPages?.trim() || '';
             const thumbnailGalleryStateRaw = req.body.thumbnailGalleryState || '[]';
+            const productFileStateRaw = req.body.productFileState || '[]';
 
             const newThumbnails = req.files?.thumbnail || [];
-            const newProductFile = req.files?.productFile?.[0];
+            const newProductFiles = req.files?.productFile || [];
             const thumbnailClientIdsRaw = req.body.thumbnailClientId;
             const thumbnailClientIds = Array.isArray(thumbnailClientIdsRaw)
                 ? thumbnailClientIdsRaw
@@ -1449,18 +1441,16 @@ module.exports = (db) => {
             if (!title) {
                 return res.status(400).json({
                     success: false,
-                    message: '상품명을 입력해주세요.'
+                    message: '?곹뭹紐낆쓣 ?낅젰?댁＜?몄슂.'
                 });
             }
 
             if (!isFree && (!price || Number(price) < 0)) {
                 return res.status(400).json({
                     success: false,
-                    message: '올바른 판매가를 입력해주세요.'
+                    message: '?щ컮瑜??먮ℓ媛瑜??낅젰?댁＜?몄슂.'
                 });
             }
-
-            let excludedPages = [];
 
             const productSql = `
             SELECT *
@@ -1471,17 +1461,17 @@ module.exports = (db) => {
 
             db.query(productSql, [productId], async (productErr, productResults) => {
                 if (productErr) {
-                    console.error('수정 대상 상품 조회 오류:', productErr);
+                    console.error('?섏젙 ????곹뭹 議고쉶 ?ㅻ쪟:', productErr);
                     return res.status(500).json({
                         success: false,
-                        message: '상품 정보를 확인하지 못했습니다.'
+                        message: '?곹뭹 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?듬땲??'
                     });
                 }
 
                 if (productResults.length === 0) {
                     return res.status(404).json({
                         success: false,
-                        message: '상품을 찾을 수 없습니다.'
+                        message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
                     });
                 }
 
@@ -1490,7 +1480,7 @@ module.exports = (db) => {
                 if (!isAdmin && Number(product.created_by) !== Number(req.session.userId)) {
                     return res.status(403).json({
                         success: false,
-                        message: '본인이 등록한 상품만 수정할 수 있습니다.'
+                        message: '蹂몄씤???깅줉???곹뭹留??섏젙?????덉뒿?덈떎.'
                     });
                 }
 
@@ -1502,38 +1492,63 @@ module.exports = (db) => {
 
                 let uploadedReplacementProductFiles = [];
 
-                if (newProductFile) {
+                if (newProductFiles.length) {
                     try {
-                        uploadedReplacementProductFiles = await uploadProductFiles([newProductFile]);
+                        uploadedReplacementProductFiles = await uploadProductFiles(newProductFiles);
                     } catch (error) {
                         console.error('product file storage upload error:', error);
                         return res.status(500).json({
                             success: false,
-                            message: '상품 파일 업로드에 실패했습니다.'
+                            message: '?곹뭹 ?뚯씪 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
                 }
 
-                const uploadedReplacementProductFile = uploadedReplacementProductFiles[0];
-                const nextFileName = uploadedReplacementProductFile?.name
-                    || (newProductFile ? normalizeUploadFileName(newProductFile.originalname) : product.file_name);
+                let keptExistingProductFiles = [];
+                try {
+                    const parsedProductFileState = JSON.parse(productFileStateRaw);
+                    if (Array.isArray(parsedProductFileState)) {
+                        keptExistingProductFiles = parsedProductFileState
+                            .map((file) => ({
+                                name: normalizeUploadFileName(file?.name || ''),
+                                path: String(file?.path || '').trim()
+                            }))
+                            .filter((file) => file.name && file.path);
+                    }
+                } catch (error) {
+                    return res.status(400).json({
+                        success: false,
+                        message: '판매 파일 상태를 해석할 수 없습니다.'
+                    });
+                }
 
-                const nextFilePath = uploadedReplacementProductFile?.publicPath
-                    || (newProductFile ? `/uploads/products/${newProductFile.filename}` : product.file_path);
+                const nextProductFiles = [
+                    ...keptExistingProductFiles,
+                    ...uploadedReplacementProductFiles.map((file, index) => ({
+                        name: file?.name || normalizeUploadFileName(newProductFiles[index]?.originalname || ''),
+                        path: file?.publicPath || `/uploads/products/${newProductFiles[index]?.filename || ''}`
+                    }))
+                ];
 
-                const nextProductFiles = newProductFile
-                    ? [{
-                        name: nextFileName,
-                        path: nextFilePath
-                    }]
-                    : getExistingProductFiles(product);
+                if (!nextProductFiles.length) {
+                    return res.status(400).json({
+                        success: false,
+                        message: '판매 파일을 최소 1개 유지해 주세요.'
+                    });
+                }
+
+                if (nextProductFiles.length > 10) {
+                    return res.status(400).json({
+                        success: false,
+                        message: '상품 파일은 최대 10개까지 유지할 수 있습니다.'
+                    });
+                }
+
+                const nextFileName = nextProductFiles[0].name;
+                const nextFilePath = nextProductFiles[0].path;
                 const nextProductFilesJson = JSON.stringify(nextProductFiles);
 
                 const normalizedNextFileName = normalizeUploadFileName(nextFileName);
-                const isAiPptProduct = String(normalizedNextFileName || '').toLowerCase().endsWith('.ppt')
-                    || String(normalizedNextFileName || '').toLowerCase().endsWith('.pptx')
-                    || !!product.ai_summary_text
-                    || !!product.ai_slide_analysis_json;
 
                 let thumbnailGalleryState = [];
                 try {
@@ -1561,7 +1576,7 @@ module.exports = (db) => {
                         console.error('thumbnail storage upload error:', error);
                         return res.status(500).json({
                             success: false,
-                            message: '?곹뭹 ?몃꽕?쇱쓣 ?ㅼ옣?섎뒗 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+                            message: '?怨밸? ?紐껉퐬??깆뱽 ??쇱삢??롫뮉 餓???살첒揶쎛 獄쏆뮇源??됰뮸??덈뼄.'
                         });
                     }
                 }
@@ -1604,7 +1619,7 @@ module.exports = (db) => {
                         nextThumbnailGallery = [{
                             path: product.thumbnail_path,
                             localPath: resolveLocalThumbnailPath(product.thumbnail_path, ''),
-                            name: product.title || '대표 이미지',
+                            name: product.title || '????대?吏',
                             isRepresentative: true
                         }];
                     }
@@ -1613,14 +1628,14 @@ module.exports = (db) => {
                 if (!nextThumbnailGallery.length) {
                     return res.status(400).json({
                         success: false,
-                        message: '상품 이미지를 최소 1장 유지해 주세요.'
+                        message: '?곹뭹 ?대?吏瑜?理쒖냼 1???좎???二쇱꽭??'
                     });
                 }
 
                 if (nextThumbnailGallery.length > 10) {
                     return res.status(400).json({
                         success: false,
-                        message: '?곹뭹 ?대?吏??理쒕? 10?κ퉴吏 ?좎??????덉뒿?덈떎.'
+                        message: '?怨밸? ???筌왖??筌ㅼ뮆? 10?觀?댐쭪? ?醫???????됰뮸??덈뼄.'
                     });
                 }
 
@@ -1632,83 +1647,10 @@ module.exports = (db) => {
                 const nextThumbnailPath = representativeThumbnail?.path || product.thumbnail_path;
                 const nextThumbnailGalleryJson = JSON.stringify(nextThumbnailGallery);
 
-                let nextAiSlideAnalysisJson = product.ai_slide_analysis_json;
-                let nextAiSummaryText = product.ai_summary_text;
-                let nextAiExcludedPagesJson = product.ai_excluded_pages_json || JSON.stringify([]);
-                let updateMessage = '상품이 수정되었습니다.';
-
-                if (isAiPptProduct && aiReanalyze) {
-                    if (process.platform !== 'win32') {
-                        updateMessage = newProductFile
-                            ? 'PPT 파일과 상품 정보를 수정했습니다. 현재 배포 환경에서는 AI 재분석을 할 수 없어 기존 분석 결과를 유지했습니다.'
-                            : '상품 정보를 수정했습니다. 현재 배포 환경에서는 AI 재분석을 할 수 없어 기존 분석 결과를 유지했습니다.';
-                    } else {
-                    try {
-                        excludedPages = parseExcludedPages(excludedPagesRaw);
-                    } catch (error) {
-                        return res.status(400).json({
-                            success: false,
-                            message: error.message
-                        });
-                    }
-
-                    try {
-                        const publicDir = path.join(__dirname, '..', 'public');
-                        const currentProductFilePath = String(nextFilePath || '').replace(/^\/+/, '').replace(/\//g, path.sep);
-                        const pptAbsolutePath = newProductFile
-                            ? newProductFile.path
-                            : path.join(publicDir, currentProductFilePath);
-
-                        const referenceImages = nextThumbnailGallery
-                            .map((item, index) => {
-                                const publicPath = String(item.path || '');
-                                const localPath = resolveLocalThumbnailPath(publicPath, item.localPath);
-                                if (!publicPath || !localPath) {
-                                    return null;
-                                }
-
-                                return {
-                                    absolutePath: localPath,
-                                    publicPath,
-                                    label: item.isRepresentative
-                                        ? `대표 상품 이미지 ${index + 1}`
-                                        : `상품 이미지 ${index + 1}`
-                                };
-                            })
-                            .filter(Boolean);
-
-                        const analysisResult = await runPptAiPipeline({
-                            sourcePptPath: pptAbsolutePath,
-                            sourceFileName: normalizedNextFileName,
-                            outputKey: path.basename(
-                                newProductFile ? newProductFile.filename : currentProductFilePath,
-                                path.extname(newProductFile ? newProductFile.filename : currentProductFilePath)
-                            ),
-                            publicDir,
-                            outputNamespace: 'ppt-product-analysis',
-                            context: {
-                                title,
-                                keywords: cleanedKeywords,
-                                sellerNote: toPlainText(description)
-                            },
-                            referenceImages,
-                            excludedPages
-                        });
-
-                        nextAiSlideAnalysisJson = JSON.stringify(analysisResult.slides || []);
-                        nextAiSummaryText = analysisResult.summary?.summary?.trim()
-                            || toPlainText(description)
-                            || `${title} PPT 템플릿입니다.`;
-                        nextAiExcludedPagesJson = JSON.stringify(analysisResult.excludedPages || []);
-                    } catch (error) {
-                        console.error('AI product reanalysis error:', error);
-                        return res.status(500).json({
-                            success: false,
-                            message: `PPT 재분석 중 오류가 발생했습니다. ${error.message || ''}`.trim()
-                        });
-                    }
-                    }
-                }
+                const nextAiSlideAnalysisJson = product.ai_slide_analysis_json;
+                const nextAiSummaryText = product.ai_summary_text;
+                const nextAiExcludedPagesJson = product.ai_excluded_pages_json || JSON.stringify([]);
+                const updateMessage = '상품이 수정되었습니다.';
 
                 const updateSql = `
                 UPDATE products
@@ -1750,10 +1692,10 @@ module.exports = (db) => {
 
                 db.query(updateSql, values, (updateErr) => {
                     if (updateErr) {
-                        console.error('상품 수정 오류:', updateErr);
+                        console.error('?곹뭹 ?섏젙 ?ㅻ쪟:', updateErr);
                         return res.status(500).json({
                             success: false,
-                            message: '상품 수정에 실패했습니다.'
+                            message: '?곹뭹 ?섏젙???ㅽ뙣?덉뒿?덈떎.'
                         });
                     }
 
@@ -1767,12 +1709,12 @@ module.exports = (db) => {
         }
     );
 
-    // 슈퍼관리자용 판매 상태 변경 API
+    // ?덊띁愿由ъ옄???먮ℓ ?곹깭 蹂寃?API
     router.patch('/api/admin/products/:id/status', requireSellerOrAdminApi, (req, res) => {
         if (req.session.role !== 'admin') {
             return res.status(403).json({
                 success: false,
-                message: '관리자만 판매 상태를 변경할 수 있습니다.'
+                message: '愿由ъ옄留??먮ℓ ?곹깭瑜?蹂寃쏀븷 ???덉뒿?덈떎.'
             });
         }
 
@@ -1782,7 +1724,7 @@ module.exports = (db) => {
         if (isActive !== 0 && isActive !== 1 && isActive !== '0' && isActive !== '1') {
             return res.status(400).json({
                 success: false,
-                message: '올바른 판매 상태 값이 아닙니다.'
+                message: '?щ컮瑜??먮ℓ ?곹깭 媛믪씠 ?꾨떃?덈떎.'
             });
         }
 
@@ -1799,25 +1741,25 @@ module.exports = (db) => {
 
         db.query(sql, [nextValue, nextStopMemo || null, productId], (err, result) => {
             if (err) {
-                console.error('상품 판매 상태 변경 오류:', err);
+                console.error('?곹뭹 ?먮ℓ ?곹깭 蹂寃??ㅻ쪟:', err);
                 return res.status(500).json({
                     success: false,
-                    message: '판매 상태 변경에 실패했습니다.'
+                    message: '?먮ℓ ?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (result.affectedRows === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: '상품을 찾을 수 없습니다.'
+                    message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
                 });
             }
 
             return res.json({
                 success: true,
                 message: nextValue === 1
-                    ? '상품이 판매중으로 변경되었습니다.'
-                    : '상품이 판매중지되었습니다.'
+                    ? '?곹뭹???먮ℓ以묒쑝濡?蹂寃쎈릺?덉뒿?덈떎.'
+                    : '?곹뭹???먮ℓ以묒??섏뿀?듬땲??'
             });
         });
     });
@@ -1826,7 +1768,7 @@ module.exports = (db) => {
         if (req.session.role !== 'admin') {
             return res.status(403).json({
                 success: false,
-                message: '관리자만 추천 상품을 설정할 수 있습니다.'
+                message: '愿由ъ옄留?異붿쿇 ?곹뭹???ㅼ젙?????덉뒿?덈떎.'
             });
         }
 
@@ -1836,7 +1778,7 @@ module.exports = (db) => {
         if (isFeatured !== 0 && isFeatured !== 1 && isFeatured !== '0' && isFeatured !== '1') {
             return res.status(400).json({
                 success: false,
-                message: '올바른 추천 상태 값이 아닙니다.'
+                message: '?щ컮瑜?異붿쿇 ?곹깭 媛믪씠 ?꾨떃?덈떎.'
             });
         }
 
@@ -1848,28 +1790,29 @@ module.exports = (db) => {
 
         db.query(sql, [Number(isFeatured), productId], (err, result) => {
             if (err) {
-                console.error('추천 상품 상태 변경 오류:', err);
+                console.error('異붿쿇 ?곹뭹 ?곹깭 蹂寃??ㅻ쪟:', err);
                 return res.status(500).json({
                     success: false,
-                    message: '추천 상품 설정에 실패했습니다.'
+                    message: '異붿쿇 ?곹뭹 ?ㅼ젙???ㅽ뙣?덉뒿?덈떎.'
                 });
             }
 
             if (result.affectedRows === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: '상품을 찾을 수 없습니다.'
+                    message: '?곹뭹??李얠쓣 ???놁뒿?덈떎.'
                 });
             }
 
             return res.json({
                 success: true,
                 message: Number(isFeatured) === 1
-                    ? '추천 상품으로 설정되었습니다.'
-                    : '추천 상품에서 해제되었습니다.'
+                    ? '異붿쿇 ?곹뭹?쇰줈 ?ㅼ젙?섏뿀?듬땲??'
+                    : '異붿쿇 ?곹뭹?먯꽌 ?댁젣?섏뿀?듬땲??'
             });
         });
     });
 
     return router;
 };
+

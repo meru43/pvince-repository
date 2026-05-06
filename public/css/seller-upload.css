@@ -416,6 +416,30 @@
     color: #6b7280;
 }
 
+.product-file-preview-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.product-file-link {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+    text-decoration: none;
+}
+
+.product-file-link:hover {
+    text-decoration: underline;
+}
+
+.empty-file-message {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+}
+
 .preview-remove-btn {
     display: inline-flex;
     align-items: center;

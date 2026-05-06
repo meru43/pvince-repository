@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const MAX_THUMBNAILS = 10;
+    const MAX_PRODUCT_FILES = 10;
     const closeButtonSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-x" aria-hidden="true" focusable="false">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -23,20 +24,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const descriptionInput = document.getElementById('product-description');
     const keywordsInput = document.getElementById('product-keywords');
     const productFileInput = document.getElementById('product-file');
-    const reanalyzeGroup = document.getElementById('product-reanalyze-group');
-    const reanalyzeInput = document.getElementById('product-ai-reanalyze');
-    const excludedPagesGroup = document.getElementById('product-excluded-pages-group');
-    const excludedPagesInput = document.getElementById('product-excluded-pages');
-
     const currentProductFile = document.getElementById('current-product-file');
+    const newProductFileList = document.getElementById('new-product-file-list');
     const productActiveStatus = document.getElementById('product-active-status');
     const productStopMemo = document.getElementById('product-stop-memo');
     const productStopMemoGroup = document.getElementById('product-stop-memo-group');
-
-    let isSubmitting = false;
-    let aiPptProduct = false;
-    let thumbnailItems = [];
-    let nextThumbnailToken = 1;
 
     const descriptionEditor = window.createProductJoditEditor
         ? window.createProductJoditEditor(descriptionInput)
@@ -45,11 +37,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pathParts = window.location.pathname.split('/');
     const productId = pathParts[pathParts.length - 1];
 
+    let isSubmitting = false;
+    let thumbnailItems = [];
+    let existingProductFiles = [];
+    let newProductFiles = [];
+    let nextThumbnailToken = 1;
+
     function setError(message = '') {
         errorText.textContent = message;
     }
 
-    function setLoading(isLoading, phase = 'edit') {
+    function setLoading(isLoading) {
         isSubmitting = isLoading;
 
         if (submitButton) {
@@ -63,15 +61,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (loadingTitle) {
-            loadingTitle.textContent = phase === 'reanalyze'
-                ? 'PPT를 다시 분석하는 중입니다.'
-                : '상품 정보를 수정하는 중입니다.';
+            loadingTitle.textContent = '상품 정보를 수정하는 중입니다.';
         }
 
         if (loadingText) {
-            loadingText.textContent = phase === 'reanalyze'
-                ? '재분석과 수정이 끝날 때까지 페이지를 나가지 말아주세요.'
-                : '수정이 끝날 때까지 페이지를 나가지 말아주세요.';
+            loadingText.textContent = '수정이 끝날 때까지 페이지를 나가지 말아 주세요.';
         }
     }
 
@@ -90,29 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         salePriceInput.disabled = isFree;
     }
 
-    function isAiPptProduct(product) {
-        const filePath = String(product?.file_path || '').toLowerCase();
-        const fileName = String(product?.file_name || '').toLowerCase();
-        return filePath.endsWith('.ppt')
-            || filePath.endsWith('.pptx')
-            || fileName.endsWith('.ppt')
-            || fileName.endsWith('.pptx')
-            || !!product?.ai_summary_text
-            || !!product?.ai_slide_analysis_json;
-    }
-
-    function syncReanalyzeUi() {
-        const shouldShowExcludedPages = aiPptProduct && !!reanalyzeInput?.checked;
-        if (excludedPagesGroup) {
-            excludedPagesGroup.style.display = shouldShowExcludedPages ? 'block' : 'none';
-        }
-    }
-
-    function markRepresentative(index) {
-        thumbnailItems = thumbnailItems.map((item, itemIndex) => ({
-            ...item,
-            isRepresentative: itemIndex === index
-        }));
+    function formatFileSize(size) {
+        const kb = Math.max(1, Math.round(Number(size || 0) / 1024));
+        return `${kb}KB`;
     }
 
     function ensureRepresentative() {
@@ -125,6 +99,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function markRepresentative(index) {
+        thumbnailItems = thumbnailItems.map((item, itemIndex) => ({
+            ...item,
+            isRepresentative: itemIndex === index
+        }));
+    }
+
     function createThumbnailItemFromFile(file) {
         return {
             clientId: `new-${Date.now()}-${nextThumbnailToken += 1}`,
@@ -132,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: file.name,
             file,
             path: '',
+            localPath: '',
             previewUrl: URL.createObjectURL(file),
             isRepresentative: thumbnailItems.length === 0
         };
@@ -231,13 +213,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const filesToAdd = nextFiles.slice(0, availableSlots);
-        const skipped = nextFiles.length - filesToAdd.length;
-
         filesToAdd.forEach((file) => {
             thumbnailItems.push(createThumbnailItemFromFile(file));
         });
 
-        if (skipped > 0) {
+        if (nextFiles.length > filesToAdd.length) {
             setError('상품 이미지는 최대 10장까지 유지할 수 있습니다.');
         } else {
             setError('');
@@ -259,8 +239,112 @@ document.addEventListener('DOMContentLoaded', async () => {
         }));
     }
 
+    function getProductFileKey(file) {
+        if (file.source === 'existing') {
+            return `existing:${file.path}`;
+        }
+
+        return `new:${file.name}-${file.size}-${file.lastModified}`;
+    }
+
+    function renderExistingProductFiles() {
+        if (!existingProductFiles.length) {
+            currentProductFile.innerHTML = '<p class="empty-file-message">등록된 판매파일이 없습니다.</p>';
+            return;
+        }
+
+        currentProductFile.innerHTML = existingProductFiles.map((file, index) => `
+            <div class="product-file-preview-item">
+                <div class="product-file-preview-meta">
+                    <strong class="product-file-preview-name">${file.name}</strong>
+                    <span class="product-file-preview-size">기존 파일</span>
+                </div>
+                <div class="product-file-preview-actions">
+                    <a href="${file.path}" target="_blank" rel="noopener noreferrer" class="product-file-link">보기</a>
+                    <button type="button" class="preview-remove-btn" data-existing-file-index="${index}" aria-label="파일 제거">${closeButtonSvg}</button>
+                </div>
+            </div>
+        `).join('');
+
+        currentProductFile.querySelectorAll('[data-existing-file-index]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const index = Number(button.dataset.existingFileIndex);
+                if (Number.isNaN(index)) {
+                    return;
+                }
+
+                existingProductFiles.splice(index, 1);
+                setError('');
+                renderExistingProductFiles();
+            });
+        });
+    }
+
+    function renderNewProductFiles() {
+        if (!newProductFiles.length) {
+            newProductFileList.innerHTML = '';
+            return;
+        }
+
+        newProductFileList.innerHTML = newProductFiles.map((file, index) => `
+            <div class="product-file-preview-item">
+                <div class="product-file-preview-meta">
+                    <strong class="product-file-preview-name">${file.name}</strong>
+                    <span class="product-file-preview-size">${formatFileSize(file.size)}</span>
+                </div>
+                <button type="button" class="preview-remove-btn" data-new-file-index="${index}" aria-label="파일 제거">${closeButtonSvg}</button>
+            </div>
+        `).join('');
+
+        newProductFileList.querySelectorAll('[data-new-file-index]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const index = Number(button.dataset.newFileIndex);
+                if (Number.isNaN(index)) {
+                    return;
+                }
+
+                newProductFiles.splice(index, 1);
+                setError('');
+                renderNewProductFiles();
+            });
+        });
+    }
+
+    function mergeProductFiles(nextFiles) {
+        const totalCount = existingProductFiles.length + newProductFiles.length;
+        const availableSlots = MAX_PRODUCT_FILES - totalCount;
+
+        if (availableSlots <= 0) {
+            setError('상품 파일은 최대 10개까지 유지할 수 있습니다.');
+            return;
+        }
+
+        const knownKeys = new Set([
+            ...existingProductFiles.map(getProductFileKey),
+            ...newProductFiles.map(getProductFileKey)
+        ]);
+
+        const acceptedFiles = [];
+        nextFiles.forEach((file) => {
+            const key = getProductFileKey(file);
+            if (!knownKeys.has(key) && acceptedFiles.length < availableSlots) {
+                acceptedFiles.push(file);
+                knownKeys.add(key);
+            }
+        });
+
+        newProductFiles.push(...acceptedFiles);
+
+        if (acceptedFiles.length < nextFiles.length) {
+            setError('상품 파일은 최대 10개까지 유지할 수 있습니다.');
+        } else {
+            setError('');
+        }
+
+        renderNewProductFiles();
+    }
+
     isFreeInput.addEventListener('change', togglePriceInputs);
-    reanalyzeInput?.addEventListener('change', syncReanalyzeUi);
 
     thumbnailInput.addEventListener('change', () => {
         const files = Array.from(thumbnailInput.files || []);
@@ -270,6 +354,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         appendThumbnailFiles(files);
         thumbnailInput.value = '';
+    });
+
+    productFileInput.addEventListener('change', () => {
+        const files = Array.from(productFileInput.files || []);
+        if (!files.length) {
+            return;
+        }
+
+        mergeProductFiles(files);
+        productFileInput.value = '';
     });
 
     try {
@@ -287,7 +381,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const product = data.product;
-        aiPptProduct = isAiPptProduct(product);
 
         if (productActiveStatus) {
             productActiveStatus.textContent = Number(product.is_active) === 1 ? '판매중' : '판매중지';
@@ -316,21 +409,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         keywordsInput.value = product.keywords || '';
-
-        if (reanalyzeGroup) {
-            reanalyzeGroup.style.display = aiPptProduct ? 'block' : 'none';
-        }
-
-        if (excludedPagesInput) {
-            try {
-                const parsedExcludedPages = JSON.parse(product.ai_excluded_pages_json || '[]');
-                excludedPagesInput.value = Array.isArray(parsedExcludedPages)
-                    ? parsedExcludedPages.join(', ')
-                    : '';
-            } catch (error) {
-                excludedPagesInput.value = '';
-            }
-        }
 
         try {
             const parsedGallery = JSON.parse(product.thumbnail_gallery_json || '[]');
@@ -364,14 +442,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         renderThumbnailPreview();
-        syncReanalyzeUi();
 
-        if (product.file_name) {
-            currentProductFile.innerHTML = `<p>${product.file_name}</p>`;
-        } else {
-            currentProductFile.innerHTML = '<p>등록된 판매파일이 없습니다.</p>';
+        try {
+            const parsedProductFiles = JSON.parse(product.product_files_json || '[]');
+            if (Array.isArray(parsedProductFiles) && parsedProductFiles.length) {
+                existingProductFiles = parsedProductFiles
+                    .map((file) => ({
+                        source: 'existing',
+                        name: String(file?.name || '').trim(),
+                        path: String(file?.path || '').trim()
+                    }))
+                    .filter((file) => file.name && file.path);
+            }
+        } catch (error) {
+            existingProductFiles = [];
         }
 
+        if (!existingProductFiles.length && product.file_name && product.file_path) {
+            existingProductFiles = [{
+                source: 'existing',
+                name: product.file_name,
+                path: product.file_path
+            }];
+        }
+
+        renderExistingProductFiles();
+        renderNewProductFiles();
         togglePriceInputs();
     } catch (error) {
         console.error('상품 수정 정보 조회 실패:', error);
@@ -394,9 +490,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 : (descriptionEditor ? descriptionEditor.value : descriptionInput.value)
         ).trim();
         const keywords = keywordsInput.value.trim();
-        const shouldReanalyze = aiPptProduct && !!reanalyzeInput?.checked;
-        const excludedPages = shouldReanalyze && excludedPagesInput ? excludedPagesInput.value.trim() : '';
-        const hasNewProductFile = !!productFileInput.files[0];
 
         if (!title) {
             setError('상품명을 입력해 주세요.');
@@ -418,6 +511,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        if (!existingProductFiles.length && !newProductFiles.length) {
+            setError('판매 파일을 최소 1개 유지해 주세요.');
+            return;
+        }
+
+        if ((existingProductFiles.length + newProductFiles.length) > MAX_PRODUCT_FILES) {
+            setError('상품 파일은 최대 10개까지 유지할 수 있습니다.');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('title', title);
         formData.append('price', isFree ? '0' : price);
@@ -425,9 +528,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('isFree', isFree ? '1' : '0');
         formData.append('description', description);
         formData.append('keywords', keywords);
-        formData.append('excludedPages', excludedPages);
-        formData.append('aiReanalyze', shouldReanalyze ? '1' : '0');
         formData.append('thumbnailGalleryState', JSON.stringify(buildThumbnailPayload()));
+        formData.append('productFileState', JSON.stringify(existingProductFiles.map((file) => ({
+            name: file.name,
+            path: file.path
+        }))));
 
         thumbnailItems
             .filter((item) => item.source === 'new' && item.file)
@@ -436,12 +541,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 formData.append('thumbnailClientId', item.clientId);
             });
 
-        if (hasNewProductFile) {
-            formData.append('productFile', productFileInput.files[0]);
-        }
+        newProductFiles.forEach((file) => {
+            formData.append('productFile', file);
+        });
 
         try {
-            setLoading(true, shouldReanalyze ? 'reanalyze' : 'edit');
+            setLoading(true);
 
             const response = await fetch(`/api/seller/products/${productId}`, {
                 method: 'PATCH',
@@ -452,7 +557,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
 
             if (data.success) {
-                setLoading(false, 'edit');
                 alert(data.message);
                 window.location.href = '/seller-products-page';
             } else {
@@ -462,7 +566,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('상품 수정 실패:', error);
             setError('서버와 통신 중 오류가 발생했습니다.');
         } finally {
-            setLoading(false, 'edit');
+            setLoading(false);
         }
     });
 });
